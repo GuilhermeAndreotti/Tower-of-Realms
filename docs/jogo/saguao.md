@@ -1,0 +1,36 @@
+# Saguão
+
+O saguão (`Lobby`, [`lobby.gd`](../../scripts/lobby/lobby.gd)) é a zona segura: a Caoimhe anda livre, fala com os personagens e entra na dungeon pela porta, no centro da parede do fundo.
+
+## Coordenadas e arte
+
+O fundo tem 640×180 pixels, ampliado 3× na tela. As constantes do `Lobby` (móveis, tochas, porta, lugares) estão em pixels do fundo, os mesmos de `ferramentas/gerar_lobby.py`, que gera a arte. Mudou a posição de algo desenhado no fundo? Mude nos dois e gere de novo.
+
+- Móveis bloqueiam só a pegada da base; o resto é desenho.
+- Os personagens e móveis são ordenados pela altura dos pés (`y_sort`).
+- Chamas, brilhos e runas acesas são desenhados no jogo, não na arte.
+
+## Interação
+
+- O `Interagivel` mais perto dos pés, dentro do raio, fica em foco; Enter interage.
+- Uma interação por vez: durante conversa, entrada na dungeon ou apresentação de eventos, o jogador fica parado (`ocupado`).
+- Um `Interagivel` pode ter `requisito` (motivo para ainda não liberar) e `ao_interagir` (ação própria, como a porta); sem ação própria, abre a conversa dele.
+
+## Conversas
+
+As falas estão em `Conversas` ([`conversas.gd`](../../scripts/lobby/conversas.gd)), com o formato no comentário do arquivo. A chave é:
+
+- o id de um personagem: abre ao falar com ele;
+- outro id: conversa de história, aberta por um evento `conversa`.
+
+Ainda não há falas escritas; quem não tem conversa mostra "interação ainda não disponível". `CaixaDialogo` mostra a conversa: retrato, nome, texto, respostas com `ir_para` e `evento` por fala ou resposta.
+
+## Eventos de história
+
+Ao chegar (depois do fade), o saguão apresenta os eventos pendentes um de cada vez, com o jogador parado. Cada um sai da fila só depois de apresentado, então fechar o jogo no meio não perde o resto. Uma fala com `"evento": "desbloquear:<id>"` aplica o efeito na hora e põe a apresentação na fila, que roda quando a conversa acaba.
+
+O que é cada tipo de evento está em [Torre e andares](torre-e-andares.md#eventos-de-história).
+
+## Quem aparece
+
+Só os personagens liberados (`Elenco.disponiveis()`). Quem vai ser apresentado agora começa invisível e surge na apresentação.
