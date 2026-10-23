@@ -20,6 +20,15 @@ var _fim_em := -1.0
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	_saida = args[0] if args.size() > 0 else "user://capturas"
+	# a demo não mexe no progresso do jogador: save próprio, todos liberados,
+	# no andar 3 (a guarnição completa)
+	Progressao.arquivo = "user://demo_progresso.cfg"
+	Progressao.apagar()
+	for id in Elenco.IDS:
+		Progressao.desbloquear(id)
+	for n in [1, 2]:
+		Progressao.marcar_andar_vencido(n)
+	Andares.escolher(3)
 	if args.size() > 1:
 		var ids: Array[String] = []
 		ids.assign(args.slice(1))

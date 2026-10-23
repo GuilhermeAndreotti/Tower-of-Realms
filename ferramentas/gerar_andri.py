@@ -105,19 +105,20 @@ def gerar_folha(corpo):
 # ------------------------------------------------------------------ ícones
 # Mapas de 15x15 ('.' = transparente); cada ícone tem sua paleta.
 ICONES = {
-    "disparo": ({"k": CONTORNO, "g": (110, 118, 140, 255), "w": (190, 196, 214, 255), "t": DISPOSITIVO_ACESO, "y": (255, 170, 60, 255), "o": (255, 240, 170, 255)}, [
+    # Raio de fogo: núcleo vermelho, borda laranja e ponta amarela.
+    "disparo": ({"o": (255, 106, 0, 255), "r": (255, 0, 0, 255), "y": (255, 216, 0, 255)}, [
         "...............",
         "...............",
         "...............",
-        "...........y...",
-        ".kkkkkkkk.yoy..",
-        "kgwwwwwggktooy.",
-        "kgggggggggtooy.",
-        ".kkkkgggk.yoy..",
-        "....kggk...y...",
-        "....kggk.......",
-        "....kggk.......",
-        "....kkkk.......",
+        "...............",
+        "...............",
+        "........oooo...",
+        "...ooooorrryo..",
+        ".oorrrrrrryyyo.",
+        "...ooooorrryo..",
+        "........oooo...",
+        "...............",
+        "...............",
         "...............",
         "...............",
         "...............",

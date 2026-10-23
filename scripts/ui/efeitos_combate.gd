@@ -23,6 +23,7 @@ const NUMEROS := {
 	"pouco_efetivo": [EstiloUI.TEXTO_FRACO, 12],
 	"escudo": [EstiloUI.PONTO, 16],
 	"aviso": [EstiloUI.OURO, 13],
+	"nivel": [EstiloUI.OURO, 18],
 }
 
 

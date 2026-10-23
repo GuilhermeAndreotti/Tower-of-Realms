@@ -8,6 +8,7 @@ const MULT_GOLPE_PESADO := 1.8
 
 var textura: String
 var golpe_pesado_a_cada := 0
+var xp := -1  ## XP que dá ao ser vencido; -1 = a regra da Progressao (pelo HP)
 var _acoes := 0
 
 

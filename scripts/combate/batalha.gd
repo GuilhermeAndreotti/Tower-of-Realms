@@ -1,8 +1,9 @@
 class_name Batalha
 extends Node2D
-## Batalha de um andar: a equipe escolhida no seletor (até 3) contra os
-## inimigos. Controles: as teclas da barra (Q/E/R...), ←/→ ou clique troca o
-## alvo, Esc volta ao seletor no fim. Ações com "opcoes" abrem um seletor
+## Batalha de um andar (Andares.atual()): a equipe escolhida no seletor
+## contra os inimigos do andar. Controles: as teclas da barra (Q/E/R...),
+## ←/→ ou clique troca o alvo. Terminado o andar (vitória ou derrota), o
+## resultado aparece e Enter, Esc ou clique voltam ao saguão. Ações com "opcoes" abrem um seletor
 ## (lista na HUD ou, com "seletor": "radial", um anel no próprio lutador):
 ## ↑/↓ ou 1-9 escolhem (no anel, ←/→ também giram), ←/→ trocam o alvo,
 ## Enter (ou a tecla da ação) confirma e Esc cancela.
@@ -14,13 +15,19 @@ signal acao_escolhida(acao: String)
 const PONTOS_MAX := 5
 const PONTOS_INICIAIS := 3
 const TAMANHO_FILA := 7
-const CENA_SELETOR := "res://scenes/selecao_equipe.tscn"
+const CENA_SAGUAO := "res://scenes/lobby.tscn"
 
 ## Onde ficam os aliados, por tamanho da equipe (o primeiro vai na frente).
 const POSICOES_ALIADOS := [
 	[Vector2(220, 430)],
 	[Vector2(250, 432), Vector2(160, 410)],
 	[Vector2(265, 434), Vector2(175, 410), Vector2(110, 436)],
+]
+## Onde ficam os inimigos, por quantidade (o do meio um pouco à frente).
+const POSICOES_INIMIGOS := [
+	[Vector2(720, 430)],
+	[Vector2(650, 420), Vector2(800, 420)],
+	[Vector2(590, 410), Vector2(720, 430), Vector2(850, 410)],
 ]
 const COR_INVESTIDA := Color(0.75, 0.65, 1.0)
 
@@ -34,6 +41,14 @@ var ativo: Combatente  ## aliado da vez (ou o último que agiu)
 var alvo := 0  ## índice entre os inimigos vivos
 var aliado_alvo := 0  ## índice entre os aliados vivos (ações com alvo "aliado")
 var opcao := ""  ## opção escolhida para a ação em execução (elemento, artefato...)
+var andar := 1  ## número do andar (Andares)
+var ids_equipe: Array[String] = []  ## ids do Elenco da equipe, na ordem de `equipe`
+## Resultado da vitória (Progressao.recompensar_vitoria), dado uma vez só.
+var recompensas: Array[Dictionary] = []
+## Andares.concluir() da vitória ({} até lá).
+var conclusao := {}
+var _recompensada := false
+var _saindo := false  ## já pediu a volta ao saguão (tecla e clique juntos)
 
 var mundo: Node2D
 var hud: HudBatalha
@@ -51,12 +66,15 @@ func _ready() -> void:
 	mundo = Node2D.new()
 	add_child(mundo)
 	var fundo := Sprite2D.new()
-	fundo.texture = load("res://cenarios/torre_andar.png")
+	andar = Andares.atual()
+	var dados_andar := Andares.dados(andar)
+	fundo.texture = load(dados_andar.get("fundo", Andares.FUNDO_PADRAO))
 	fundo.centered = false
 	fundo.scale = Vector2(3, 3)
 	mundo.add_child(fundo)
 
-	var ids := Elenco.equipe()
+	ids_equipe = Elenco.equipe().slice(0, Andares.max_equipe(andar))
+	var ids := ids_equipe
 	var posicoes: Array = POSICOES_ALIADOS[ids.size() - 1]
 	# quem está mais ao fundo (y menor) é desenhado antes
 	var ordem := range(ids.size())
@@ -78,12 +96,8 @@ func _ready() -> void:
 		mundo.add_child(visuais_aliados[i])
 	ativo = equipe[0]
 
-	inimigos = [
-		Inimigo.new("Sentinela", "res://inimigos/sentinela.png", 550, 60.0, 40.0, 95.0),
-		Inimigo.new("Guardião", "res://inimigos/guardiao.png", 1400, 85.0, 60.0, 80.0, 3),
-		Inimigo.new("Sentinela", "res://inimigos/sentinela.png", 550, 60.0, 40.0, 112.0),
-	]
-	var pos_inimigos := [Vector2(590, 410), Vector2(720, 430), Vector2(850, 410)]
+	inimigos = Andares.criar_inimigos(andar)
+	var pos_inimigos: Array = POSICOES_INIMIGOS[clampi(inimigos.size(), 1, POSICOES_INIMIGOS.size()) - 1]
 	for i in inimigos.size():
 		var vi := VisualLutador.new()
 		vi.iniciar_estatico(inimigos[i], inimigos[i].textura)
@@ -100,8 +114,7 @@ func _ready() -> void:
 	hud.foco_habilidade.connect(func(acao: String) -> void:
 		_foco = acao
 		atualizar())
-	hud.reiniciar_pedido.connect(_reiniciar)
-	hud.trocar_equipe_pedido.connect(_ir_para_seletor)
+	hud.saguao_pedido.connect(_voltar_ao_saguao)
 	hud.opcao_clicada.connect(func(i: int) -> void:
 		if i == _indice_opcao:
 			confirmar_escolha()
@@ -112,7 +125,7 @@ func _ready() -> void:
 		retratos[c] = _visuais[c].retrato()
 	hud.definir_retratos(retratos)
 	var nomes := ", ".join(equipe.map(func(c: Combatente) -> String: return HudBatalha.nome(c)))
-	hud.registrar("Andar 1: %s %s os guardiões da Torre." % [nomes, "encontra" if equipe.size() == 1 else "encontram"])
+	hud.registrar("Andar %d, %s: %s %s os guardiões da Torre." % [andar, dados_andar.nome, nomes, "encontra" if equipe.size() == 1 else "encontram"])
 	atualizar()
 	_rodar.call_deferred()
 
@@ -212,11 +225,9 @@ func _atualizar_escolha() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if acabou:
-		if event is InputEventKey and event.pressed:
-			if event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
-				_reiniciar()
-			elif event.keycode == KEY_ESCAPE:
-				_ir_para_seletor()
+		if event is InputEventKey and event.pressed and not event.echo:
+			if event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_ESCAPE]:
+				_voltar_ao_saguao()
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if _escolhendo != "":
@@ -284,12 +295,13 @@ func _mudou_alvo() -> void:
 	atualizar()
 
 
-func _reiniciar() -> void:
-	get_tree().reload_current_scene()
-
-
-func _ir_para_seletor() -> void:
-	get_tree().change_scene_to_file(CENA_SELETOR)
+## Volta ao saguão pela porta, onde os eventos de história pendentes rodam.
+func _voltar_ao_saguao() -> void:
+	if not acabou or _saindo:
+		return
+	_saindo = true
+	Engine.set_meta(Lobby.META_ENTRADA, "porta")
+	get_tree().change_scene_to_file(CENA_SAGUAO)
 
 
 # ------------------------------------------------------------ fluxo da luta
@@ -474,7 +486,7 @@ func _verificar_fim() -> void:
 	if acabou:
 		return
 	if inimigos_vivos().is_empty():
-		_terminar(true, "Andar concluído!")
+		_terminar(true, "Andar %d concluído!" % andar)
 	elif aliados_vivos().is_empty():
 		_terminar(false, "%s caiu..." % equipe[0].nome if equipe.size() == 1 else "A equipe caiu...")
 
@@ -482,8 +494,45 @@ func _verificar_fim() -> void:
 func _terminar(vitoria: bool, texto: String) -> void:
 	acabou = true
 	esperando_jogador = false
-	hud.mostrar_fim(vitoria, texto)
+	if vitoria:
+		_recompensar()
+	var extras: Array[String] = []
+	if not conclusao.is_empty():
+		if conclusao.liberou > 0:
+			extras.append("Andar %d liberado: %s" % [conclusao.liberou, Andares.dados(conclusao.liberou).nome])
+			if conclusao.limite_depois > conclusao.limite_antes:
+				extras.append("Limite de nível: %d → %d" % [conclusao.limite_antes, conclusao.limite_depois])
+		elif conclusao.primeira and andar == Andares.total():
+			extras.append("Você chegou ao topo da Torre, por enquanto.")
+		for e: Dictionary in conclusao.eventos:
+			var linha := Eventos.resumo(e)
+			if linha != "":
+				extras.append(linha)
+	hud.mostrar_fim(vitoria, texto, recompensas, extras)
 	atualizar()
+
+
+## XP da vitória para toda a equipe que lutou (inclusive quem caiu). Uma vez
+## por batalha: chamadas repetidas não dão de novo.
+func _recompensar() -> void:
+	if _recompensada:
+		return
+	_recompensada = true
+	# XP antes do andar: quem chega pela história entra no nível já com a XP desta luta
+	recompensas = Progressao.recompensar_vitoria(ids_equipe, inimigos)
+	conclusao = Andares.concluir(andar)
+	for r in recompensas:
+		if not r.participou:
+			continue
+		var c := equipe[ids_equipe.find(r.id)]
+		hud.registrar("%s recebeu %s." % [HudBatalha.nome(c), HudBatalha.destaque("%d XP" % r.xp_aproveitada, EstiloUI.XP)])
+		if r.no_limite and r.nivel == r.nivel_antes:
+			hud.registrar("%s está no limite de nível da Torre (%d)." % [HudBatalha.nome(c), r.limite])
+		if r.nivel > r.nivel_antes:
+			hud.registrar("%s subiu para o %s!" % [HudBatalha.nome(c), HudBatalha.destaque("nível %d" % r.nivel, EstiloUI.OURO)])
+			var v: VisualLutador = _visuais[c]
+			v.piscar(Color(2.2, 1.9, 0.9))
+			EfeitosCombate.numero(mundo, v.topo() + Vector2(0, -10), "NÍVEL %d!" % r.nivel, "nivel")
 
 
 # ------------------------------------------------------------------ apoio
@@ -528,7 +577,7 @@ func atualizar() -> void:
 		_visuais[c].da_vez = c == _ator and equipe.size() > 1
 	var fila := FilaTurnos.previsao(lutadores, TAMANHO_FILA)
 	hud.atualizar(ativo, equipe, pontos, PONTOS_MAX, fila, _ator, esperando_jogador)
-	hud.definir_objetivo("Derrote os guardiões do andar  ·  %d/%d restantes" % [vivos.size(), inimigos.size()])
+	hud.definir_objetivo("Andar %d  ·  Derrote os guardiões  ·  %d/%d restantes" % [andar, vivos.size(), inimigos.size()])
 
 
 func esperar(segundos: float) -> void:

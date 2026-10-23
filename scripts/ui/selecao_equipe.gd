@@ -1,18 +1,23 @@
 class_name SelecaoEquipe
 extends Control
-## Seletor de equipe antes do combate: até Elenco.MAX_EQUIPE personagens.
+## Seletor de equipe antes do combate: até o limite do andar escolhido
+## (Andares.max_equipe; as vagas acima dele aparecem trancadas).
 ## A ordem de escolha é a ordem na arena (o 1º fica na frente).
 ## Lê tudo do Elenco e das descrições dos personagens (habilidades(), status),
 ## então personagens novos aparecem aqui sem mexer nesta tela.
-## Controles: ←/→ escolhe, Espaço adiciona/remove, Enter começa.
+## Controles: ←/→ escolhe, Espaço adiciona/remove, Enter começa, Esc volta à escolha do andar.
 
 const CENA_BATALHA := "res://scenes/batalha.tscn"
+const CENA_ANDARES := "res://scenes/selecao_andar.tscn"
 const CARTOES_NO_ELENCO := 6  ## completa com "em breve" até este número
 ## Referência para as barrinhas de atributo (valor que enche a barra).
 const REF_STATUS := {"hp": 2000.0, "atq": 200.0, "def": 120.0, "vel": 150.0}
 
 var equipe: Array[String] = []
 var _cursor := 0
+var _ids: Array[String] = []  ## os personagens liberados (Elenco.disponiveis())
+var _andar := 1
+var _max := Elenco.MAX_EQUIPE  ## vagas abertas neste andar
 
 var _vagas: Array[Control] = []
 var _cartoes: Array[Control] = []
@@ -27,11 +32,14 @@ var _icones := {}  ## caminho -> Texture2D
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	for id in Elenco.IDS:
+	_ids = Elenco.disponiveis()
+	_andar = Andares.atual()
+	_max = Andares.max_equipe(_andar)
+	for id in _ids:
 		_amostras[id] = Elenco.criar(id)
 		var sp: Dictionary = Elenco.dados(id).sprite
 		_frames[id] = VisualLutador.carregar_frames(sp.png, sp.json)
-	equipe = Elenco.equipe()
+	equipe = Elenco.equipe().slice(0, _max)
 	_montar()
 	_atualizar()
 
@@ -65,8 +73,10 @@ func _montar() -> void:
 	var topo := HBoxContainer.new()
 	var titulos := VBoxContainer.new()
 	titulos.add_theme_constant_override("separation", 0)
+	titulos.add_child(EstiloUI.label("ANDAR %d · %s" % [_andar, Andares.dados(_andar).nome.to_upper()], 11, EstiloUI.TEXTO_FRACO, 3))
 	titulos.add_child(EstiloUI.label("MONTE SUA EQUIPE", 22, EstiloUI.OURO, 5))
-	titulos.add_child(EstiloUI.label("Até %d personagens. O 1º escolhido fica na frente da arena." % Elenco.MAX_EQUIPE, 11, EstiloUI.TEXTO_FRACO))
+	var regra := "Só 1 personagem neste andar." if _max == 1 else "Até %d personagens neste andar. O 1º escolhido fica na frente da arena." % _max
+	titulos.add_child(EstiloUI.label(regra, 11, EstiloUI.TEXTO_FRACO))
 	titulos.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	topo.add_child(titulos)
 	_contador = EstiloUI.label("", 14, EstiloUI.TEXTO, 4)
@@ -96,10 +106,10 @@ func _montar() -> void:
 	esquerda.add_child(EstiloUI.label("PERSONAGENS", 9, EstiloUI.TEXTO_FRACO, 2))
 	var elenco := HBoxContainer.new()
 	elenco.add_theme_constant_override("separation", 8)
-	for i in maxi(CARTOES_NO_ELENCO, Elenco.IDS.size()):
+	for i in maxi(CARTOES_NO_ELENCO, _ids.size()):
 		var cartao := _controle(Vector2(70, 88), _desenhar_cartao)
 		cartao.set_meta("indice", i)
-		if i < Elenco.IDS.size():
+		if i < _ids.size():
 			cartao.mouse_filter = Control.MOUSE_FILTER_STOP
 			cartao.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 			cartao.mouse_entered.connect(func() -> void:
@@ -156,6 +166,18 @@ func _controle(tamanho: Vector2, ao_desenhar: Callable) -> Control:
 func _desenhar_vaga(c: Control) -> void:
 	var i: int = c.get_meta("indice")
 	var r := Rect2(Vector2.ZERO, c.size)
+	if i >= _max:
+		# vaga fechada neste andar: um cadeado
+		c.draw_rect(r, Color(0, 0, 0, 0.55))
+		c.draw_rect(r, Color(1, 1, 1, 0.06), false, 1.0)
+		var meio := r.get_center()
+		var cor := Color(1, 1, 1, 0.18)
+		c.draw_rect(Rect2(meio + Vector2(-10, -4), Vector2(20, 16)), cor)
+		c.draw_rect(Rect2(meio + Vector2(-7, -14), Vector2(3, 10)), cor)
+		c.draw_rect(Rect2(meio + Vector2(4, -14), Vector2(3, 10)), cor)
+		c.draw_rect(Rect2(meio + Vector2(-7, -16), Vector2(14, 3)), cor)
+		EstiloUI.texto(c, Vector2(0, meio.y + 34), "Fechada neste andar", 10, Color(1, 1, 1, 0.3), r.size.x, HORIZONTAL_ALIGNMENT_CENTER)
+		return
 	var id := equipe[i] if i < equipe.size() else ""
 	if id == "":
 		c.draw_rect(r, Color(0, 0, 0, 0.35))
@@ -192,18 +214,20 @@ func _desenhar_vaga(c: Control) -> void:
 		Color.BLACK if id != "" else EstiloUI.TEXTO_FRACO)
 	if id != "" and i == 0:
 		EstiloUI.texto(c, Vector2(28, 19), "FRENTE", 9, EstiloUI.OURO)
+	if id != "":
+		EstiloUI.texto(c, Vector2(0, 19), "Nv %d" % _amostras[id].nivel_personagem, 11, EstiloUI.OURO, c.size.x - 7, HORIZONTAL_ALIGNMENT_RIGHT)
 
 
 func _desenhar_cartao(c: Control) -> void:
 	var i: int = c.get_meta("indice")
 	var r := Rect2(Vector2(0, 4), c.size - Vector2(0, 4))
-	if i >= Elenco.IDS.size():
+	if i >= _ids.size():
 		c.draw_rect(r, Color(0, 0, 0, 0.45))
 		c.draw_rect(r, Color(1, 1, 1, 0.06), false, 1.0)
 		EstiloUI.texto(c, Vector2(0, r.position.y + 44), "?", 26, Color(1, 1, 1, 0.15), r.size.x, HORIZONTAL_ALIGNMENT_CENTER)
 		EstiloUI.texto(c, Vector2(0, r.end.y - 8), "em breve", 9, Color(1, 1, 1, 0.25), r.size.x, HORIZONTAL_ALIGNMENT_CENTER)
 		return
-	var id := Elenco.IDS[i]
+	var id := _ids[i]
 	var posicao := equipe.find(id)
 	var no_cursor := i == _cursor
 	var sobe := -3.0 if no_cursor else 0.0
@@ -213,6 +237,7 @@ func _desenhar_cartao(c: Control) -> void:
 	var pr := Rect2(r.position + Vector2((r.size.x - 48) / 2, 8), Vector2(48, 48))
 	c.draw_rect(pr, EstiloUI.ALIADO.darkened(0.75))
 	c.draw_texture_rect(Elenco.retrato(id), pr, false)
+	EstiloUI.texto(c, r.position + Vector2(4, 14), str(_amostras[id].nivel_personagem), 10, EstiloUI.OURO)
 	EstiloUI.texto(c, Vector2(0, r.end.y - 9), Elenco.dados(id).nome, 11,
 		EstiloUI.OURO if no_cursor else EstiloUI.TEXTO, r.size.x, HORIZONTAL_ALIGNMENT_CENTER)
 	var borda := EstiloUI.OURO if no_cursor else (EstiloUI.ALIADO if posicao >= 0 else EstiloUI.BORDA)
@@ -228,7 +253,7 @@ func _desenhar_cartao(c: Control) -> void:
 
 func _desenhar_dicas(c: Control) -> void:
 	var x := 0.0
-	for item in [[["←", "→"], "escolher"], [["Espaço"], "adicionar / remover"], [["Enter"], "começar"]]:
+	for item in [[["←", "→"], "escolher"], [["Espaço"], "adicionar / remover"], [["Enter"], "começar"], [["Esc"], "andares"]]:
 		for t: String in item[0]:
 			EstiloUI.tecla(c, Vector2(x + 1, 1), t)
 			x += maxf(13.0, 7.0 * t.length() + 6.0) + 4
@@ -256,7 +281,7 @@ func _tracejado(c: Control, r: Rect2, cor: Color) -> void:
 func _montar_ficha() -> void:
 	for filho in _detalhe.get_children():
 		filho.queue_free()
-	var id := Elenco.IDS[_cursor]
+	var id := _ids[_cursor]
 	var dados := Elenco.dados(id)
 	var p: Combatente = _amostras[id]
 
@@ -278,20 +303,22 @@ func _montar_ficha() -> void:
 	nomes.add_child(EstiloUI.label("de " + dados.universo, 10, EstiloUI.OURO.darkened(0.15), 2))
 	topo.add_child(nomes)
 	_detalhe.add_child(topo)
+	_detalhe.add_child(_linha_nivel(id))
 
 	# atributos
 	var grade := GridContainer.new()
 	grade.columns = 2
 	grade.add_theme_constant_override("h_separation", 14)
 	grade.add_theme_constant_override("v_separation", 3)
+	var cresc: Dictionary = dados.get("crescimento", {})
 	var linhas := [
-		["HP", p.hp_max, REF_STATUS.hp, EstiloUI.HP],
-		["ATQ", p.atq_base, REF_STATUS.atq, EstiloUI.DANO_RECEBIDO],
-		["DEF", p.def_base, REF_STATUS.def, EstiloUI.ALIADO],
-		["VEL", p.vel_base, REF_STATUS.vel, EstiloUI.PONTO],
+		["HP", p.hp_max, REF_STATUS.hp, EstiloUI.HP, cresc.get("hp", 0.0)],
+		["ATQ", p.atq_base, REF_STATUS.atq, EstiloUI.DANO_RECEBIDO, cresc.get("atq", 0.0)],
+		["DEF", p.def_base, REF_STATUS.def, EstiloUI.ALIADO, cresc.get("def", 0.0)],
+		["VEL", p.vel_base, REF_STATUS.vel, EstiloUI.PONTO, cresc.get("vel", 0.0)],
 	]
 	if p.energia_max > 0:
-		linhas.append(["EN", p.energia_max, REF_STATUS.hp / 10, EstiloUI.ENERGIA])
+		linhas.append(["EN", p.energia_max, REF_STATUS.hp / 10, EstiloUI.ENERGIA, 0.0])
 	for l in linhas:
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 5)
@@ -309,12 +336,41 @@ func _montar_ficha() -> void:
 		valor.custom_minimum_size.x = 34
 		valor.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		h.add_child(valor)
+		# quanto ganha por nível (a identidade do crescimento dele)
+		var por_nivel := EstiloUI.label("+%s/nv" % String.num(l[4], 1) if l[4] > 0 else "", 9, EstiloUI.TEXTO_FRACO, 2)
+		por_nivel.custom_minimum_size.x = 40
+		h.add_child(por_nivel)
 		grade.add_child(h)
 	_detalhe.add_child(grade)
 
 	_detalhe.add_child(EstiloUI.label("HABILIDADES", 9, EstiloUI.TEXTO_FRACO, 2))
 	for hab in p.habilidades(Batalha.PONTOS_MAX):
 		_detalhe.add_child(_linha_habilidade(hab))
+
+
+## Nível, barra de XP e quanto falta para o próximo (ou o limite da Torre).
+func _linha_nivel(id: String) -> Control:
+	var prog := Progressao.progresso(id)
+	var proximo := Progressao.xp_para_subir(prog.nivel)
+	var no_limite: bool = prog.nivel >= Andares.limite_nivel() and prog.nivel < Progressao.NIVEL_MAX
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2)
+	var topo := HBoxContainer.new()
+	topo.add_theme_constant_override("separation", 8)
+	topo.add_child(EstiloUI.label("NÍVEL %d" % prog.nivel, 13, EstiloUI.OURO, 3))
+	var texto := EstiloUI.label(HudBatalha.texto_xp(prog.nivel, prog.xp, no_limite), 10,
+		EstiloUI.OURO if no_limite else EstiloUI.TEXTO_FRACO, 2)
+	texto.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	topo.add_child(texto)
+	v.add_child(topo)
+	var barra := BarraPixel.new()
+	barra.cor = EstiloUI.OURO.darkened(0.2) if no_limite else EstiloUI.XP
+	barra.marcas = 0
+	barra.custom_minimum_size = Vector2(0, 6)
+	var cheia: bool = proximo == 0 or no_limite
+	barra.definir(1.0 if cheia else prog.xp, 1 if cheia else proximo, false)
+	v.add_child(barra)
+	return v
 
 
 func _linha_habilidade(hab: Dictionary) -> Control:
@@ -358,7 +414,7 @@ func _linha_habilidade(hab: Dictionary) -> Control:
 func alternar(id: String) -> void:
 	if id in equipe:
 		equipe.erase(id)
-	elif equipe.size() < Elenco.MAX_EQUIPE:
+	elif equipe.size() < _max:
 		equipe.append(id)
 	_atualizar()
 
@@ -371,12 +427,12 @@ func comecar() -> void:
 
 
 func _atualizar() -> void:
-	_contador.text = "%d/%d" % [equipe.size(), Elenco.MAX_EQUIPE]
+	_contador.text = "%d/%d" % [equipe.size(), _max]
 	_botao.disabled = equipe.is_empty()
 	for c in _vagas + _cartoes:
 		c.queue_redraw()
-	if _detalhe.get_meta("id", "") != Elenco.IDS[_cursor]:
-		_detalhe.set_meta("id", Elenco.IDS[_cursor])
+	if _detalhe.get_meta("id", "") != _ids[_cursor]:
+		_detalhe.set_meta("id", _ids[_cursor])
 		_montar_ficha()
 
 
@@ -396,7 +452,7 @@ func _clique_vaga(event: InputEvent, i: int) -> void:
 func _clique_cartao(event: InputEvent, i: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_cursor = i
-		alternar(Elenco.IDS[i])
+		alternar(_ids[i])
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -404,16 +460,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	match event.keycode:
 		KEY_LEFT, KEY_A:
-			_cursor = posmod(_cursor - 1, Elenco.IDS.size())
+			_cursor = posmod(_cursor - 1, _ids.size())
 			_atualizar()
 		KEY_RIGHT, KEY_D:
-			_cursor = posmod(_cursor + 1, Elenco.IDS.size())
+			_cursor = posmod(_cursor + 1, _ids.size())
 			_atualizar()
 		KEY_SPACE:
-			alternar(Elenco.IDS[_cursor])
+			alternar(_ids[_cursor])
 		KEY_BACKSPACE:
 			if not equipe.is_empty():
 				equipe.pop_back()
 				_atualizar()
 		KEY_ENTER, KEY_KP_ENTER:
 			comecar()
+		KEY_ESCAPE:
+			get_tree().change_scene_to_file(CENA_ANDARES)

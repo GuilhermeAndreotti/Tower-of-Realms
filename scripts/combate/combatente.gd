@@ -8,11 +8,18 @@ const DISTANCIA_TURNO := 10000.0
 
 var nome: String
 var aliado: bool
+## Nível do personagem (Progressao); inimigos ficam no 1. Não confundir com
+## níveis de forma de um kit (como o Kaioken da Shumi).
+var nivel_personagem := 1
+## HP máximo e atributos no nível atual, sem modificadores temporários (que
+## entram em bonus() e nos estados). Quem muda o nível é aplicar_nivel().
 var hp_max: int
 var hp: int
 var atq_base: float
 var def_base: float
 var vel_base: float
+## Atributos com que o lutador foi definido (nível 1): {"hp", "atq", "def", "vel"}.
+var _nv1 := {}
 var energia_max: float = 0.0
 var energia: float = 0.0
 var energia_ao_apanhar: float = 0.0  ## energia ganha ao receber um golpe
@@ -46,7 +53,31 @@ func _init(p_nome: String, p_aliado: bool, p_hp: int, p_atq: float, p_def: float
 	atq_base = p_atq
 	def_base = p_def
 	vel_base = p_vel
+	_nv1 = {"hp": p_hp, "atq": p_atq, "def": p_def, "vel": p_vel}
 	av = DISTANCIA_TURNO / vel_base
+
+
+func atributos_nv1() -> Dictionary:
+	return _nv1.duplicate()
+
+
+## Põe o lutador em `p_nivel` com os `atributos` desse nível (Progressao.atributos).
+## Troca só a base: a vida extra dos estados continua por cima, o HP atual
+## ganha o que o máximo ganhou (sem passar dele) e quem caiu continua caído.
+func aplicar_nivel(p_nivel: int, atributos: Dictionary) -> void:
+	var vel_antes := vel()
+	var hp_max_antes := hp_max
+	var vida_extra := 0
+	for e in estados:
+		vida_extra += e.vida_extra
+	nivel_personagem = p_nivel
+	hp_max = int(atributos.hp) + vida_extra
+	if hp > 0:
+		hp = clampi(hp + maxi(0, hp_max - hp_max_antes), 1, hp_max)
+	atq_base = atributos.atq
+	def_base = atributos.def
+	vel_base = atributos.vel
+	ajustar_av(vel_antes)
 
 
 func vivo() -> bool:

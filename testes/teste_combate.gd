@@ -6,6 +6,9 @@ var _falhas := 0
 
 
 func _init() -> void:
+	# a equipe é salva no progresso: os testes usam um arquivo só deles
+	Progressao.arquivo = "user://teste_combate_progresso.cfg"
+	Progressao.apagar()
 	_teste_fila()
 	_teste_velocidade_reescala_av()
 	_teste_kaioken_entrar_e_subir()
@@ -21,6 +24,7 @@ func _init() -> void:
 	_teste_andri_arsenal()
 	_teste_descricao_interface()
 	_teste_equipe()
+	Progressao.apagar()
 	print("\n%s (%d falha%s)" % ["TUDO OK" if _falhas == 0 else "FALHOU", _falhas, "" if _falhas == 1 else "s"])
 	quit(1 if _falhas else 0)
 
@@ -445,8 +449,11 @@ func _teste_equipe() -> void:
 	print("equipe")
 	Elenco.definir_equipe([])
 	checar(Elenco.equipe() == ["shumi"], "sem escolha, a equipe padrão é a Shumi")
-	Elenco.definir_equipe(["shumi", "ninguem", "shumi", "shumi", "shumi"])
-	checar(Elenco.equipe().size() == Elenco.MAX_EQUIPE, "no máximo %d na equipe" % Elenco.MAX_EQUIPE)
+	Elenco.definir_equipe(["andri"])
+	checar(Elenco.equipe() == ["shumi"], "quem ainda não chegou à Torre não entra na equipe")
+	Progressao.desbloquear("andri")
+	Elenco.definir_equipe(["shumi", "ninguem", "shumi", "andri", "andri"])
+	checar(Elenco.equipe() == ["shumi", "andri"], "repetidos e desconhecidos saem da equipe")
 	Elenco.definir_equipe(["ninguem"])
 	checar(Elenco.equipe() == ["shumi"], "ids desconhecidos são ignorados")
 	Elenco.definir_equipe([])

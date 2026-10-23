@@ -21,6 +21,7 @@ const HP := Color(0.33, 0.86, 0.47)
 const HP_BAIXO := Color(0.95, 0.42, 0.3)
 const ENERGIA := Color(1.0, 0.78, 0.25)
 const PONTO := Color(0.55, 0.88, 1.0)
+const XP := Color(0.62, 0.5, 1.0)
 
 ## Cores dos números e mensagens de combate, por tipo de evento.
 const DANO := Color(1, 0.95, 0.85)

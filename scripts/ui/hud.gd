@@ -11,8 +11,7 @@ extends CanvasLayer
 
 signal acao_pedida(acao: String)
 signal foco_habilidade(acao: String)  ## "" quando nenhuma
-signal reiniciar_pedido
-signal trocar_equipe_pedido
+signal saguao_pedido
 signal opcao_clicada(indice: int)
 
 const MAX_LINHAS_LOG := 5
@@ -49,6 +48,7 @@ var _pontos := 0
 var _pontos_max := 0
 var _retrato_painel: Control
 var _nome: Label
+var _nivel: Label
 var _tipo: Control  ## selo do elemento ao lado do nome
 var _forma: Label
 var _barra_hp: BarraPixel
@@ -86,6 +86,8 @@ var _motivo_opcao: Label
 var _anuncio: Label
 var _fim: Control
 var _fim_texto: Label
+var _fim_recompensas: VBoxContainer  ## XP e níveis ganhos na vitória
+var _fim_extras: VBoxContainer  ## andar liberado, história
 
 
 func _ready() -> void:
@@ -269,6 +271,9 @@ func _montar_personagem() -> void:
 	_forma.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_forma.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	topo.add_child(_nome)
+	_nivel = EstiloUI.label("", 10, EstiloUI.OURO, 3)
+	_nivel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	topo.add_child(_nivel)
 	_tipo = _hbox(0)
 	_tipo.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	topo.add_child(_tipo)
@@ -576,23 +581,28 @@ func _montar_fim() -> void:
 	_fim_texto = EstiloUI.label("", 30, Color.WHITE, 8)
 	_fim_texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(_fim_texto)
-	var dica := EstiloUI.label("Enter ou clique: jogar de novo  ·  Esc: trocar equipe", 13, EstiloUI.TEXTO_FRACO)
+	_fim_recompensas = _vbox(6)
+	v.add_child(_fim_recompensas)
+	_fim_extras = _vbox(2)
+	v.add_child(_fim_extras)
+	var dica := EstiloUI.label("Enter ou clique: voltar ao saguão", 13, EstiloUI.TEXTO_FRACO)
 	dica.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(dica)
-	var trocar := Button.new()
-	trocar.text = "Trocar equipe"
-	trocar.focus_mode = Control.FOCUS_NONE
-	trocar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	trocar.add_theme_font_size_override("font_size", 12)
-	trocar.add_theme_stylebox_override("normal", EstiloUI.painel(EstiloUI.FUNDO, EstiloUI.BORDA_CLARA))
-	trocar.add_theme_stylebox_override("hover", EstiloUI.painel(EstiloUI.FUNDO_CLARO, EstiloUI.OURO))
-	trocar.add_theme_stylebox_override("pressed", EstiloUI.painel(EstiloUI.FUNDO_CLARO, EstiloUI.OURO))
-	trocar.pressed.connect(func() -> void: trocar_equipe_pedido.emit())
-	v.add_child(trocar)
+	var voltar := Button.new()
+	voltar.text = "Voltar ao saguão"
+	voltar.focus_mode = Control.FOCUS_NONE
+	voltar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	voltar.add_theme_font_size_override("font_size", 12)
+	voltar.add_theme_color_override("font_color", EstiloUI.OURO)
+	voltar.add_theme_stylebox_override("normal", EstiloUI.painel(EstiloUI.FUNDO, EstiloUI.OURO.darkened(0.25)))
+	voltar.add_theme_stylebox_override("hover", EstiloUI.painel(EstiloUI.FUNDO_CLARO, EstiloUI.OURO))
+	voltar.add_theme_stylebox_override("pressed", EstiloUI.painel(EstiloUI.FUNDO_CLARO, EstiloUI.OURO))
+	voltar.pressed.connect(func() -> void: saguao_pedido.emit())
+	v.add_child(voltar)
 	p.add_child(v)
 	_fim.gui_input.connect(func(e: InputEvent) -> void:
-		if e is InputEventMouseButton and e.pressed:
-			reiniciar_pedido.emit())
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+			saguao_pedido.emit())
 
 
 # --------------------------------------------------------------- atualização
@@ -620,6 +630,7 @@ func atualizar(ativo: Combatente, equipe: Array[Combatente], pontos: int, pontos
 func _atualizar_personagem() -> void:
 	_nome.text = _ativo.nome
 	_nome.label_settings.font_color = EstiloUI.cor_lado(_ativo.aliado).lightened(0.35)
+	_nivel.text = "Nv %d" % _ativo.nivel_personagem
 	if _tipo.get_meta("tipo", "") != _ativo.tipo:
 		_tipo.set_meta("tipo", _ativo.tipo)
 		for filho in _tipo.get_children():
@@ -793,12 +804,89 @@ func anunciar(texto: String, cor := EstiloUI.OURO, tamanho := 40) -> void:
 	t.tween_property(_anuncio, "modulate:a", 0.0, 0.25)
 
 
-func mostrar_fim(vitoria: bool, texto: String) -> void:
+## `recompensas`: resultados de Progressao.conceder_xp(), um por personagem.
+## `extras`: linhas de destaque (andar liberado, quem chegou à Torre).
+func mostrar_fim(vitoria: bool, texto: String, recompensas: Array[Dictionary] = [], extras: Array[String] = []) -> void:
 	_fim_texto.text = texto
 	_fim_texto.label_settings.font_color = Color(0.6, 1, 0.7) if vitoria else Color(1, 0.45, 0.45)
+	for filho in _fim_recompensas.get_children():
+		filho.queue_free()
+	for r in recompensas:
+		_fim_recompensas.add_child(_linha_recompensa(r))
+	_fim_recompensas.visible = not recompensas.is_empty()
+	for filho in _fim_extras.get_children():
+		filho.queue_free()
+	for linha in extras:
+		var l := EstiloUI.label("✦ " + linha, 12, EstiloUI.OURO, 3)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_fim_extras.add_child(l)
+	_fim_extras.visible = not extras.is_empty()
 	_fim.visible = true
 	_dica.visible = false
 	_opcoes.visible = false
+
+
+## Retrato, nome, XP ganha, nível (com destaque se subiu), barra de XP, o que
+## falta para o próximo e os atributos ganhos.
+func _linha_recompensa(r: Dictionary) -> Control:
+	var subiu: bool = r.nivel > r.nivel_antes
+	var linha := _hbox(8)
+	var retrato := TextureRect.new()
+	retrato.texture = Elenco.retrato(r.id)
+	retrato.custom_minimum_size = Vector2(32, 32)
+	retrato.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	retrato.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	linha.add_child(retrato)
+	var v := _vbox(2)
+	v.custom_minimum_size.x = 280
+	var topo := _hbox(8)
+	var nome := EstiloUI.label(Elenco.dados(r.id).nome, 13, EstiloUI.ALIADO.lightened(0.35), 3)
+	topo.add_child(nome)
+	# quem ficou fora da luta também ganha (ver Progressao.recompensar_vitoria)
+	var reserva := EstiloUI.label("" if r.get("participou", true) else "reserva", 9, EstiloUI.TEXTO_FRACO, 2)
+	reserva.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	reserva.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	topo.add_child(reserva)
+	topo.add_child(EstiloUI.label("+%d XP" % r.xp_aproveitada, 11, EstiloUI.XP, 3))
+	var nivel := EstiloUI.label("Nv %d → %d" % [r.nivel_antes, r.nivel] if subiu else "Nv %d" % r.nivel, 11,
+		EstiloUI.OURO if subiu else EstiloUI.TEXTO, 3)
+	topo.add_child(nivel)
+	v.add_child(topo)
+	var barra := BarraPixel.new()
+	barra.cor = EstiloUI.OURO.darkened(0.2) if r.no_limite else EstiloUI.XP
+	barra.marcas = 0
+	barra.custom_minimum_size = Vector2(0, 6)
+	var maximo: int = r.xp_proximo
+	var cheia: bool = maximo == 0 or r.no_limite
+	barra.definir(1.0 if cheia else 0.0, 1 if cheia else maximo, false)
+	v.add_child(barra)
+	if not cheia:
+		# enche depois que o painel aparece
+		barra.ready.connect(func() -> void: barra.definir(r.xp_atual, maximo))
+	v.add_child(EstiloUI.label(texto_xp(r.nivel, r.xp_atual, r.no_limite), 9,
+		EstiloUI.OURO if r.no_limite else EstiloUI.TEXTO_FRACO, 2))
+	if subiu:
+		var partes: Array[String] = []
+		for a: String in r.ganhos:
+			partes.append("%s +%d" % [Progressao.NOMES_ATRIBUTOS[a], r.ganhos[a]])
+		var aviso := EstiloUI.label("SUBIU DE NÍVEL!   " + "  ·  ".join(partes), 10, EstiloUI.OURO, 3)
+		v.add_child(aviso)
+		aviso.ready.connect(func() -> void:
+			var t := aviso.create_tween().set_loops()
+			t.tween_property(aviso, "modulate", Color(1.4, 1.3, 1.0), 0.45)
+			t.tween_property(aviso, "modulate", Color.WHITE, 0.45))
+	linha.add_child(v)
+	return linha
+
+
+## Linha de XP de um personagem: quanto falta, ou o limite/máximo atingido.
+static func texto_xp(nivel: int, xp: int, no_limite: bool) -> String:
+	if nivel >= Progressao.NIVEL_MAX:
+		return "Nível máximo"
+	if no_limite:
+		return "Limite da Torre (Nv %d) · vença um andar novo para subir mais" % nivel
+	var maximo := Progressao.xp_para_subir(nivel)
+	return "%d/%d XP · faltam %d para o nível %d" % [xp, maximo, maximo - xp, nivel + 1]
 
 
 # ------------------------------------------------------- controles (H)

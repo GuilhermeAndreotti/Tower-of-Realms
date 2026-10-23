@@ -120,6 +120,11 @@ func definir_parado(anim: String) -> void:
 		_animado.play(anim)
 
 
+## Olha para a esquerda (espelha em torno dos pés) ou volta para a direita.
+func virar(para_esquerda: bool) -> void:
+	_sprite.scale.x = -absf(_sprite.scale.x) if para_esquerda else absf(_sprite.scale.x)
+
+
 func definir_cor_base(cor: Color) -> void:
 	_cor_base = cor
 	_sprite.modulate = cor
