@@ -1,6 +1,6 @@
 <p align="center"><img src="logo.png" width="440" alt="Tower of Realms"></p>
 
-# 🗼 Tower of Realms
+# Tower of Realms
 
 > Heróis de mundos diferentes sobem uma torre e enfrentam os guardiões de cada andar.
 
