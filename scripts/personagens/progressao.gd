@@ -35,8 +35,14 @@ const NOMES_ATRIBUTOS := {"hp": "HP", "atq": "ATQ", "def": "DEF", "vel": "VEL"}
 
 const VERSAO_SAVE := 1
 
+## Espaços de save do menu inicial. O 1 é o `progresso.cfg` de sempre, então
+## o save de antes do menu aparece nele sem conversão.
+const SLOTS := 3
+
 ## Trocável nos testes e nas ferramentas, para não mexer no save do jogador.
 static var arquivo := "user://progresso.cfg"
+## Começo do nome dos arquivos dos slots (também trocável nos testes).
+static var prefixo_slots := "user://progresso"
 static var _save: ConfigFile
 
 
@@ -120,6 +126,7 @@ static func _dados() -> ConfigFile:
 static func salvar() -> void:
 	var cfg := _dados()
 	cfg.set_value("jogo", "versao", VERSAO_SAVE)
+	cfg.set_value("jogo", "salvo_em", int(Time.get_unix_time_from_system()))
 	var erro := cfg.save(arquivo)
 	if erro != OK:
 		push_error("não deu para salvar o progresso em %s (erro %d)" % [arquivo, erro])
@@ -138,13 +145,70 @@ static func apagar() -> void:
 		DirAccess.remove_absolute(arquivo)
 
 
+# ------------------------------------------------------------------ slots
+static func arquivo_do_slot(n: int) -> String:
+	return prefixo_slots + (".cfg" if n == 1 else "_%d.cfg" % n)
+
+
+static func slot_existe(n: int) -> bool:
+	return FileAccess.file_exists(arquivo_do_slot(n))
+
+
+static func algum_slot() -> bool:
+	for n in range(1, SLOTS + 1):
+		if slot_existe(n):
+			return true
+	return false
+
+
+## Passa a ler e salvar no slot `n` (o progresso em memória é descartado).
+static func usar_slot(n: int) -> void:
+	arquivo = arquivo_do_slot(n)
+	_save = null
+
+
+## Jogo novo no slot `n`: apaga o que houver lá e já cria o arquivo, para o
+## slot aparecer ocupado mesmo antes da primeira vitória.
+static func novo_jogo(n: int) -> void:
+	usar_slot(n)
+	apagar()
+	salvar()
+
+
+static func apagar_slot(n: int) -> void:
+	var caminho := arquivo_do_slot(n)
+	if caminho == arquivo:
+		_save = null
+	if FileAccess.file_exists(caminho):
+		DirAccess.remove_absolute(caminho)
+
+
+## O que o menu mostra de um slot, lido à parte (não mexe no save em uso):
+## {"existe", "andares" (vencidos), "nivel" (o mais alto), "personagens"
+## (liberados), "salvo_em" (unix, 0 se não souber)}.
+static func resumo_slot(n: int) -> Dictionary:
+	var r := {"existe": slot_existe(n), "andares": 0, "nivel": 1, "personagens": 0, "salvo_em": 0}
+	if not r.existe:
+		return r
+	var cfg := ConfigFile.new()
+	cfg.load(arquivo_do_slot(n))
+	var vencidos: Variant = cfg.get_value("torre", "vencidos", [])
+	r.andares = vencidos.size() if vencidos is Array else 0
+	for id in Elenco.IDS:
+		if cfg.has_section(_secao(id)) or Elenco.inicial(id):
+			r.personagens += 1
+			r.nivel = maxi(r.nivel, clampi(int(cfg.get_value(_secao(id), "nivel", 1)), 1, NIVEL_MAX))
+	r.salvo_em = int(cfg.get_value("jogo", "salvo_em", 0))
+	return r
+
+
 static func _secao(id: String) -> String:
 	return "personagem_" + id
 
 
 ## Quem está liberado: os do elenco inicial e os já desbloqueados.
 static func desbloqueado(id: String) -> bool:
-	return _dados().has_section(_secao(id)) or Elenco.dados(id).get("inicial", true)
+	return _dados().has_section(_secao(id)) or Elenco.inicial(id)
 
 
 ## {"nivel", "xp"} salvos de `id`. Quem ainda não tem registro (save antigo,

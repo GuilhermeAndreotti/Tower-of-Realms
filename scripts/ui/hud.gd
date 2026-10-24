@@ -215,7 +215,7 @@ func _montar_objetivo() -> void:
 
 ## Linha de controles: [tecla] descrição · [tecla] descrição ...
 const CONTROLES := [
-	[["Q", "E", "R"], "usar"],
+	[["Q", "W", "E", "R"], "usar"],
 	[["←", "→"], "alvo"],
 	[["mouse"], "prévia do golpe"],
 	[["H"], "ocultar"],
@@ -408,7 +408,7 @@ func _atualizar_equipe(equipe: Array[Combatente]) -> void:
 	if outros.is_empty():
 		return
 	while _cartoes.size() < outros.size():
-		var cartao := _desenho(Vector2(92, 32), _desenhar_cartao)
+		var cartao := _desenho(Vector2(104, 32), _desenhar_cartao)
 		_caixa_equipe.add_child(cartao)
 		_cartoes.append(cartao)
 	for i in _cartoes.size():
@@ -678,7 +678,8 @@ func _chip(e: Dictionary) -> Control:
 
 
 func _atualizar_habilidades(ator_atual: Combatente) -> void:
-	var lista := _ativo.habilidades(_pontos).filter(func(h: Dictionary) -> bool: return not h.get("passiva", false))
+	# passivas entram também: a barra explica o kit inteiro, no mesmo padrão
+	var lista := _ativo.habilidades(_pontos)
 	var ids: Array[String] = []
 	for h in lista:
 		ids.append(h.acao)
@@ -726,8 +727,9 @@ func _mostrar_dica() -> void:
 	_dica.offset_left = x
 	_dica.offset_right = x
 	var h := slot.dados
+	var alvo_texto: String = "Passiva" if h.get("passiva", false) else TEXTO_ALVO.get(h.get("alvo"), "")
 	var linhas := ["[b][color=#%s]%s[/color][/b]  [color=#%s]%s[/color]" % [
-		EstiloUI.OURO.to_html(false), h.nome, EstiloUI.TEXTO_FRACO.to_html(false), TEXTO_ALVO.get(h.get("alvo"), "")]]
+		EstiloUI.OURO.to_html(false), h.nome, EstiloUI.TEXTO_FRACO.to_html(false), alvo_texto]]
 	if h.has("tipo"):
 		linhas[0] += "  " + destaque(Tipos.nome(h.tipo), Tipos.cor(h.tipo))
 	linhas.append(h.get("descricao", ""))
@@ -738,6 +740,10 @@ func _mostrar_dica() -> void:
 
 
 func _motivo_indisponivel(h: Dictionary) -> String:
+	if h.get("passiva", false):
+		return ""
+	if h.get("falta", "") != "" and h.get("estado") != "pronta":
+		return h.falta
 	match h.get("estado"):
 		"sem_recurso":
 			if h.get("custo_pontos", 0) > _pontos:

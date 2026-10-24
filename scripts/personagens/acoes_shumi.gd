@@ -2,12 +2,17 @@ class_name AcoesShumi
 extends AcoesPersonagem
 ## Animações e efeitos do kit da Shumi (regras em Shumi).
 ## Tudo que muda com o Kaioken é indexado por `s.nivel + 1` (0 = normal).
+## Cada Finger Beam (o do Bang! e os contra-ataques) é dado no visual Kokoro
+## (gerado pelo mesmo script do sprite sheet, a partir de kokoro.png); depois
+## do tiro ela volta ao visual normal.
 
 const COR_ACO := Color(0.85, 0.92, 1.0)  ## lâmina do Corte
 const COR_ONDA := Color(0.78, 0.5, 1.0)  ## faíscas do Engo-ji, no tom da onda
 const COR_BRANCA := Color(1, 0.96, 1)
 const CORES_AURA: Array[Color] = [Color(0.85, 0.08, 0.1), Color(1.0, 0.35, 0.25), Color(1.0, 0.6, 0.35)]
 const PONTA_ONDA := preload("res://efeitos/onda_engo_ji.png")
+const FOLHA_KOKORO := "res://personagens/shumi/shumi_kokoro_spritesheet.png"
+const JSON_KOKORO := "res://personagens/shumi/shumi_kokoro_spritesheet.json"
 
 ## Corte por nível: [duração de cada trecho da investida, velocidade da animação].
 const CORTE := [[0.22, 1.0], [0.17, 1.3], [0.15, 1.5], [0.12, 2.0], [0.08, 2.6]]
@@ -30,6 +35,14 @@ var s: Shumi:
 	get: return p as Shumi
 
 var _aura: EfeitosCombate.Aura
+var _frames_normal: SpriteFrames
+var _frames_kokoro: SpriteFrames
+
+
+func _init(p_batalha: Batalha, p_personagem: Combatente, p_visual: VisualLutador) -> void:
+	super(p_batalha, p_personagem, p_visual)
+	_frames_normal = v.frames()
+	_frames_kokoro = VisualLutador.carregar_frames(FOLHA_KOKORO, JSON_KOKORO)
 
 
 func inicio_turno() -> bool:
@@ -70,6 +83,7 @@ func executar(acao: String) -> void:
 	match acao:
 		"basico": await _corte()
 		"skill": await _engo_ji()
+		"skill2": await _bang()
 		"ult": await _kaioken()
 
 
@@ -204,6 +218,46 @@ func _colapso(alvos: Array) -> void:
 		v.piscar(Color(0.55, 0.5, 0.65))
 		b.hud.registrar("%s ofega depois de liberar tanta energia." % HudBatalha.nome(s))
 		await b.esperar(0.45)
+
+
+# ----------------------------------------------------------------- Bang!
+func _bang() -> void:
+	var alvo := b.alvo_atual()
+	b.hud.registrar("%s: %s" % [HudBatalha.nome(s), HudBatalha.destaque("Bang!", Shumi.COR_KAIOKEN)])
+	await _finger_beam(alvo, s.mult_finger_beam())
+	s.aplicar_estado(Shumi.guarda_bang())
+	EfeitosCombate.anel(b.mundo, centro(s), Shumi.COR_KAIOKEN, 44.0)
+	b.hud.registrar("%s fica em guarda: quem a acertar leva um Finger Beam de volta." % HudBatalha.nome(s))
+	s.ganhar_energia(Shumi.ENERGIA_SKILL)
+	b.atualizar()
+	await b.esperar(0.25)
+
+
+func contra_atacar(alvo: Combatente, golpe: Dictionary) -> void:
+	b.hud.registrar("%s responde com %s!" % [HudBatalha.nome(s), HudBatalha.destaque(golpe.nome, Shumi.COR_KAIOKEN)])
+	await _finger_beam(alvo, golpe.mult, true)
+	EfeitosCombate.numero(b.mundo, v.topo() + Vector2(0, 24), "+%d EN" % roundi(Shumi.ENERGIA_CONTRA), "energia")
+
+
+## Tiro de ki do dedo: um feixe fino e rápido, mais grosso e vermelho a cada
+## nível do Kaioken. O contra-ataque é golpe adicional (`extra`).
+func _finger_beam(alvo: Combatente, mult: float, extra := false) -> void:
+	var n := s.nivel + 1
+	v.trocar_frames(_frames_kokoro)
+	v.piscar(Color(2.2, 1.6, 1.6))
+	v.tocar("engo_ji_beam", 2.0)
+	await b.esperar(0.12)
+	var origem := v.position + Vector2(36, -45)
+	var c := centro(alvo)
+	var dir := (c - origem).normalized()
+	var estilo := {"largura": 4.0 + 1.5 * n, "velocidade": 2600.0,
+		"cores": [Shumi.COR_KAIOKEN if n > 0 else COR_ONDA, COR_ONDA, COR_BRANCA, Color.WHITE]}
+	EfeitosCombate.feixe(b.mundo, origem, dir.angle(), origem.distance_to(c) + 10.0, estilo.velocidade, estilo, 0.06)
+	await b.esperar(origem.distance_to(c) / estilo.velocidade)
+	EfeitosCombate.impacto(b.mundo, c, COR_BRANCA, 0.6 + 0.15 * n)
+	await b.aplicar_dano(s, alvo, mult, s.tipo, extra)
+	await b.esperar(0.15)
+	v.trocar_frames(_frames_normal)
 
 
 # --------------------------------------------------------------- Kaioken

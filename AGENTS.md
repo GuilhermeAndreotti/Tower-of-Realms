@@ -6,13 +6,13 @@
 - GDScript com tipagem estática: tipos explícitos ou inferidos (`:=`), sem desligar avisos de tipo para contornar erro.
 - Siga o estilo do arquivo que estiver editando: comentários `##` curtos explicando o porquê, mesma densidade de comentários e os mesmos nomes de conceito.
 - Não adicione plugins, autoloads nem dependências sem necessidade clara.
-- Nunca leia, escreva ou apague o save do jogador (`user://progresso.cfg`) em testes e ferramentas; use um `Progressao.arquivo` próprio.
+- Nunca leia, escreva ou apague os saves do jogador (`user://progresso*.cfg`) em testes e ferramentas; use um `Progressao.arquivo` (e, para slots, um `Progressao.prefixo_slots`) próprio.
 - Mudança que o jogador percebe entra no [`CHANGELOG.md`](CHANGELOG.md) no mesmo commit ([regras](docs/entrega/changelog-e-commits.md)).
 
 ## Antes de alterar código
 
 1. Leia [`docs/README.md`](docs/README.md).
-2. Leia o documento canônico do assunto (combate, progressão, Torre, saguão...).
+2. Leia o documento canônico do assunto (combate, progressão, Torre, saguão, menu...).
 3. Só então altere código, dados ou arte.
 
 Não crie documento novo sem verificar se o assunto já tem um. Mudou uma regra? Atualize o documento canônico no mesmo commit.
@@ -30,4 +30,4 @@ Não crie documento novo sem verificar se o assunto já tem um. Mudou uma regra?
 
 ## Validação
 
-Rode os quatro testes antes de dar uma tarefa por concluída ([como rodar](docs/desenvolvimento/testes-e-ferramentas.md#testes)). Mudança de equilíbrio (inimigos, XP, crescimento, kits) pede também a simulação dos andares, antes e depois. Não afirme que algo foi testado jogando se só rodou testes ou simulação.
+Rode os cinco testes antes de dar uma tarefa por concluída ([como rodar](docs/desenvolvimento/testes-e-ferramentas.md#testes)). Mudança de equilíbrio (inimigos, XP, crescimento, kits) pede também a simulação dos andares, antes e depois. Não afirme que algo foi testado jogando se só rodou testes ou simulação.

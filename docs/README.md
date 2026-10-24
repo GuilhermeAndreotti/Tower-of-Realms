@@ -12,6 +12,7 @@ Aqui fica o que não dá para descobrir só lendo o código: como as partes se e
 | Níveis, XP, limite da Torre e save                     | [Progressão](jogo/progressao.md)                                      |
 | Andares, encontros, eventos de história e equilíbrio   | [Torre e andares](jogo/torre-e-andares.md)                            |
 | Saguão, conversas e apresentação de eventos            | [Saguão](jogo/saguao.md)                                              |
+| Menu inicial e slots de save                           | [Menu inicial](jogo/menu-inicial.md)                                  |
 | Testes, simulação e geradores de arte                  | [Testes e ferramentas](desenvolvimento/testes-e-ferramentas.md)       |
 | Changelog e commits                                    | [Changelog e commits](entrega/changelog-e-commits.md)                 |
 

@@ -20,6 +20,10 @@ var fraqueza := ""  ## tipo de dano que passa a ser super efetivo no portador
 var escudo := 0  ## absorve dano de golpes; o estado acaba quando zera
 var vida_extra := 0  ## soma ao HP máximo (e ao atual) enquanto durar
 var atraso := 0.0  ## ao ser aplicado, empurra a vez (fração da distância do turno)
+## Peso extra no sorteio de alvo dos inimigos (0 = normal; 2 = três vezes
+## mais chance de ser o alvo que um aliado sem provocação).
+var provocacao := 0.0
+var reducao_dano := 0.0  ## fração cortada de todo golpe recebido (0..1)
 
 ## Dano adicional nos golpes do portador: {"tipo", "mult", "proporcional"
 ## (mult relativo ao do golpe), "consome" (o estado acaba ao disparar)}.

@@ -21,6 +21,9 @@ func checar(condicao: bool, descricao: String) -> void:
 
 func _rodar() -> void:
 	Progressao.arquivo = "user://teste_lobby_progresso.cfg"
+	# a história (quem chega depois) é testada com a chave temporária de
+	# todos liberados desligada
+	Elenco.todos_liberados = false
 	Progressao.apagar()
 	Progressao.desbloquear("andri")  # o saguão completo (a chegada é testada em teste_torre)
 	Engine.remove_meta(Lobby.META_ENTRADA) if Engine.has_meta(Lobby.META_ENTRADA) else null

@@ -5,13 +5,17 @@
 ## Fluxo de cenas
 
 ```
+menu_inicial.tscn ──NEW GAME / LOAD GAME (slot)──▶ lobby.tscn
+        ▲                                               │ Esc
+        └───────────────────────────────────────────────┘
+
 lobby.tscn ──porta──▶ selecao_andar.tscn ──▶ selecao_equipe.tscn ──▶ batalha.tscn
     ▲                        │ Esc                    │ Esc                │
     └────────────────────────┘◀───────────────────────┘                    │
     └──────────────── fim do andar (vitória ou derrota) ◀───────────────────┘
 ```
 
-- A cena principal é o saguão ([Saguão](../jogo/saguao.md)).
+- A cena principal é o menu inicial ([Menu inicial](../jogo/menu-inicial.md)): ele escolhe o slot de save e leva ao saguão ([Saguão](../jogo/saguao.md)).
 - Cada ida à dungeon é um andar: vence ou perde e volta ao saguão. Repetir é subir de novo pela porta ([Torre e andares](../jogo/torre-e-andares.md)).
 
 ## Camadas
@@ -32,7 +36,8 @@ Fora do combate, a mesma ideia: `Andares` e `Eventos` (dados e regras da Torre),
 
 | Estado                                              | Onde vive                                  | Sobrevive a fechar o jogo |
 | --------------------------------------------------- | ------------------------------------------ | ------------------------- |
-| Níveis, XP, equipe, andares vencidos, andar escolhido, eventos pendentes | `Progressao` (`user://progresso.cfg`) | sim |
+| Níveis, XP, equipe, andares vencidos, andar escolhido, eventos pendentes | `Progressao` (o arquivo do slot em uso) | sim |
+| Qual slot está em uso                               | `Progressao.arquivo` (variável estática)   | não: o menu escolhe de novo |
 | Onde a Caoimhe aparece ao voltar ao saguão          | `Engine` meta (`Lobby.META_ENTRADA`)        | não                       |
 | Preferência do painel de controles da batalha        | `user://hud.cfg`                           | sim                       |
 

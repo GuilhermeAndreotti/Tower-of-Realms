@@ -2,6 +2,8 @@
 
 O saguão (`Lobby`, [`lobby.gd`](../../scripts/lobby/lobby.gd)) é a zona segura: a Caoimhe anda livre, fala com os personagens e entra na dungeon pela porta, no centro da parede do fundo.
 
+Chega-se nele pelo menu inicial (entrada "inicio") ou voltando da dungeon (entrada "porta"). Esc, fora de conversa e de transição, volta ao [menu inicial](menu-inicial.md); não há nada a salvar, porque o progresso é salvo a cada mudança.
+
 ## Coordenadas e arte
 
 O fundo tem 640×180 pixels, ampliado 3× na tela. As constantes do `Lobby` (móveis, tochas, porta, lugares) estão em pixels do fundo, os mesmos de `ferramentas/gerar_lobby.py`, que gera a arte. Mudou a posição de algo desenhado no fundo? Mude nos dois e gere de novo.

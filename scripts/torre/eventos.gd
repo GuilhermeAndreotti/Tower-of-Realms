@@ -16,6 +16,16 @@ extends RefCounted
 ##
 ## Tipo novo: o efeito aqui em aplicar(), a apresentação em
 ## Lobby._apresentar() e o texto do fim da batalha em resumo().
+##
+## Evento que já não muda nada (desbloquear quem já está liberado) é
+## descartado antes de aplicar: nem efeito, nem apresentação.
+
+
+## Se `e` ainda muda alguma coisa.
+static func pendente(e: Dictionary) -> bool:
+	if e.get("tipo", "") == "desbloquear":
+		return not Progressao.desbloqueado(e.get("id", ""))
+	return true
 
 
 static func aplicar(e: Dictionary) -> void:

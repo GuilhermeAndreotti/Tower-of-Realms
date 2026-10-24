@@ -21,12 +21,16 @@ func checar(condicao: bool, descricao: String) -> void:
 
 func _rodar() -> void:
 	Progressao.arquivo = "user://teste_torre.cfg"
+	# a história (quem chega depois) é testada com a chave temporária de
+	# todos liberados desligada
+	Elenco.todos_liberados = false
 	Progressao.apagar()
 
 	_teste_cadastro()
 	_teste_liberacao()
 	_teste_concluir()
 	_teste_eventos()
+	_teste_todos_liberados()
 	await _teste_batalha_andar_1()
 	await _teste_batalha_andar_2()
 	await _teste_repetir_andar_2()
@@ -125,7 +129,7 @@ func _teste_liberacao() -> void:
 	checar(Andares.atual() == 2, "o andar escolhido fica salvo")
 	Andares.escolher(1)
 	checar(Andares.atual() == 1, "dá para voltar a um andar vencido")
-	checar(Elenco.disponiveis() == ["shumi"], "o Andri ainda não está na Torre")
+	checar("andri" not in Elenco.disponiveis() and "askara" in Elenco.disponiveis(), "o Andri ainda não está na Torre; a Askara já")
 
 
 func _teste_concluir() -> void:
@@ -221,7 +225,8 @@ func _teste_repetir_andar_2() -> void:
 	var pendentes := Progressao.eventos_pendentes().size()
 	await _vencer(b)
 	checar(not b.conclusao.primeira and b.recompensas[0].participou and b.recompensas[0].xp == 350, "repetir dá a XP de novo")
-	checar(b.recompensas.size() == 2 and not b.recompensas[1].participou, "o Andri, de fora (o andar só aceita 1), também ganha")
+	checar(b.recompensas.size() == Elenco.disponiveis().size() and not b.recompensas[1].participou,
+		"o Andri, de fora (o andar só aceita 1), também ganha")
 	checar(Progressao.eventos_pendentes().size() == pendentes and b.hud._fim_extras.get_child_count() == 0, "e não repete a história")
 	await _fechar(b)
 
@@ -305,3 +310,16 @@ func _teste_saguao_evento_de_fala() -> void:
 	await create_timer(2.6).timeout
 	checar(Progressao.eventos_pendentes().is_empty() and not l.ocupado, "e o jogador volta a andar")
 	await _fechar(l)
+
+
+func _teste_todos_liberados() -> void:
+	print("todos liberados (chave temporária)")
+	Progressao.apagar()
+	Elenco.todos_liberados = true
+	checar(Elenco.disponiveis() == Elenco.IDS, "com a chave ligada, todos começam liberados")
+	Progressao.marcar_andar_vencido(1)
+	var c := Andares.concluir(2)
+	checar(c.primeira and c.eventos.is_empty() and Progressao.eventos_pendentes().is_empty(),
+		"a chegada de quem já está liberado não vira evento nem apresentação")
+	Elenco.todos_liberados = false
+	Progressao.apagar()

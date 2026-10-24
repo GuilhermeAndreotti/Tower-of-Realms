@@ -26,13 +26,22 @@ func proximo_golpe() -> Dictionary:
 	return {"nome": "Investida", "mult": MULT_GOLPE, "pesado": false, "tipo": tipo}
 
 
-## Alvo da próxima ação entre os aliados vivos. `sorteio` (0..1) vem de
-## fora para os testes poderem fixar o valor.
+## Alvo da próxima ação entre os aliados vivos, sorteado pelo peso de cada
+## um (provocação pesa mais). `sorteio` (0..1) vem de fora para os testes
+## poderem fixar o valor.
 func escolher_alvo(aliados: Array, sorteio := randf()) -> Combatente:
 	var vivos := aliados.filter(func(c: Combatente) -> bool: return c.vivo())
 	if vivos.is_empty():
 		return null
-	return vivos[mini(floori(sorteio * vivos.size()), vivos.size() - 1)]
+	var total := 0.0
+	for c: Combatente in vivos:
+		total += c.peso_alvo()
+	var ponto := sorteio * total
+	for c: Combatente in vivos:
+		ponto -= c.peso_alvo()
+		if ponto < 0.0:
+			return c
+	return vivos[-1]
 
 
 func registrar_acao() -> void:

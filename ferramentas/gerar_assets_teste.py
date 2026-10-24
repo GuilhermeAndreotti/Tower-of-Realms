@@ -1,4 +1,5 @@
-"""Gera a arte provisória do protótipo: inimigos de teste, cenário e a onda do Engo-ji.
+"""Gera a arte provisória do protótipo: inimigos de teste, cenário, a onda do
+Engo-ji e o ícone da passiva da Shumi (Limite Humano).
 
 Uso: python3 ferramentas/gerar_assets_teste.py  (a partir da pasta Torre)
 """
@@ -7,6 +8,8 @@ import os
 import random
 
 from PIL import Image
+
+from icone_pixel import icone
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -157,8 +160,44 @@ def cenario(w=320, h=180):
     return img
 
 
+# Limite Humano: coração vermelho com a faísca de energia que a passiva
+# devolve (desenho 11x11 no padrão de icone_pixel.py, o dos ícones da Shumi).
+ICONE_LIMITE_HUMANO = ({"r": (150, 20, 30, 255), "R": (225, 45, 45, 255), "l": (255, 130, 120, 255),
+                        "y": (255, 220, 60, 255), "w": (255, 250, 220, 255)}, [
+    "...........",
+    ".rrr...rrr.",
+    "rRllr.rRRRr",
+    "rRlRRrRRyRr",
+    "rRRRRRRyyRr",
+    "rRRRRRyywRr",
+    ".rRRRyywyr.",
+    "..rRRRyyr..",
+    "...rRRyr...",
+    "....rRr....",
+    ".....r.....",
+])
+
+# Bang!: a mão em "arma de dedo" e a faísca de ki vermelha do Finger Beam.
+ICONE_BANG = ({"d": (150, 90, 60, 255), "s": (235, 185, 145, 255), "l": (255, 222, 192, 255),
+               "r": (230, 50, 45, 255), "w": (255, 250, 230, 255)}, [
+    "........r..",
+    ".dd....rwr.",
+    ".dld....r..",
+    ".dsdddddd..",
+    "dssllllllsd",
+    "dssssssdd..",
+    "dsssssd....",
+    "dsssssd....",
+    ".dssssd....",
+    "..dddd.....",
+    "...........",
+])
+
+
 if __name__ == "__main__":
     salvar(construto(32, (90, 220, 255, 255), (190, 245, 255, 255), 1), "inimigos", "sentinela.png")
     salvar(construto(48, (230, 70, 160, 255), (255, 180, 220, 255), 2), "inimigos", "guardiao.png")
     salvar(meia_lua(14), "efeitos", "onda_engo_ji.png")
     salvar(cenario(), "cenarios", "torre_andar.png")
+    salvar(icone(*ICONE_LIMITE_HUMANO), "personagens", "shumi", "icone_limite_humano.png")
+    salvar(icone(*ICONE_BANG), "personagens", "shumi", "icone_bang.png")

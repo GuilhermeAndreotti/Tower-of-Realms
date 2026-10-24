@@ -15,6 +15,7 @@ const ESCALA := 3.0
 const PASTA := "res://cenarios/lobby/"
 ## A porta leva à escolha do andar (depois, a equipe e a batalha).
 const CENA_DUNGEON := "res://scenes/selecao_andar.tscn"
+const CENA_MENU := "res://scenes/menu_inicial.tscn"
 ## De onde o jogador chega ("porta" ao voltar da dungeon). Fica no Engine,
 ## como a equipe do Elenco, para sobreviver à troca de cena.
 const META_ENTRADA := "torre_saguao_entrada"
@@ -64,6 +65,7 @@ const COR_RUNA := Color(0.5, 0.9, 1.0)
 const LUGARES := {
 	"andri": [Vector2(104, 142), true],
 	"shumi": [Vector2(428, 130), true],
+	"askara": [Vector2(505, 168), true],
 }
 const LUGARES_LIVRES := [Vector2(252, 160), Vector2(150, 168), Vector2(505, 168)]
 ## Onde a Caoimhe aparece: no começo, no centro do tapete, de frente para
@@ -345,6 +347,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
 		interagir()
 		get_viewport().set_input_as_handled()
+	elif event.keycode == KEY_ESCAPE:
+		voltar_ao_menu()
+		get_viewport().set_input_as_handled()
 
 
 ## Interage com o que está em foco. Uma interação por vez: enquanto uma
@@ -378,7 +383,7 @@ func _fim_da_conversa() -> void:
 ## hora; a apresentação entra na fila e roda quando a conversa acaba.
 func _evento_da_fala(nome: String) -> void:
 	var e := Eventos.de_texto(nome)
-	if e.is_empty():
+	if e.is_empty() or not Eventos.pendente(e):
 		return
 	Eventos.aplicar(e)
 	Progressao.adicionar_eventos_pendentes([e])
@@ -453,6 +458,15 @@ func entrar_na_dungeon() -> void:
 	await hud.veu(1.0, 0.6).finished
 	Engine.set_meta(META_ENTRADA, "porta")
 	get_tree().change_scene_to_file(CENA_DUNGEON)
+
+
+## Volta ao menu inicial. O progresso já está salvo a cada mudança.
+func voltar_ao_menu() -> void:
+	if ocupado:
+		return
+	_ocupar(true)
+	await hud.veu(1.0, 0.4).finished
+	get_tree().change_scene_to_file(CENA_MENU)
 
 
 # ------------------------------------------------------------------ desenho

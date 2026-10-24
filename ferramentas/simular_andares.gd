@@ -2,16 +2,22 @@ extends SceneTree
 ## Simula os andares com a batalha de verdade (regras, fila, kits e
 ## inimigos reais) e um piloto automático no lugar do jogador. Serve para
 ## comparar a dificuldade entre andares e níveis; não substitui jogar.
-## Rodar: godot --headless --path . -s ferramentas/simular_andares.gd -- [rodadas] [andar:nivel ...]
+## Rodar: godot --headless --path . -s ferramentas/simular_andares.gd -- [rodadas] [andar:nivel ...] [equipe=id,id]
 ## Sem cenários, roda cada andar no nível sem treino, no limite e 1 abaixo.
+## Sem equipe, usa os primeiros liberados do Elenco que o andar aceita; com
+## ela, os dessa lista que já estiverem liberados no andar.
 ##
 ## O piloto joga razoavelmente bem, sem ser ótimo:
 ##  - foca o inimigo com menos HP;
-##  - Shumi: entra no Kaioken x2 com HP acima de 60%; Engo-ji com ponto
-##    sobrando e 2+ inimigos (ou no Kaioken); se não, Corte;
-##  - Andri: lente mais efetiva no alvo; Análise (Fogo) quando nenhuma lente
-##    é super efetiva e o alvo ainda tem muito HP; Arsenal: Freya em quem
-##    estiver abaixo de 50%, se não Lança de Rá em quem bate mais.
+##  - Shumi: entra no Kaioken x2 com HP acima de 60%; Bang! quando sai da
+##    recarga, fora da guarda e com 2+ pontos; Engo-ji com ponto sobrando e
+##    2+ inimigos (ou no Kaioken); se não, Corte;
+##  - Andri: lente mais efetiva no alvo; Protocolo: Escudo em quem estiver
+##    abaixo de 50%; Análise (Fogo) quando nenhuma lente é super efetiva e o
+##    alvo ainda tem muito HP; Sobrecarga com 2+ pontos; Arsenal: Freya em
+##    quem estiver abaixo de 50%, se não Lança de Rá em quem bate mais;
+##  - Askara: Lorde assim que der; se não, com ponto e vaga, Shivara (3
+##    fragmentos) ou, sem nada em campo, Emissário (2); se não, Seta Vil.
 
 const VELOCIDADE := 40.0  ## Engine.time_scale durante a simulação
 const LIMITE_TEMPO := 600.0  ## segundos de jogo por batalha (com a escala)
@@ -25,13 +31,17 @@ var _tempo := 0.0
 var _turnos := 0
 var _resultados := {}  ## Vector2i -> [{"venceu", "turnos", "hp"}]
 var _equipes := {}  ## Vector2i -> "shumi+andri"
+var _equipe_pedida: Array[String] = []  ## equipe=... na linha de comando
 
 
 func _initialize() -> void:
 	Progressao.arquivo = "user://simulacao_progresso.cfg"
 	var args := OS.get_cmdline_user_args()
 	for a in args:
-		if a.is_valid_int():
+		if a.begins_with("equipe="):
+			for id in a.trim_prefix("equipe=").split(","):
+				_equipe_pedida.append(id)
+		elif a.is_valid_int():
 			_rodadas = a.to_int()
 		elif ":" in a:
 			var p := a.split(":")
@@ -125,15 +135,22 @@ func _pilotar() -> void:
 			b.pedir_acao("ult")
 			return
 		_turnos += 1
-		if b.pontos >= 1 and (vivos.size() >= 2 or s.em_kaioken()):
+		if s.pode_usar("skill2", b.pontos) and b.pontos >= 2 and s.estado("bang") == null:
+			b.pedir_acao("skill2")
+		elif b.pontos >= 1 and (vivos.size() >= 2 or s.em_kaioken()):
 			b.pedir_acao("skill")
 		else:
 			b.pedir_acao("basico")
+	elif a is Askara:
+		_turnos += 1
+		_pilotar_askara(a as Askara, vivos.size())
 	elif a is Andri:
 		var an := a as Andri
 		_turnos += 1
 		if an.pode_usar("ult", b.pontos):
 			_usar_arsenal(an)
+			return
+		if _usar_protocolo(an):
 			return
 		var eficaz := alvo.efetividade_contra(_melhor_lente(alvo)) >= Tipos.SUPER or alvo.estado("fraqueza") != null
 		if not eficaz and b.pontos >= 1 and alvo.hp > alvo.hp_max * 0.4 and an.motivo_invalido("skill", Tipos.FOGO, alvo) == "":
@@ -143,10 +160,60 @@ func _pilotar() -> void:
 				b.cancelar_escolha()
 				b.pedir_acao("basico")
 			return
+		if an.pode_usar("skill2", b.pontos) and b.pontos >= 2:
+			b.pedir_acao("skill2")
+			b.selecionar_opcao(0)  # Sobrecarga
+			if b.confirmar_escolha():
+				return
+			b.cancelar_escolha()
 		b.pedir_acao("basico")
 	else:
 		_turnos += 1
 		b.pedir_acao("basico")
+
+
+func _pilotar_askara(k: Askara, inimigos: int) -> void:
+	var b := _batalha
+	if k.pode_usar("ult", b.pontos):
+		b.pedir_acao("ult")
+		return
+	var id := ""
+	if k.pode_usar("skill", b.pontos) and k.em_campo().size() < Askara.MAX_INVOCACOES:
+		var tem_shivara := k.em_campo().any(func(i: Invocacao) -> bool: return i.id == "shivara")
+		if k.fragmentos >= 3 and not tem_shivara and inimigos >= 2:
+			id = "shivara"
+		elif k.fragmentos >= 2 and k.em_campo().is_empty():
+			id = "emissario"
+	if id == "":
+		b.pedir_acao("basico")
+		return
+	b.pedir_acao("skill")
+	var ids: Array = Askara.INVOCACOES.map(func(x: Dictionary) -> String: return x.id)
+	b.selecionar_opcao(ids.find(id))
+	if not b.confirmar_escolha():
+		b.cancelar_escolha()
+		b.pedir_acao("basico")
+
+
+## Escudo do Protocolo em quem da equipe estiver abaixo de 50%. Devolve se usou.
+func _usar_protocolo(an: Andri) -> bool:
+	var b := _batalha
+	if not an.pode_usar("skill2", b.pontos):
+		return false
+	var aliados := b.aliados_vivos()
+	var pior := 0
+	for i in aliados.size():
+		if float(aliados[i].hp) / aliados[i].hp_max < float(aliados[pior].hp) / aliados[pior].hp_max:
+			pior = i
+	if float(aliados[pior].hp) / aliados[pior].hp_max >= 0.5:
+		return false
+	b.aliado_alvo = b.aliados_em_campo().find(aliados[pior])
+	b.pedir_acao("skill2")
+	b.selecionar_opcao(1)  # Escudo
+	if b.confirmar_escolha():
+		return true
+	b.cancelar_escolha()
+	return false
 
 
 func _usar_arsenal(an: Andri) -> void:
@@ -214,7 +281,10 @@ func _preparar_save(andar: int, nivel: int) -> void:
 	for id in Elenco.disponiveis():
 		Progressao._guardar(id, {"nivel": nivel, "xp": 0})
 	Andares.escolher(andar)
-	Elenco.definir_equipe(Elenco.disponiveis().slice(0, Andares.max_equipe(andar)))
+	var ids := Elenco.disponiveis()
+	if not _equipe_pedida.is_empty():
+		ids = _equipe_pedida.filter(func(id: String) -> bool: return id in Elenco.disponiveis())
+	Elenco.definir_equipe(ids.slice(0, Andares.max_equipe(andar)))
 
 
 ## A lente do Andri que mais machuca `alvo` (fraquezas criadas contam).

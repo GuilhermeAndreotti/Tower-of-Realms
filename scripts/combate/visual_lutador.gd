@@ -97,6 +97,24 @@ static func carregar_frames(png: String, json: String) -> SpriteFrames:
 	return frames
 
 
+## Animações em uso (para guardar e voltar depois de trocar_frames()).
+func frames() -> SpriteFrames:
+	return _animado.sprite_frames if _animado else null
+
+
+## Troca o visual (outra roupa ou forma, com as mesmas animações) sem
+## interromper a animação nem o quadro em que está.
+func trocar_frames(novos: SpriteFrames) -> void:
+	if not _animado or novos == null or novos == _animado.sprite_frames:
+		return
+	var anim := _animado.animation
+	var quadro := _animado.frame
+	var progresso := _animado.frame_progress
+	_animado.sprite_frames = novos
+	_animado.play(anim)
+	_animado.set_frame_and_progress(quadro, progresso)
+
+
 ## Imagem pequena do lutador para a HUD (ordem de turnos, painel).
 func retrato() -> Texture2D:
 	return _retrato

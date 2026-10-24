@@ -38,6 +38,7 @@ func executar(acao: String) -> void:
 	match acao:
 		"basico": await _disparo()
 		"skill": await _analise()
+		"skill2": await _protocolo()
 		"ult": await _arsenal()
 		"lente": await _trocar_lente()
 
@@ -68,7 +69,7 @@ func _disparo() -> void:
 
 
 ## O MOMC sobe, os olhos acendem e ele dispara um projétil menor.
-func _ataque_momc(alvo: Combatente, golpe: Dictionary) -> void:
+func _ataque_momc(alvo: Combatente, golpe: Dictionary, tamanho := 0.7, aviso := "O %s ataca junto!") -> void:
 	var base := _momc.position
 	var t := _momc.create_tween()
 	t.tween_property(_momc, "position", base + Vector2(8, -22), 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -77,15 +78,53 @@ func _ataque_momc(alvo: Combatente, golpe: Dictionary) -> void:
 	# lado direito do robô (o MOMC tem ~21 px de largura, com a origem nos pés)
 	var boca := v.position + _momc.position + Vector2(9, -12)
 	EfeitosCombate.anel(b.mundo, boca, Tipos.cor(golpe.tipo), 14.0)
-	var voo := EfeitosCombate.projetil(b.mundo, boca, centro(alvo), golpe.tipo, 1200.0, 0.7)
+	var voo := EfeitosCombate.projetil(b.mundo, boca, centro(alvo), golpe.tipo, 1200.0, tamanho)
 	var volta := _momc.create_tween()
 	volta.tween_property(_momc, "position", base + Vector2(-4, -16), 0.06)
 	volta.tween_property(_momc, "position", base, 0.2).set_trans(Tween.TRANS_QUAD)
 	volta.parallel().tween_property(_momc, "modulate", Color.WHITE, 0.25)
 	await b.esperar(voo)
-	EfeitosCombate.impacto_elemental(b.mundo, centro(alvo) + Vector2(6, 8), golpe.tipo, 0.7)
-	b.hud.registrar("O %s ataca junto!" % HudBatalha.destaque("MOMC", Color(0.55, 0.8, 1.0)))
+	EfeitosCombate.impacto_elemental(b.mundo, centro(alvo) + Vector2(6, 8), golpe.tipo, tamanho)
+	b.hud.registrar(aviso % HudBatalha.destaque("MOMC", Andri.COR_MOMC))
 	await b.aplicar_dano(a, alvo, golpe.mult, golpe.tipo, golpe.extra)
+
+
+# ------------------------------------------------------ protocolo MOMC
+func _protocolo() -> void:
+	b.hud.registrar("%s ativa o %s: %s." % [HudBatalha.nome(a), HudBatalha.destaque("Protocolo MOMC", EstiloUI.OURO),
+		"Escudo" if b.opcao == "escudo" else "Sobrecarga"])
+	v.tocar("analise")
+	if b.opcao == "escudo":
+		await _escudo_momc(b.aliado_atual())
+	else:
+		_momc.modulate = Color(2.0, 2.0, 2.6)
+		EfeitosCombate.carga(b.mundo, v.position + _momc.position + Vector2(0, -12), [Color.WHITE, Tipos.cor(a.lente)], 0.35, 50.0)
+		await b.esperar(0.35)
+		await _ataque_momc(b.alvo_atual(), a.golpe_sobrecarga(), 1.3, "O %s dispara em sobrecarga!")
+	a.ganhar_energia(Andri.ENERGIA_SKILL)
+	b.atualizar()
+	await b.esperar(0.3)
+
+
+## O MOMC voa até o aliado, fecha o escudo em volta dele e volta.
+func _escudo_momc(alvo: Combatente) -> void:
+	var base := _momc.position
+	var va := b.visual(alvo)
+	var ida := _momc.create_tween()
+	ida.tween_property(_momc, "position", va.position - v.position + Vector2(-26, -va.altura * 0.6), 0.3).set_trans(Tween.TRANS_SINE)
+	await ida.finished
+	var e := Andri.escudo_momc(alvo)
+	alvo.aplicar_estado(e)
+	EfeitosCombate.anel(b.mundo, centro(alvo), Andri.COR_MOMC, 46.0)
+	EfeitosCombate.impacto(b.mundo, centro(alvo), Color.WHITE, 0.9)
+	va.piscar(Color(1.55, 1.8, 2.0))
+	EfeitosCombate.numero(b.mundo, va.topo(), "(%d)" % e.escudo, "escudo")
+	b.hud.registrar("O %s protege %s: escudo de %s." % [HudBatalha.destaque("MOMC", Andri.COR_MOMC), HudBatalha.nome(alvo),
+		HudBatalha.destaque(str(e.escudo), EfeitosCombate.NUMEROS.escudo[0])])
+	b.atualizar()
+	var volta := _momc.create_tween()
+	volta.tween_property(_momc, "position", base, 0.3).set_trans(Tween.TRANS_SINE)
+	await volta.finished
 
 
 # --------------------------------------------------------------- análise
@@ -121,7 +160,7 @@ func _arsenal() -> void:
 	v.tocar("analise")
 	# o artefato surge acima do Andri, brilha e voa até o alvo
 	var item := Sprite2D.new()
-	item.texture = load(Andri.PASTA + "icone_%s.png" % id)
+	item.texture = load(Andri.PASTA + "artefato_%s.png" % id)
 	item.scale = Vector2(3, 3)
 	item.position = v.topo() + Vector2(0, -10)
 	b.mundo.add_child(item)

@@ -4,6 +4,9 @@ extends Combatente
 ##  Básico: corte de katana (gera 1 ponto de skill e um pouco de energia).
 ##  Skill: Engo-ji Beam, feixe que muda com o Kaioken: só o alvo, alvo + 1
 ##         (x2), alvo + vizinhos (x4), atravessa todos (x10) e Colapso (x20).
+##  Skill 2: Bang!. Finger Beam no alvo e fica em guarda pelos 2 turnos
+##           seguintes dela: cada inimigo que a acertar leva um Finger Beam de volta
+##           (mais forte a cada nível do Kaioken). Ela apanha normalmente.
 ##  Ult: Kaioken. Entra na forma (x2) ou sobe um nível (x4, x10, x20).
 ##       Cada nível dá mais ATQ/VEL e drena mais HP no início do turno.
 ##       Quando acaba, ela fica exausta (VEL menor); depois do x20 perde um turno.
@@ -40,6 +43,16 @@ const ENGO_JI := [
 	{"nome": "Engo-ji Beam: Colapso", "alcance": "todos", "mult": 2.2},
 ]
 const MULT_ENGO_JI_SECUNDARIO := 0.9  ## alvos extras do x2 e do x4
+
+## Finger Beam do Bang! (o tiro ao usar e cada contra-ataque), por nível
+## (índice = nivel + 1). Começa fraco: o valor está em repetir a cada golpe.
+const MULT_FINGER_BEAM := [0.4, 0.5, 0.65, 0.85, 1.1]
+## Turnos dela, contando o da ação: a guarda cobre os 2 turnos seguintes.
+## Um a menos que a recarga de propósito: ela sempre fica pelo menos um
+## turno sem guarda.
+const DURACAO_BANG := 3
+const RECARGA_BANG := 3
+const ENERGIA_CONTRA := 5.0  ## por contra-ataque: apanhar em guarda acelera o Kaioken
 
 var nivel := -1  ## -1 = fora do Kaioken
 var turnos_kaioken := 0
@@ -158,6 +171,26 @@ func alvos_engo_ji(inimigos: Array, alvo: int) -> Array:
 	return alvos
 
 
+# ----------------------------------------------------------------- Bang!
+func mult_finger_beam() -> float:
+	return MULT_FINGER_BEAM[nivel + 1]
+
+
+## Guarda do Bang!: enquanto durar, contra_atacar() responde a cada golpe.
+static func guarda_bang() -> Estado:
+	var e := Estado.new("bang", "Bang!", "BNG", "buff", DURACAO_BANG)
+	e.cor = COR_KAIOKEN
+	e.detalhe = "contra-ataca com Finger Beam"
+	return e
+
+
+func contra_atacar(_atacante: Combatente) -> Dictionary:
+	if estado("bang") == null:
+		return {}
+	ganhar_energia(ENERGIA_CONTRA)
+	return {"nome": "Finger Beam", "mult": mult_finger_beam(), "tipo": tipo}
+
+
 func alvos_previstos(acao: String, inimigos: Array, alvo: int) -> Array:
 	if acao == "skill":
 		return alvos_engo_ji(inimigos, alvo).map(func(par: Array) -> Combatente: return par[0])
@@ -169,12 +202,15 @@ const COR_KAIOKEN := Color(1.0, 0.25, 0.2)
 const ICONE_CORTE := "res://personagens/shumi/basic-attack-melee.png"
 const ICONE_ENGO_JI := "res://personagens/shumi/engo-ji-beam-icon.png"
 const ICONE_KAIOKEN := "res://personagens/shumi/kaiokenn-shumi.png"
+const ICONE_BANG := "res://personagens/shumi/icone_bang.png"
+const ICONE_LIMITE_HUMANO := "res://personagens/shumi/icone_limite_humano.png"
 
 
 func pode_usar(acao: String, pontos: int) -> bool:
 	match acao:
 		"basico": return true
 		"skill": return pontos > 0
+		"skill2": return pontos > 0 and recarga("skill2") == 0
 		"ult": return pode_ultar()
 	return false
 
@@ -221,7 +257,21 @@ func habilidades(pontos: int) -> Array[Dictionary]:
 				if nivel_maximo() else DESCRICAO_ENGO_JI[e.alcance])
 				+ ("" if em_kaioken() else " Muda a cada nível do Kaioken."),
 		},
+		com_recarga({
+			"acao": "skill2", "nome": "Bang!", "tecla": "W", "icone": ICONE_BANG,
+			"estado": "pronta" if pontos > 0 else "sem_recurso",
+			"alvo": "unico", "tipo": tipo, "custo_pontos": 1, "recarga": RECARGA_BANG,
+			"selo": nome_nivel(), "cor": COR_KAIOKEN,
+			"descricao": "Finger Beam no alvo (%sx) e fica em guarda por %d turnos: cada inimigo que a acertar leva um Finger Beam de volta e ela ganha %d de energia. Mais forte a cada nível do Kaioken. Recarga de %d turnos." % [
+				str(mult_finger_beam()).replace(".", ","), DURACAO_BANG - 1, roundi(ENERGIA_CONTRA), RECARGA_BANG],
+		}),
 		ult,
+		{
+			"acao": "limite_humano", "nome": "Limite Humano", "tecla": "", "icone": ICONE_LIMITE_HUMANO,
+			"estado": "pronta", "alvo": "proprio", "passiva": true, "cor": COR_KAIOKEN,
+			"descricao": "Passiva: se sobrevive ao dreno do Kaioken no começo do turno, recupera energia (%s do x2 ao x20)." % [
+				"/".join(NIVEIS.map(func(n: Dictionary) -> String: return str(roundi(n.limite))))],
+		},
 	]
 
 

@@ -12,6 +12,8 @@ const CENA_ANDARES := "res://scenes/selecao_andar.tscn"
 const CARTOES_NO_ELENCO := 6  ## completa com "em breve" até este número
 ## Referência para as barrinhas de atributo (valor que enche a barra).
 const REF_STATUS := {"hp": 2000.0, "atq": 200.0, "def": 120.0, "vel": 150.0}
+## Altura máxima da lista de habilidades na ficha; kits maiores rolam.
+const ALTURA_MAX_HABILIDADES := 230.0
 
 var equipe: Array[String] = []
 var _cursor := 0
@@ -344,8 +346,19 @@ func _montar_ficha() -> void:
 	_detalhe.add_child(grade)
 
 	_detalhe.add_child(EstiloUI.label("HABILIDADES", 9, EstiloUI.TEXTO_FRACO, 2))
+	# a lista cresce com o kit até ALTURA_MAX_HABILIDADES; daí em diante rola
+	var rolagem := ScrollContainer.new()
+	rolagem.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	rolagem.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var lista := VBoxContainer.new()
+	lista.add_theme_constant_override("separation", 6)
+	lista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rolagem.add_child(lista)
 	for hab in p.habilidades(Batalha.PONTOS_MAX):
-		_detalhe.add_child(_linha_habilidade(hab))
+		lista.add_child(_linha_habilidade(hab))
+	lista.resized.connect(func() -> void:
+		rolagem.custom_minimum_size.y = minf(lista.size.y, ALTURA_MAX_HABILIDADES))
+	_detalhe.add_child(rolagem)
 
 
 ## Nível, barra de XP e quanto falta para o próximo (ou o limite da Torre).
@@ -376,6 +389,7 @@ func _linha_nivel(id: String) -> Control:
 func _linha_habilidade(hab: Dictionary) -> Control:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
+	h.mouse_filter = Control.MOUSE_FILTER_PASS  # a roda do mouse chega à rolagem
 	var caminho: String = hab.get("icone", "")
 	if caminho != "" and not _icones.has(caminho):
 		_icones[caminho] = load(caminho)
@@ -405,6 +419,8 @@ func _linha_habilidade(hab: Dictionary) -> Control:
 		custo = "  [color=#%s]%d ponto%s[/color]" % [EstiloUI.PONTO.to_html(false), hab.custo_pontos, "" if hab.custo_pontos == 1 else "s"]
 	elif hab.get("custo_energia", 0) > 0:
 		custo = "  [color=#%s]%d energia[/color]" % [EstiloUI.ENERGIA.to_html(false), hab.custo_energia]
+	elif hab.get("custo_recurso", "") != "":
+		custo = "  [color=#%s]%s[/color]" % [hab.get("cor", EstiloUI.TEXTO).to_html(false), hab.custo_recurso]
 	texto.text = "[b]%s[/b]%s\n[color=#%s]%s[/color]" % [hab.nome, custo, Color(0.82, 0.8, 0.88).to_html(false), hab.get("descricao", "")]
 	h.add_child(texto)
 	return h

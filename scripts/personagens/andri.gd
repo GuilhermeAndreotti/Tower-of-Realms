@@ -10,6 +10,8 @@ extends Combatente
 ##  Skill: Análise de Vulnerabilidade. Cria no inimigo uma fraqueza ao
 ##         elemento de alguém da equipe: ele passa a ser super efetivo ali
 ##         por alguns turnos.
+##  Skill 2: Protocolo MOMC. O robô dá um escudo pequeno a um aliado ou
+##           dispara forte num inimigo, no elemento da lente.
 ##  Ult: Arsenal Titânico. Entrega um artefato a um aliado (ou a si mesmo).
 
 const LENTES: Array[String] = [Tipos.FOGO, Tipos.AGUA, Tipos.GELO, Tipos.ELETRICIDADE,
@@ -37,6 +39,14 @@ const MULT_RA := 1.5
 const DURACAO_LOKEN := 2
 const ATQ_ENGANADO := -0.25
 const ATRASO_ENGANADO := 0.15
+
+## Protocolo MOMC. O escudo é bem menor que o da Mão de Tyr, para não
+## competir com a ult.
+const ESCUDO_MOMC := 0.10  ## do HP máximo do alvo
+const DURACAO_ESCUDO_MOMC := 2  ## turnos do portador
+const MULT_SOBRECARGA := 0.9
+const RECARGA_PROTOCOLO := 3
+const COR_MOMC := Color(0.55, 0.8, 1.0)
 
 const PASTA := "res://personagens/andri/"
 const COR_ANDRI := Color(1.0, 0.78, 0.3)
@@ -89,6 +99,19 @@ func golpes_disparo() -> Array[Dictionary]:
 		{"fonte": "andri", "tipo": lente, "mult": MULT_DISPARO, "extra": false},
 		{"fonte": "momc", "tipo": lente, "mult": MULT_MOMC, "extra": true},
 	]
+
+
+## Golpe da Sobrecarga do Protocolo: do MOMC, no elemento da lente. Marcado
+## "extra" como o do Disparo, para nada se encadear a partir dele.
+func golpe_sobrecarga() -> Dictionary:
+	return {"fonte": "momc", "tipo": lente, "mult": MULT_SOBRECARGA, "extra": true}
+
+
+static func escudo_momc(alvo: Combatente) -> Estado:
+	var e := Estado.new("escudo_momc", "Escudo do MOMC", "MOM", "buff", DURACAO_ESCUDO_MOMC)
+	e.escudo = roundi(alvo.hp_max * ESCUDO_MOMC)
+	e.cor = COR_MOMC
+	return e
 
 
 # -------------------------------------------------------------- análise
@@ -213,6 +236,16 @@ func motivo_invalido(acao: String, opcao: String, alvo: Combatente) -> String:
 				return "%s é Arcano: já recebe dano dobrado de tudo." % alvo.nome
 			if Tipos.efetividade(opcao, alvo.tipo) >= Tipos.SUPER:
 				return "%s já é fraco a %s." % [alvo.nome, Tipos.nome(opcao)]
+		"skill2":
+			match opcao:
+				"escudo":
+					if alvo == null or not alvo.aliado or not alvo.vivo():
+						return "Escolha um aliado de pé."
+				"sobrecarga":
+					if alvo == null or alvo.aliado:
+						return "Escolha um inimigo."
+				_:
+					return "Escolha um protocolo."
 		"ult":
 			var a := artefato(opcao)
 			if a.is_empty():
@@ -229,6 +262,7 @@ func pode_usar(acao: String, pontos: int) -> bool:
 	match acao:
 		"basico", "lente": return true
 		"skill": return pontos > 0
+		"skill2": return pontos > 0 and recarga("skill2") == 0
 		"ult": return energia >= CUSTO_ULT
 	return false
 
@@ -262,6 +296,19 @@ func habilidades(pontos: int) -> Array[Dictionary]:
 			"opcoes": analises, "opcao_padrao": elementos[0],
 			"descricao": "Análise de Vulnerabilidade: o alvo fica fraco ao elemento de alguém da equipe por %d turnos." % DURACAO_FRAQUEZA,
 		},
+		com_recarga({
+			"acao": "skill2", "nome": "Protocolo", "tecla": "W", "icone": PASTA + "icone_protocolo.png",
+			"estado": "pronta" if pontos > 0 else "sem_recurso", "alvo": "unico", "custo_pontos": 1,
+			"recarga": RECARGA_PROTOCOLO, "selo": Tipos.sigla(lente), "cor": cor_lente,
+			"opcoes": [
+				{"id": "sobrecarga", "nome": "Sobrecarga", "alvo": "unico", "cor": cor_lente,
+					"descricao": "O MOMC dispara forte no inimigo (%sx de %s)." % [str(MULT_SOBRECARGA).replace(".", ","), Tipos.nome(lente)]},
+				{"id": "escudo", "nome": "Escudo", "alvo": "aliado", "cor": COR_MOMC,
+					"descricao": "O MOMC protege um aliado: escudo de %d%% do HP máximo por %d turnos." % [roundi(ESCUDO_MOMC * 100), DURACAO_ESCUDO_MOMC]},
+			],
+			"opcao_padrao": "sobrecarga",
+			"descricao": "Protocolo MOMC: o robô dá um escudo pequeno a um aliado ou dispara forte num inimigo com o elemento da lente. Recarga de %d turnos." % RECARGA_PROTOCOLO,
+		}),
 		{
 			"acao": "ult", "nome": "Arsenal", "tecla": "R", "icone": PASTA + "icone_arsenal.png",
 			"estado": "pronta" if energia >= CUSTO_ULT else "sem_recurso", "alvo": "aliado",

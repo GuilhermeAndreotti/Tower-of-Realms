@@ -172,7 +172,7 @@ static func escolher(numero: int) -> void:
 static func concluir(numero: int) -> Dictionary:
 	var limite_antes := limite_nivel()
 	var primeira := not vencido(numero)
-	var eventos: Array = dados(numero).get("ao_vencer", []) if primeira else []
+	var eventos: Array = dados(numero).get("ao_vencer", []).filter(Eventos.pendente) if primeira else []
 	if primeira:
 		Progressao.marcar_andar_vencido(numero)
 		for e: Dictionary in eventos:

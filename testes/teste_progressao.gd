@@ -20,6 +20,9 @@ func checar(condicao: bool, descricao: String) -> void:
 
 func _rodar() -> void:
 	Progressao.arquivo = "user://teste_progressao.cfg"
+	# a história (quem chega depois) é testada com a chave temporária de
+	# todos liberados desligada
+	Elenco.todos_liberados = false
 	Progressao.apagar()
 
 	_teste_inicio()
@@ -212,8 +215,9 @@ func _teste_desbloqueio() -> void:
 	checar(Progressao.desbloquear("andri") == {"nivel": 7, "xp": 0}, "desbloquear de novo não muda o nível")
 	_limpar()
 	Progressao.conceder_xp("shumi", 250)
+	Progressao.conceder_xp("askara", 250)
 	checar(Progressao.equipe_salva().is_empty() and Progressao.desbloquear("andri").nivel == 3,
-		"sem equipe salva: média dos liberados (Shumi no 3)")
+		"sem equipe salva: média dos liberados (Shumi e Askara no 3)")
 	_limpar()
 	Progressao._guardar("shumi", {"nivel": 8, "xp": 0})
 	Elenco.definir_equipe(["shumi"])
@@ -288,8 +292,9 @@ func _teste_batalha_vitoria() -> void:
 	for ini in b.inimigos:
 		ini.hp = 0
 	b._verificar_fim()
-	checar(b.acabou and b.recompensas.size() == 2 and b.recompensas.all(func(r: Dictionary) -> bool: return r.participou),
-		"a vitória gera uma recompensa por personagem")
+	checar(b.acabou and b.recompensas.size() == Elenco.disponiveis().size()
+		and b.recompensas.filter(func(r: Dictionary) -> bool: return r.participou).size() == 2,
+		"a vitória gera uma recompensa por personagem (quem lutou e quem ficou de fora)")
 	# 100 + 150 + 200 = 450: nível 4 com 150 (limite 7)
 	checar(Progressao.progresso("shumi") == {"nivel": 4, "xp": 150} and Progressao.progresso("andri") == {"nivel": 4, "xp": 150},
 		"600 XP: os dois vão do 1 ao 4 (sobram 150)")
@@ -316,7 +321,8 @@ func _teste_xp_compartilhada() -> void:
 	var por_id := {}
 	for r in b.recompensas:
 		por_id[r.id] = r
-	checar(por_id.size() == 2 and por_id.shumi.participou and not por_id.andri.participou, "o Andri, na reserva, entra na recompensa")
+	checar(por_id.size() == 3 and por_id.shumi.participou and not por_id.andri.participou and not por_id.askara.participou,
+		"o Andri e a Askara, na reserva, entram na recompensa")
 	checar(por_id.andri.xp == por_id.shumi.xp and Progressao.progresso("andri") == Progressao.progresso("shumi"),
 		"e ganha a mesma XP de quem lutou")
 	await _fechar(b)
@@ -330,7 +336,8 @@ func _teste_xp_compartilhada() -> void:
 	for ini in b.inimigos:
 		ini.hp = 0
 	b._verificar_fim()
-	checar(b.recompensas.size() == 1 and not Progressao.desbloqueado("andri") and Progressao.progresso("andri").xp == 0,
+	checar(not b.recompensas.any(func(r: Dictionary) -> bool: return r.id == "andri") and not Progressao.desbloqueado("andri")
+		and Progressao.progresso("andri").xp == 0,
 		"quem ainda não chegou à Torre não ganha XP")
 	await _fechar(b)
 

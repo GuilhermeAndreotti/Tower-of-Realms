@@ -37,6 +37,10 @@ var _bonus_extra := {}
 ## Efeitos aplicados por habilidades (ver Estado). Um por id.
 var estados: Array[Estado] = []
 
+## Turnos que faltam para cada ação com "recarga" poder ser usada de novo
+## (acao -> turnos do portador; sem a chave = pronta).
+var recargas := {}
+
 ## Devolve os aliados de pé deste lutador (Array[Combatente]); a batalha
 ## preenche. Um Callable, e não a lista, para não criar ciclo de referência.
 var aliados_vivos := Callable()
@@ -124,6 +128,7 @@ func ganhar_energia(qtd: float) -> void:
 static func calcular_dano(atacante: Combatente, alvo: Combatente, mult: float, variacao := 0.5, tipo_ataque := "", critico := false) -> int:
 	var tipo_golpe := tipo_ataque if tipo_ataque != "" else atacante.tipo
 	var bruto := atacante.atq() * mult * alvo.efetividade_contra(tipo_golpe) * 100.0 / (100.0 + alvo.defesa())
+	bruto *= 1.0 - alvo.reducao_dano()
 	if critico:
 		bruto *= DANO_CRITICO
 	return maxi(1, roundi(bruto * lerpf(0.95, 1.05, variacao)))
@@ -154,6 +159,36 @@ func efetividade_contra(tipo_golpe: String) -> float:
 
 func chance_critico() -> float:
 	return clampf(bonus("crit"), 0.0, 1.0)
+
+
+## Fração cortada de todo golpe recebido (resistências dos estados).
+func reducao_dano() -> float:
+	var total := 0.0
+	for e in estados:
+		total += e.reducao_dano
+	return clampf(total, 0.0, 0.9)
+
+
+## Peso deste lutador no sorteio de alvo dos inimigos (1 + provocações).
+func peso_alvo() -> float:
+	var total := 1.0
+	for e in estados:
+		total += e.provocacao
+	return total
+
+
+## Um inimigo acertou este lutador e os dois continuam de pé. Devolve o
+## contra-ataque ({"nome", "mult", "tipo"?}; {} = nenhum), que a batalha
+## faz como golpe adicional: sem crítico, sem estados de acerto e sem
+## encadear. Quem tem contra-ataque no kit sobrescreve.
+func contra_atacar(_atacante: Combatente) -> Dictionary:
+	return {}
+
+
+## Um inimigo caiu (chamado nos aliados de pé). Devolve o que este lutador
+## ganhou com isso, para o registro da luta ("" = nada).
+func ao_inimigo_cair() -> String:
+	return ""
 
 
 # --------------------------------------------------------------- estados
@@ -191,8 +226,13 @@ func remover_estado(id: String) -> void:
 	ajustar_av(vel_antes)
 
 
-## Fim de um turno do portador: desconta a duração. Devolve os que acabaram.
+## Fim de um turno do portador: desconta a duração dos estados e as
+## recargas. Devolve os estados que acabaram.
 func passar_turno() -> Array[Estado]:
+	for acao: String in recargas.keys():
+		recargas[acao] -= 1
+		if recargas[acao] <= 0:
+			recargas.erase(acao)
 	var acabaram: Array[Estado] = []
 	for e in estados:
 		if e.turnos > 0:
@@ -270,6 +310,30 @@ func estados_ao_acertar() -> Array[Estado]:
 	return lista
 
 
+# --------------------------------------------------------------- recarga
+## Turnos que faltam para `acao` poder ser usada de novo (0 = pronta).
+func recarga(acao: String) -> int:
+	return recargas.get(acao, 0)
+
+
+## `acao` foi usada: só volta depois de `turnos` turnos do portador, contando
+## o turno em que foi usada (recarga 3 = uma vez a cada 3 turnos).
+func iniciar_recarga(acao: String, turnos: int) -> void:
+	if turnos > 0:
+		recargas[acao] = turnos
+
+
+## Completa a descrição `h` de uma ação com "recarga": em recarga, ela fica
+## no estado "recarga" com os turnos que faltam ("recarga_restante").
+func com_recarga(h: Dictionary) -> Dictionary:
+	var falta := recarga(h.acao)
+	h.recarga_restante = falta
+	if falta > 0:
+		h.estado = "recarga"
+		h.falta = "Recarga: mais %d turno%s." % [falta, "" if falta == 1 else "s"]
+	return h
+
+
 # ------------------------------------------------- descrição para a interface
 # A HUD só lê estes dados; quem tem kit ou estados próprios sobrescreve.
 
@@ -283,16 +347,21 @@ func efeitos() -> Array[Dictionary]:
 	return lista
 
 
-## Kit de ações do jogador, na ordem da barra: [{"acao", "nome", "tecla",
-## "icone", "estado" (pronta/sem_recurso/bloqueada), "alvo" (unico/vizinhos/
-## todos/proprio/aliado), "tipo"? (Tipos, só nas que causam dano),
-## "custo_pontos"?, "custo_energia"?, "ganho_pontos"?, "opcoes"? (escolha
-## feita antes de confirmar: [{"id", "nome", "descricao", "icone"?, "cor"?}],
-## com "opcao_padrao"?), "passiva"? (fora da barra, sem tecla),
+## Kit de ações do jogador, na ordem da barra (sempre básico, skill, skill 2,
+## ult e a passiva; a skill 2 pode ser uma passiva, no mesmo lugar): [{"acao", "nome", "tecla",
+## "icone", "estado" (pronta/sem_recurso/bloqueada/recarga), "alvo" (unico/
+## vizinhos/todos/proprio/aliado), "tipo"? (Tipos, só nas que causam dano),
+## "custo_pontos"?, "custo_energia"?, "custo_recurso"? (texto, para recursos
+## do kit, como "6 fragmentos"), "ganho_pontos"?, "opcoes"? (escolha
+## feita antes de confirmar: [{"id", "nome", "descricao", "icone"?, "cor"?,
+## "alvo"? (quando a opção mira outro tipo de alvo que a ação)}],
+## com "opcao_padrao"?), "recarga"? (turnos entre usos; ver com_recarga()),
+## "passiva"? (sem tecla; todo kit explica a sua),
 ## "ao_iniciar_turno"? (o seletor de opções abre sozinho no começo da vez),
 ## "seletor"? ("radial": as opções abrem em anel no próprio lutador; opções
 ## podem ter "sigla" e "atual"),
-## "livre"? (não gasta o turno), "selo"?, "destaque"?, "cor"?, "descricao"}, ...].
+## "livre"? (não gasta o turno), "selo"?, "destaque"?, "cor"?,
+## "falta"? (por que não está pronta, quando o kit sabe dizer), "descricao"}, ...].
 ## A batalha cobra "custo_pontos" antes da ação e dá "ganho_pontos" depois.
 func habilidades(_pontos: int) -> Array[Dictionary]:
 	return []

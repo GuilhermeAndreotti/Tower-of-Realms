@@ -8,7 +8,7 @@
 
 ![Shumi disparando o Engo-ji Beam](docs/capturas/engo-ji-beam.png)
 
-> ⚠️ **Protótipo.** Por enquanto existem quatro andares e dois personagens jogáveis. Os inimigos, o cenário e alguns efeitos usam arte provisória.
+> ⚠️ **Protótipo.** Por enquanto existem quatro andares e três personagens jogáveis. Os inimigos, o cenário e alguns efeitos usam arte provisória.
 
 ---
 
@@ -21,6 +21,7 @@
 - [Personagens](#-personagens)
   - [Shumi, espadachim do Kaioken](#-shumi--espadachim-do-kaioken)
   - [Andri Findavil, inventor e artífice](#-andri-findavil--inventor-e-artífice)
+  - [Àskara, invocadora do abismo](#-àskara--invocadora-do-abismo)
 - [Inimigos](#-inimigos)
 - [Rodando o projeto](#-rodando-o-projeto)
 - [Estrutura do projeto](#-estrutura-do-projeto)
@@ -31,14 +32,16 @@
 
 ## 🎮 Como jogar
 
-1. No **saguão**, ande com a Caoimhe até a porta da dungeon e aperte **Enter**.
-2. Na **escolha do andar**, suba para um andar liberado. Os andares que você já venceu podem ser repetidos.
-3. Na **seleção de equipe**, escolha os heróis. Cada andar tem um limite de personagens.
-4. Na batalha, quando chega a vez de um aliado, escolha a ação:
+1. No **menu inicial**, escolha **NEW GAME** (jogo novo num dos 3 slots de save; um slot ocupado pede confirmação para ser sobrescrito) ou **LOAD GAME** (continua um save). Nas duas listas, **Del** ou o botão **APAGAR** apaga um save, também com confirmação.
+2. No **saguão**, ande com a Caoimhe até a porta da dungeon e aperte **Enter**.
+3. Na **escolha do andar**, suba para um andar liberado. Os andares que você já venceu podem ser repetidos.
+4. Na **seleção de equipe**, escolha os heróis. Cada andar tem um limite de personagens.
+5. Na batalha, quando chega a vez de um aliado, escolha a ação:
 
 | Tecla | Ação |
 |---|---|
 | **Q** | Ataque básico |
+| **W** | Segunda habilidade (skill 2) |
 | **E** | Habilidade (skill) |
 | **R** | Ultimate |
 | **← / →** ou clique | Troca o alvo |
@@ -46,7 +49,7 @@
 | **Enter** | Confirma |
 | **Esc** | Cancela |
 
-No fim do andar, vencendo ou perdendo, o resultado aparece e **Enter** (ou um clique) volta ao saguão. Para repetir um andar, é só subir de novo pela porta.
+No fim do andar, vencendo ou perdendo, o resultado aparece e **Enter** (ou um clique) volta ao saguão. Para repetir um andar, é só subir de novo pela porta. No saguão, **Esc** volta ao menu inicial (o progresso já fica salvo a cada mudança).
 
 Passe o mouse sobre uma habilidade para ver quais alvos ela vai acertar antes de usar.
 
@@ -62,6 +65,7 @@ Cada lutador tem um *action value* (AV), que é quanto falta para ele agir. Quem
 ### Recursos
 - **Pontos de skill** são compartilhados pela equipe. O time começa com 3 e o máximo é 5. O ataque básico **gera** 1 ponto, e a skill **gasta** 1. Revezar entre básicos e skills faz parte da estratégia.
 - **Energia** é individual. Ela enche ao atacar e ao receber golpes e paga a ultimate.
+- **Fragmentos d'Alma** são só da Àskara, que não usa energia: pagam as invocações e o Lorde Demônio.
 
 ### Dano
 ```
@@ -87,8 +91,16 @@ Cada lutador tem **um** tipo. Um golpe pode ser **super efetivo (2×)**, **pouco
 
 **Arcano** tem regra própria: um alvo Arcano recebe 2× de *qualquer* tipo, e um ataque Arcano causa 2× em tudo, menos em Físico (0,5×).
 
+### Habilidades na barra
+Cada personagem mostra na barra, sempre nesta ordem, o básico (Q), a skill (E), a skill 2 (W), a ultimate (R) e, por último, a **passiva**, marcada como PASSIVA e sem tecla. A skill 2 pode ser também uma passiva, como o Último Ato da Àskara, e fica no mesmo lugar. Nomes longos aparecem cortados e correm quando o mouse passa por cima. Passar o mouse sobre qualquer uma explica o que ela faz e, se não estiver pronta, o que falta.
+
+As duas skills custam 1 ponto de skill cada. A do W tem também **recarga**: depois de usada, só volta 3 turnos depois, e a barra mostra no ícone quantos turnos faltam.
+
 ### Estados
 Buffs e debuffs (escudo, fraqueza, lentidão etc.) aparecem como ícones com a contagem de turnos acima de cada lutador.
+
+### Invocações
+Algumas habilidades chamam criaturas para o lado da equipe. Elas têm vez própria na fila, HP e barra, e os inimigos podem atacá-las. Mas não fazem parte da equipe: agem sozinhas no inimigo marcado, não ganham XP, vão embora depois de algumas vezes e não seguram a luta (se a equipe cair, a luta acaba). O Andri pode entregar artefatos a elas. Ao ir embora por tempo ou ao cair, cada demônio da Àskara faz um **último ato**.
 
 ---
 
@@ -99,7 +111,7 @@ Cada ida à dungeon é um andar. Você vence e volta ao saguão. Vencer o andar 
 | Andar | Equipe | Nível rec. | Limite de nível | Inimigos | XP |
 |---|---|---|---|---|---|
 | 1. Vigia da Entrada | 1 | 1 | 3 | 2 Sentinelas | 150 |
-| 2. Salão do Guardião | 1 | 2 | 5 | Sentinela e Guardião (Golpe Pesado a cada 3). **O Andri chega** na primeira vitória | 350 |
+| 2. Salão do Guardião | 1 | 2 | 5 | Sentinela e Guardião (Golpe Pesado a cada 3). Na história, **o Andri chega** na primeira vitória (por enquanto, todos já começam liberados) | 350 |
 | 3. Guarnição | 2 | 4 | 7 | Sentinela, Sentinela Veloz e Guardião de **Veneno** | 600 |
 | 4. Trono Sombrio | 2 | 6 | 9 | Guardião Sombrio de **Trevas** (Golpe Pesado a cada 2) e Sentinelas de **Água** e de **Ácido** | 900 |
 
@@ -132,9 +144,10 @@ Cada personagem tem nível e XP próprios. As regras ficam em `scripts/personage
 |---|---|---|---|---|
 | Shumi (ofensiva) | +60 | +8 | +2 | +0,5 |
 | Andri (suporte) | +50 | +5,5 | +3 | +1 |
+| Àskara (invocadora) | +45 | +6 | +2 | +1 |
 
 - **Personagem novo:** quem é desbloqueado entra na média de nível da equipe principal, arredondada e limitada ao limite da Torre, com 0 de XP e os atributos dele mesmo nesse nível. A equipe principal é a última montada na seleção. Se ainda não houver uma, conta a média de todos os personagens liberados.
-- **Save:** o nível, a XP, a equipe e os andares vencidos ficam em `user://progresso.cfg`. O limite de nível é calculado a partir dos andares vencidos.
+- **Save:** o nível, a XP, a equipe e os andares vencidos ficam no arquivo do slot (`user://progresso.cfg` no slot 1, `progresso_2.cfg` e `progresso_3.cfg` nos outros). O limite de nível é calculado a partir dos andares vencidos.
 
 ---
 
@@ -151,6 +164,13 @@ A Shumi é uma personagem de **risco e recompensa**. O Kaioken aumenta o poder d
 
 <img src="personagens/shumi/basic-attack-melee.png" width="32"> **Corte** · Básico (Q)
 > Corte de katana em um alvo, com 1,0× ATQ. Gera **1 ponto de skill** e 20 de energia. A animação fica mais rápida e intensa conforme o nível do Kaioken.
+
+<img src="personagens/shumi/icone_bang.png" width="32"> **Bang!** · Skill 2 (W) · custa 1 ponto · recarga de 3 turnos
+> Um **Finger Beam**, tiro de ki com o dedo, no alvo. Depois ela fica **em guarda pelos 2 turnos seguintes** (com a recarga de 3, sempre sobra pelo menos um turno sem guarda): cada inimigo que a acertar leva um Finger Beam de volta, e ela ganha **+5 de energia** por contra-ataque. Cada Finger Beam sai no visual **Kokoro**, que volta ao normal depois do tiro. Ela continua tomando o dano normal. O tiro fica mais forte a cada nível do Kaioken:
+
+| Nível | Normal | x2 | x4 | x10 | x20 |
+|---|---|---|---|---|---|
+| Finger Beam | 0,4× | 0,5× | 0,65× | 0,85× | 1,1× |
 
 <img src="personagens/shumi/engo-ji-beam-icon.png" width="32"> **Engo-ji Beam** · Skill (E) · custa 1 ponto
 > Um feixe de energia que **muda conforme o Kaioken**:
@@ -198,6 +218,9 @@ O Andri é o **suporte tático** da equipe. Ele troca de elemento a cada turno, 
 <img src="personagens/andri/icone_disparo.png" width="32"> **Disparo Elemental** · Básico (Q)
 > Disparo de 0,8× ATQ com o elemento da lente. O **MOMC ataca junto** o mesmo alvo com um golpe separado de 0,35×. Gera **1 ponto de skill** e 20 de energia.
 
+<img src="personagens/andri/icone_protocolo.png" width="32"> **Protocolo MOMC** · Skill 2 (W) · custa 1 ponto · recarga de 3 turnos
+> O Andri dá uma ordem ao MOMC: **Sobrecarga**, um disparo forte de 0,9× com o elemento da lente num inimigo, ou **Escudo**, um escudo de 10% do HP máximo num aliado por 2 turnos (menor que a Mão de Tyr, que é a ult). Gera 30 de energia.
+
 <img src="personagens/andri/icone_analise.png" width="32"> **Análise de Vulnerabilidade** · Skill (E) · custa 1 ponto
 > O inimigo fica **fraco** ao elemento de um aliado de pé, à escolha. Golpes desse elemento passam a ser super efetivos (2×) nele por 2 turnos. Não funciona em alvos Arcanos, que já recebem 2× de tudo.
 
@@ -220,6 +243,42 @@ O Andri é o **suporte tático** da equipe. Ele troca de elemento a cada turno, 
 ![Arsenal Titânico](docs/capturas/arsenal-titanico.png)
 
 **Dica:** use a Análise com o elemento físico da Shumi e depois o Engo-ji em Devastação. Também funciona dar a Lança de Rá para ela antes de um Colapso.
+
+### 🟣 Àskara, invocadora do abismo
+*Universo: Nariagari* · Tipo: **Trevas**
+
+| HP | ATQ | DEF | VEL | Recurso |
+|---|---|---|---|---|
+| 950 | 125 | 40 | 108 | Fragmentos d'Alma (0 a 8, começa com 2) |
+
+A Àskara luta pouco com as próprias mãos: ela junta **Fragmentos d'Alma** e os gasta chamando demônios. A decisão de cada turno é gastar agora em invocações mais fracas ou guardar para o Lorde Demônio. As invocações copiam uma fração dos atributos dela e causam dano de Trevas. A arte delas ainda é provisória.
+
+<img src="personagens/askara/icone_invocacao.png" width="32"> **Fragmento d'Alma** · Passiva
+> Ganha 1 fragmento a cada Seta Vil e 1 sempre que um inimigo cai. Os fragmentos aparecem ao lado do nome dela.
+
+<img src="personagens/askara/icone_seta.png" width="32"> **Seta Vil** · Básico (Q)
+> Seta de 0,6× ATQ no alvo. Pouco dano, mas gera **1 ponto de skill** e **1 fragmento**.
+
+<img src="personagens/askara/icone_ultimo_ato.png" width="32"> **Último Ato** · Passiva (no lugar do W)
+> Cada demônio, ao ir embora por tempo ou ao cair, faz o **último ato** dele (tabela abaixo). Vale deixar os demônios cumprirem o tempo.
+
+<img src="personagens/askara/icone_invocacao.png" width="32"> **Invocação** · Skill (E) · custa 1 ponto e fragmentos
+> Um seletor radial se abre em volta dela com os demônios. Até **2 em campo**; sem vaga, o mais antigo volta ao abismo. Chamar um que já está em campo renova o HP e as vezes dele. Cada um age 3 vezes.
+
+| Invocação | Fragmentos | Papel | O que faz na vez dele | Último ato (ao sair ou cair) |
+|---|---|---|---|---|
+| **Diabrete** | 1 | barato e rápido | Bola de Fogo Vil, 0,5× no alvo | **Explosão Vil**: 0,5× no alvo e no inimigo ao lado |
+| **Emissário do Caos** | 2 | tanque | provoca (3× mais chance de ser o alvo dos inimigos) e golpeia, 0,4× | **Muralha do Caos**: escudo de 8% do HP máximo dele no aliado com menos HP |
+| **Lilith** | 2 | debuff | encanta o inimigo de maior ATQ: ATQ e DEF −20% por 2 turnos, e 0,3× de dano | **Beijo Final**: encanta todos os inimigos, 0,2× |
+| **Shivara** | 3 | dano | Dança das Lâminas, 0,9× no alvo e 0,45× nos vizinhos | **Última Dança**: 0,4× em todos |
+
+O último ato não acontece quando o demônio sai para abrir vaga, quando o Lorde o apaga ou quando a Àskara cai.
+
+<img src="personagens/askara/icone_lorde.png" width="32"> **Lorde Demônio** · Ultimate (R) · 6 fragmentos
+> Apaga as invocações em campo, e cada uma desconta **1 fragmento** do custo. O Lorde chega e avança até cada inimigo, golpeando **todos** (1,2×), e fica 3 vezes, golpeando todos de novo (0,8×). Enquanto ele está em campo, não dá para invocar outros demônios.
+> Com **15% de chance**, quem atende ao chamado é o **Lorde da Luz**: dano de Luz, chegada de 2,0× e 1,2× em todos por 3 vezes, e resiste a todo dano (−50%).
+
+**Dica:** chame o Emissário para proteger a equipe enquanto junta fragmentos com a Seta Vil. Com duas invocações em campo, o Lorde custa só 4.
 
 ---
 
@@ -252,28 +311,30 @@ godot --headless --path . -s testes/teste_combate.gd     # regras de combate
 godot --headless --path . -s testes/teste_progressao.gd  # níveis, XP, recompensas e save
 godot --headless --path . -s testes/teste_lobby.gd       # saguão
 godot --headless --path . -s testes/teste_torre.gd       # andares, história, escolha do andar
+godot --headless --path . -s testes/teste_menu.gd        # menu inicial e slots de save
 ```
 
 ### Ferramentas
 | Script | O que faz |
 |---|---|
-| `ferramentas/simular_andares.gd` | Simula os andares com a batalha de verdade e um piloto automático, e mostra as vitórias, os turnos e o HP restante em cada nível: `godot --headless --path . -s ferramentas/simular_andares.gd -- [rodadas] [andar:nível ...]` |
+| `ferramentas/simular_andares.gd` | Simula os andares com a batalha de verdade e um piloto automático, e mostra as vitórias, os turnos e o HP restante em cada nível: `godot --headless --path . -s ferramentas/simular_andares.gd -- [rodadas] [andar:nível ...] [equipe=askara,shumi]` |
 | `ferramentas/demo_captura.gd` | Joga uma batalha sozinho e salva capturas de tela: `godot --path . -s ferramentas/demo_captura.gd -- <pasta> shumi andri` |
 | `ferramentas/gerar_andri.py` | Gera a spritesheet, o MOMC e os ícones do Andri a partir do sprite original (precisa do Pillow) |
-| `ferramentas/gerar_assets_teste.py` | Gera a arte provisória (inimigos, cenário, onda do Engo-ji) |
+| `ferramentas/gerar_askara.py` | Gera a spritesheet e os ícones da Àskara e reduz a arte das invocações para a arena (precisa do Pillow) |
+| `ferramentas/gerar_assets_teste.py` | Gera a arte provisória (inimigos, cenário, onda do Engo-ji) e o ícone da passiva da Shumi |
 
 ---
 
 ## 📁 Estrutura do projeto
 
 ```
-scenes/              cenas: saguão, escolha do andar, seleção de equipe e batalha
+scenes/              cenas: menu inicial, saguão, escolha do andar, seleção de equipe e batalha
 scripts/
   combate/           regras: combatente, fila de turnos, tipos, estados, inimigos, batalha
   personagens/       elenco + kit de cada herói (regras e animações separadas) + progressão
   torre/             andares e eventos de história
   lobby/             saguão, conversas e caixa de diálogo
-  ui/                HUD, barras, slots de habilidade, seletor radial, efeitos visuais
+  ui/                menu inicial, HUD, barras, slots de habilidade, seletor radial, efeitos visuais
 personagens/         sprites, spritesheets e ícones de cada herói
 inimigos/ cenarios/ efeitos/   arte dos inimigos, do cenário e dos efeitos
 testes/              testes headless da lógica

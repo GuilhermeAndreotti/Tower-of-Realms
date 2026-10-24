@@ -7,7 +7,12 @@ extends RefCounted
 ## Nem a batalha, nem a HUD, nem a Progressao precisam mudar.
 
 const MAX_EQUIPE := 3
-const IDS: Array[String] = ["shumi", "andri"]
+const IDS: Array[String] = ["shumi", "andri", "askara"]
+
+## Por enquanto, todos começam liberados, mesmo quem tem "inicial": false
+## (que continua no cadastro para a história voltar a valer). Os testes da
+## história desligam isto.
+static var todos_liberados := true
 
 
 ## {"nome", "origem" (título), "universo" (de onde o personagem vem),
@@ -54,8 +59,31 @@ static func dados(id: String) -> Dictionary:
 					"rosto": Rect2(10, 4, 16, 16),
 				},
 			}
+		"askara":
+			return {
+				"nome": "Àskara",
+				"origem": "Invocadora do Abismo",
+				"universo": "Nariagari",
+				"classe": Askara,
+				"acoes": AcoesAskara,
+				# invocadora: frágil e com pouco ATQ próprio; as invocações copiam
+				# os atributos dela, então crescem junto
+				"crescimento": {"hp": 45, "atq": 6.0, "def": 2.0, "vel": 1.0},
+				"sprite": {
+					"png": "res://personagens/askara/askara_spritesheet.png",
+					"json": "res://personagens/askara/askara_spritesheet.json",
+					"pe": Vector2(16, 38),
+					"altura": 34.0,
+					"rosto": Rect2(8, 5, 16, 16),
+				},
+			}
 	push_error("personagem desconhecido: " + id)
 	return {}
+
+
+## Se `id` começa liberado (sem precisar de evento de história).
+static func inicial(id: String) -> bool:
+	return todos_liberados or dados(id).get("inicial", true)
 
 
 ## Lutador de `id` no nível salvo (ou em `nivel`, se > 0), com os

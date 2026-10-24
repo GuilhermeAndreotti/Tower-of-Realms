@@ -3,7 +3,7 @@ extends CanvasLayer
 ## Interface do saguão: dica de controles, aviso curto, caixa de conversa e
 ## o véu preto das transições. Só mostra; quem decide é o Lobby.
 
-const CONTROLES := [[["←", "↑", "→", "↓"], "andar"], [["Enter"], "interagir"]]
+const CONTROLES := [[["←", "↑", "→", "↓"], "andar"], [["Enter"], "interagir"], [["Esc"], "menu"]]
 
 var dialogo: CaixaDialogo
 

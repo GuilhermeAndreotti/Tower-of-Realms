@@ -52,7 +52,7 @@ A simulação usa um piloto simples. Ela compara andares e níveis entre si; nã
 - **Efeito**: aplicado na hora e salvo (`Eventos.aplicar()`).
 - **Apresentação**: fica na fila `torre/eventos_pendentes` e roda no saguão, na volta (ver [Saguão](saguao.md#eventos-de-história)).
 
-Vêm do `ao_vencer` de um andar (primeira vitória) ou de uma fala com `"evento": "tipo:id"`. Tipos:
+Vêm do `ao_vencer` de um andar (primeira vitória) ou de uma fala com `"evento": "tipo:id"`. Um evento que já não muda nada (`desbloquear` de quem já está liberado) é descartado antes de aplicar, sem efeito nem apresentação (`Eventos.pendente()`). Tipos:
 
 | Tipo          | Efeito                                         | Apresentação no saguão                     |
 | ------------- | ---------------------------------------------- | ------------------------------------------ |

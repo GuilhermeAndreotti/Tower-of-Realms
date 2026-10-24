@@ -32,6 +32,13 @@ func fim_turno() -> void:
 	pass
 
 
+## Contra-ataque em `alvo` (o inimigo que acabou de acertá-lo), com o
+## `golpe` que a regra devolveu (Combatente.contra_atacar). Quem tem
+## contra-ataque no kit sobrescreve para dar a animação própria.
+func contra_atacar(alvo: Combatente, golpe: Dictionary) -> void:
+	await b.aplicar_dano(p, alvo, golpe.mult, golpe.get("tipo", ""), true)
+
+
 # --------------------------------------------------------- apoio comum
 ## Vai até perto do alvo, chama `golpe` no meio do caminho e volta.
 ## `duracao` é o tempo de cada trecho (ida e volta).

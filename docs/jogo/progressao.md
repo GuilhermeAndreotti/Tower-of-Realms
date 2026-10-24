@@ -57,11 +57,12 @@ Liberar de novo quem já está liberado não muda nada.
 
 ## Save
 
-`user://progresso.cfg` (`ConfigFile`), seções:
+Um `ConfigFile` por slot de save (`SLOTS`): o slot 1 é `user://progresso.cfg`, o mesmo arquivo de antes do menu existir, então um save antigo aparece nele sem conversão; os outros são `progresso_<n>.cfg`. O menu inicial escolhe o slot (`usar_slot`, `novo_jogo`, `apagar_slot`; ver [Menu inicial](menu-inicial.md)). Seções:
 
 | Seção / chave                      | Conteúdo                                  |
 | ---------------------------------- | ----------------------------------------- |
 | `jogo/versao`                      | versão do formato (`VERSAO_SAVE`)         |
+| `jogo/salvo_em`                    | último salvamento (unix), para o menu     |
 | `jogador/equipe`                   | ids da última equipe                      |
 | `personagem_<id>/nivel`, `xp`      | progresso; a seção existir = liberado     |
 | `torre/vencidos`                   | andares vencidos                          |
@@ -70,4 +71,4 @@ Liberar de novo quem já está liberado não muda nada.
 
 Compatibilidade: chaves que faltam valem o padrão (nível 1, XP 0, nada vencido); valores fora da regra são corrigidos na leitura; ids que não existem mais são ignorados. Mudou o formato de um jeito que não dá para ler o antigo? Suba `VERSAO_SAVE` e converta na leitura.
 
-`Progressao.arquivo` é trocável: testes e ferramentas usam arquivos próprios e apagam no fim.
+`Progressao.arquivo` e `Progressao.prefixo_slots` são trocáveis: testes e ferramentas usam arquivos próprios e apagam no fim.

@@ -1,14 +1,18 @@
 class_name Batalha
 extends Node2D
 ## Batalha de um andar (Andares.atual()): a equipe escolhida no seletor
-## contra os inimigos do andar. Controles: as teclas da barra (Q/E/R...),
+## contra os inimigos do andar. Controles: as teclas da barra (Q/W/E/R),
 ## ←/→ ou clique troca o alvo. Terminado o andar (vitória ou derrota), o
 ## resultado aparece e Enter, Esc ou clique voltam ao saguão. Ações com "opcoes" abrem um seletor
 ## (lista na HUD ou, com "seletor": "radial", um anel no próprio lutador):
 ## ↑/↓ ou 1-9 escolhem (no anel, ←/→ também giram), ←/→ trocam o alvo,
-## Enter (ou a tecla da ação) confirma e Esc cancela.
+## Enter (ou a tecla da ação) confirma e Esc cancela. W e S não navegam no
+## seletor: as teclas da barra têm prioridade (a lente do Andri abre sozinha
+## e o W tem que continuar chamando a skill 2).
 ## A vez, os pontos de skill do time e o alvo ficam aqui; o que cada ação faz
 ## na arena fica nas AcoesPersonagem de cada um; a HUD só mostra.
+## Invocações (Invocacao) entram na fila e no lado aliado, mas não são da
+## equipe: agem sozinhas aqui e não contam para a derrota.
 
 signal acao_escolhida(acao: String)
 
@@ -29,17 +33,20 @@ const POSICOES_INIMIGOS := [
 	[Vector2(650, 420), Vector2(800, 420)],
 	[Vector2(590, 410), Vector2(720, 430), Vector2(850, 410)],
 ]
+## Onde ficam as invocações, à frente da equipe (por vaga).
+const POSICOES_INVOCACOES := [Vector2(345, 458), Vector2(440, 414)]
 const COR_INVESTIDA := Color(0.75, 0.65, 1.0)
 
 var equipe: Array[Combatente] = []
 var inimigos: Array[Inimigo] = []
 var lutadores: Array[Combatente] = []
+var invocacoes: Array[Invocacao] = []  ## as que estão em campo
 var pontos := PONTOS_INICIAIS
 var esperando_jogador := false
 var acabou := false
 var ativo: Combatente  ## aliado da vez (ou o último que agiu)
 var alvo := 0  ## índice entre os inimigos vivos
-var aliado_alvo := 0  ## índice entre os aliados vivos (ações com alvo "aliado")
+var aliado_alvo := 0  ## índice em aliados_em_campo() (ações com alvo "aliado")
 var opcao := ""  ## opção escolhida para a ação em execução (elemento, artefato...)
 var andar := 1  ## número do andar (Andares)
 var ids_equipe: Array[String] = []  ## ids do Elenco da equipe, na ordem de `equipe`
@@ -54,6 +61,8 @@ var mundo: Node2D
 var hud: HudBatalha
 
 var _visuais := {}  ## Combatente -> VisualLutador
+var _retratos := {}  ## Combatente -> Texture2D, para a HUD
+var _vagas := {}  ## Invocacao -> índice em POSICOES_INVOCACOES
 var _acoes := {}  ## aliado -> AcoesPersonagem
 var _foco := ""  ## habilidade com o mouse em cima (prévia de alvos)
 var _ator: Combatente
@@ -120,10 +129,9 @@ func _ready() -> void:
 			confirmar_escolha()
 		else:
 			selecionar_opcao(i))
-	var retratos := {}
 	for c in _visuais:
-		retratos[c] = _visuais[c].retrato()
-	hud.definir_retratos(retratos)
+		_retratos[c] = _visuais[c].retrato()
+	hud.definir_retratos(_retratos)
 	var nomes := ", ".join(equipe.map(func(c: Combatente) -> String: return HudBatalha.nome(c)))
 	hud.registrar("Andar %d, %s: %s %s os guardiões da Torre." % [andar, dados_andar.nome, nomes, "encontra" if equipe.size() == 1 else "encontram"])
 	atualizar()
@@ -170,6 +178,7 @@ func selecionar_opcao(i: int) -> void:
 	if i >= 0 and i < opcoes.size():
 		_indice_opcao = i
 		_atualizar_escolha()
+		atualizar()  # a opção pode mirar outro tipo de alvo
 
 
 func confirmar_escolha() -> bool:
@@ -216,7 +225,7 @@ func _atualizar_escolha() -> void:
 	for o: Dictionary in h.opcoes:
 		motivos.append(ativo.motivo_invalido(_escolhendo, o.id, quem))
 	# escolha sobre si mesmo (a lente, por exemplo) não precisa mostrar alvo
-	var nome_alvo := quem.nome if quem and h.get("alvo", "") != "proprio" else ""
+	var nome_alvo := quem.nome if quem and tipo_alvo(_escolhendo) != "proprio" else ""
 	if is_instance_valid(_radial):
 		_radial.mostrar(h.opcoes, _indice_opcao, motivos)
 	else:
@@ -234,8 +243,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			var n: int = _habilidade(ativo, _escolhendo).get("opcoes", []).size()
 			var passo := 0
 			match event.keycode:
-				KEY_UP, KEY_W: passo = -1
-				KEY_DOWN, KEY_S: passo = 1
+				KEY_UP: passo = -1
+				KEY_DOWN: passo = 1
 				KEY_LEFT, KEY_A: passo = -1 if is_instance_valid(_radial) else 0
 				KEY_RIGHT, KEY_D: passo = 1 if is_instance_valid(_radial) else 0
 				KEY_ENTER, KEY_KP_ENTER, KEY_SPACE: confirmar_escolha()
@@ -257,7 +266,7 @@ func _unhandled_input(event: InputEvent) -> void:
 						pedir_acao(h.acao)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var em_aliado := _mirando_aliado()
-		var vivos: Array = aliados_vivos() if em_aliado else inimigos_vivos()
+		var vivos: Array = aliados_em_campo() if em_aliado else inimigos_vivos()
 		for i in vivos.size():
 			var v: VisualLutador = _visuais[vivos[i]]
 			var area := Rect2(v.position.x - 60, v.position.y - v.altura - 20, 120, v.altura + 30)
@@ -274,12 +283,23 @@ func _unhandled_input(event: InputEvent) -> void:
 ## A ação em foco (ou no seletor) mira um aliado?
 func _mirando_aliado() -> bool:
 	var acao := _escolhendo if _escolhendo != "" else _foco
-	return _habilidade(ativo, acao).get("alvo", "") == "aliado"
+	return tipo_alvo(acao) == "aliado"
+
+
+## Tipo de alvo de `acao` do aliado da vez: o da opção marcada no seletor,
+## se ela tiver um, ou o da própria ação.
+func tipo_alvo(acao: String) -> String:
+	var h := _habilidade(ativo, acao)
+	if acao != "" and acao == _escolhendo:
+		var opcoes: Array = h.get("opcoes", [])
+		if _indice_opcao < opcoes.size() and (opcoes[_indice_opcao] as Dictionary).has("alvo"):
+			return opcoes[_indice_opcao].alvo
+	return h.get("alvo", "")
 
 
 func _mudar_alvo(direcao: int) -> void:
 	if _mirando_aliado():
-		var n := aliados_vivos().size()
+		var n := aliados_em_campo().size()
 		if n > 0:
 			aliado_alvo = posmod(aliado_alvo + direcao, n)
 	else:
@@ -313,21 +333,38 @@ func aliados_vivos() -> Array[Combatente]:
 	return equipe.filter(func(c: Combatente) -> bool: return c.vivo())
 
 
+## Quem os inimigos podem atacar e as ações "aliado" podem mirar: a equipe
+## de pé e as invocações em campo.
+func aliados_em_campo() -> Array[Combatente]:
+	var lista := aliados_vivos()
+	for inv in invocacoes:
+		if inv.em_jogo():
+			lista.append(inv)
+	return lista
+
+
 func _rodar() -> void:
 	await esperar(0.6)
 	while not acabou:
 		_ator = FilaTurnos.proximo(lutadores)
 		FilaTurnos.avancar_ate(lutadores, _ator)
-		if _ator.aliado:
+		var invocado := _ator as Invocacao
+		if _ator.aliado and not invocado:
 			ativo = _ator
 		atualizar()
-		if _ator.aliado:
+		if invocado:
+			await golpe_invocacao(invocado, invocado.golpe)
+		elif _ator.aliado:
 			await _turno_aliado(_ator)
 		else:
 			await _turno_inimigo(_ator as Inimigo)
 		_ator.reiniciar_av()
 		if _ator.vivo():
 			_passar_turno(_ator)
+		if invocado and invocado.em_jogo() and invocado.passar_vez():
+			hud.registrar("%s volta ao abismo." % HudBatalha.nome(invocado))
+			await ultimo_ato(invocado)
+			remover_invocacao(invocado)
 		_verificar_fim()
 		atualizar()
 		await esperar(0.25)
@@ -337,10 +374,10 @@ func _turno_aliado(a: Combatente) -> void:
 	var acoes: AcoesPersonagem = _acoes[a]
 	if not await acoes.inicio_turno():
 		if not a.vivo():
-			_cair(a)
+			await _cair(a)
 		return
 
-	aliado_alvo = maxi(0, aliados_vivos().find(a))  # o próprio, por padrão
+	aliado_alvo = maxi(0, aliados_em_campo().find(a))  # o próprio, por padrão
 	esperando_jogador = true
 	atualizar()
 	# escolhas de começo de turno (ex.: a lente do Andri) abrem sozinhas;
@@ -360,6 +397,7 @@ func _turno_aliado(a: Combatente) -> void:
 		atualizar()
 		await acoes.executar(acao)
 		pontos = mini(PONTOS_MAX, pontos + h.get("ganho_pontos", 0))
+		a.iniciar_recarga(acao, h.get("recarga", 0))
 		if acabou or not h.get("livre", false):
 			break
 		esperando_jogador = true
@@ -377,7 +415,7 @@ func _habilidade(a: Combatente, acao: String) -> Dictionary:
 func _turno_inimigo(ini: Inimigo) -> void:
 	var vi: VisualLutador = _visuais[ini]
 	var golpe := ini.proximo_golpe()
-	var vitima := ini.escolher_alvo(equipe)
+	var vitima := ini.escolher_alvo(aliados_em_campo())
 	ini.registrar_acao()
 	if golpe.pesado:
 		hud.registrar("%s concentra energia para um %s!" % [HudBatalha.nome(ini), HudBatalha.destaque("Golpe Pesado", EstiloUI.COR_TIPO_EFEITO.alerta)])
@@ -397,6 +435,10 @@ func _turno_inimigo(ini: Inimigo) -> void:
 		tremer(8.0)
 	await esperar(0.15)
 	await vi.mover_para(origem, 0.3)
+	if vitima.vivo() and ini.vivo() and _acoes.has(vitima):
+		var contra := vitima.contra_atacar(ini)
+		if not contra.is_empty():
+			await (_acoes[vitima] as AcoesPersonagem).contra_atacar(ini, contra)
 
 
 ## `tipo_ataque` é o tipo de dano (Tipos); "" = o tipo do atacante.
@@ -440,7 +482,7 @@ func aplicar_dano(atacante: Combatente, vitima: Combatente, mult: float, tipo_at
 	if vitima.vivo():
 		v.levar_golpe()
 	else:
-		_cair(vitima)
+		await _cair(vitima)
 	alvo = clampi(alvo, 0, maxi(0, inimigos_vivos().size() - 1))
 	atualizar()
 	if extra or not vitima.vivo():
@@ -461,13 +503,13 @@ func _passar_turno(c: Combatente) -> void:
 
 
 func aliado_atual() -> Combatente:
-	var vivos := aliados_vivos()
+	var vivos := aliados_em_campo()
 	return vivos[clampi(aliado_alvo, 0, vivos.size() - 1)] if not vivos.is_empty() else null
 
 
 ## Quem a ação `acao` do aliado da vez tem como alvo principal.
 func alvo_da_acao(acao: String) -> Combatente:
-	match _habilidade(ativo, acao).get("alvo", ""):
+	match tipo_alvo(acao):
 		"aliado": return aliado_atual()
 		"proprio": return ativo
 	var vivos := inimigos_vivos()
@@ -475,8 +517,23 @@ func alvo_da_acao(acao: String) -> Combatente:
 
 
 func _cair(c: Combatente) -> void:
-	_visuais[c].morrer()
 	hud.registrar("%s foi derrotado." % HudBatalha.nome(c) if not c.aliado else "%s caiu." % HudBatalha.nome(c))
+	if c is Invocacao:
+		await ultimo_ato(c as Invocacao)
+		remover_invocacao(c as Invocacao)
+		return
+	_visuais[c].morrer()
+	if not c.aliado:
+		for a in aliados_vivos():
+			var ganho := a.ao_inimigo_cair()
+			if ganho != "":
+				hud.registrar("%s absorve %s." % [HudBatalha.nome(a), ganho])
+	else:
+		# quem invocou leva as invocações junto
+		for inv in invocacoes.duplicate():
+			if inv.invocador == c:
+				hud.registrar("%s se desfaz." % HudBatalha.nome(inv))
+				remover_invocacao(inv)
 	if c == ativo and not aliados_vivos().is_empty():
 		ativo = aliados_vivos()[0]
 	_verificar_fim()
@@ -535,6 +592,121 @@ func _recompensar() -> void:
 			EfeitosCombate.numero(mundo, v.topo() + Vector2(0, -10), "NÍVEL %d!" % r.nivel, "nivel")
 
 
+# ------------------------------------------------------------- invocações
+## Põe `inv` em campo, na primeira vaga livre, surgindo num círculo da cor dela.
+func adicionar_invocacao(inv: Invocacao) -> void:
+	var vaga := 0
+	while _vagas.values().has(vaga):
+		vaga += 1
+	_vagas[inv] = vaga
+	var vi := VisualLutador.new()
+	vi.iniciar_estatico(inv, inv.textura)
+	vi.position = POSICOES_INVOCACOES[mini(vaga, POSICOES_INVOCACOES.size() - 1)]
+	vi.modulate.a = 0.0
+	mundo.add_child(vi)
+	_visuais[inv] = vi
+	_retratos[inv] = vi.retrato()
+	invocacoes.append(inv)
+	lutadores.append(inv)
+	var aura := EfeitosCombate.aura(vi, [Color(inv.cor, 0.5), inv.cor.lightened(0.3), inv.cor.lightened(0.6)])
+	aura.nivel = 1
+	EfeitosCombate.carga(mundo, vi.position + Vector2(0, -vi.altura * 0.5), [inv.cor, Color.WHITE], 0.35, 90.0)
+	await esperar(0.3)
+	EfeitosCombate.anel(mundo, vi.position + Vector2(0, -8), inv.cor, maxf(50.0, vi.altura * 0.6))
+	vi.piscar(Color(1.0 + inv.cor.r, 1.0 + inv.cor.g, 1.0 + inv.cor.b))
+	create_tween().tween_property(vi, "modulate:a", 1.0, 0.25)
+	atualizar()
+	await esperar(0.3)
+
+
+## Tira `inv` de campo (tempo, queda, substituída): some da arena e da fila.
+func remover_invocacao(inv: Invocacao) -> void:
+	inv.em_campo = false
+	invocacoes.erase(inv)
+	lutadores.erase(inv)
+	_vagas.erase(inv)
+	var vi: VisualLutador = _visuais.get(inv)
+	if vi:
+		_visuais.erase(inv)
+		vi.morrer()
+		get_tree().create_timer(0.7).timeout.connect(vi.queue_free)
+	aliado_alvo = clampi(aliado_alvo, 0, maxi(0, aliados_em_campo().size() - 1))
+	atualizar()
+
+
+## `inv` usa o golpe `g` (Invocacao.golpe) a partir do inimigo marcado:
+## avança ou atira e, se tiver, deixa o debuff no alvo principal.
+func golpe_invocacao(inv: Invocacao, g: Dictionary) -> void:
+	var alvos := inv.alvos(g, inimigos_vivos(), alvo)
+	if alvos.is_empty() or not _visuais.has(inv):
+		return
+	var vi: VisualLutador = _visuais[inv]
+	var principal: Combatente = alvos[0][0]
+	var com_debuff: Array = alvos.map(func(par: Array) -> Combatente: return par[0]) if g.get("debuff_em_todos", false) else [principal]
+	hud.registrar("%s utilizou %s." % [HudBatalha.nome(inv), HudBatalha.destaque(g.nome, inv.cor)])
+	if g.get("estilo", "projetil") == "investida":
+		# avança até cada alvo, do mais perto ao mais longe, e golpeia; o
+		# corte acompanha o tamanho da invocação
+		var origem := vi.position
+		var em_ordem := alvos.duplicate()
+		em_ordem.sort_custom(func(x: Array, y: Array) -> bool: return _visuais[x[0]].position.x < _visuais[y[0]].position.x)
+		var raio := maxf(46.0, vi.altura * 0.45)
+		for par: Array in em_ordem:
+			var va: VisualLutador = _visuais[par[0]]
+			await vi.mover_para(Vector2(va.position.x - 110, origem.y), 0.22 if par == em_ordem[0] else 0.14)
+			EfeitosCombate.corte(mundo, va.position + Vector2(0, -va.altura * 0.5), inv.cor, raio, randf_range(-0.6, 0.6))
+			EfeitosCombate.impacto(mundo, va.position + Vector2(0, -va.altura * 0.5), inv.cor, 1.2 if raio > 46.0 else 0.8)
+			if raio > 46.0:
+				tremer(3.0)
+			await aplicar_dano(inv, par[0], par[1])
+		await esperar(0.1)
+		await vi.mover_para(origem, 0.25)
+	else:
+		vi.piscar(Color(1.0 + inv.cor.r, 1.0 + inv.cor.g, 1.0 + inv.cor.b))
+		var de := vi.position + Vector2(18, -vi.altura * 0.6)
+		var voo := 0.0
+		for par: Array in alvos:
+			var va: VisualLutador = _visuais[par[0]]
+			voo = maxf(voo, EfeitosCombate.projetil(mundo, de, va.position + Vector2(0, -va.altura * 0.5), inv.tipo, 1000.0, 1.1))
+		await esperar(voo)
+		for par: Array in alvos:
+			var va: VisualLutador = _visuais[par[0]]
+			EfeitosCombate.impacto_elemental(mundo, va.position + Vector2(0, -va.altura * 0.5), inv.tipo, 1.0)
+			await aplicar_dano(inv, par[0], par[1])
+	for quem: Combatente in com_debuff:
+		if not inv.debuff.is_valid() or not quem.vivo():
+			continue
+		var e: Estado = inv.debuff.call()
+		quem.aplicar_estado(e)
+		EfeitosCombate.anel(mundo, _visuais[quem].position + Vector2(0, -_visuais[quem].altura * 0.5), EstiloUI.cor_efeito(e.descricao()), 40.0)
+		hud.registrar("%s ficou %s." % [HudBatalha.nome(quem), HudBatalha.destaque(e.nome, EstiloUI.cor_efeito(e.descricao()))])
+	atualizar()
+
+
+## Último ato de `inv` (Invocacao.ultimo_ato). Chame antes de tirar de
+## campo: o golpe sai do visual dela.
+func ultimo_ato(inv: Invocacao) -> void:
+	var g := inv.ultimo_ato
+	if g.is_empty() or not _visuais.has(inv) or acabou:
+		return
+	if g.has("mult"):
+		await golpe_invocacao(inv, g)
+	else:
+		hud.registrar("%s utilizou %s." % [HudBatalha.nome(inv), HudBatalha.destaque(g.nome, inv.cor)])
+	if g.has("escudo"):
+		var quem := inv.alvo_escudo(aliados_em_campo())
+		if quem:
+			var e := inv.escudo_ultimo_ato(g)
+			quem.aplicar_estado(e)
+			var vq: VisualLutador = _visuais[quem]
+			EfeitosCombate.linha(mundo, _visuais[inv].position + Vector2(0, -_visuais[inv].altura * 0.5), vq.position + Vector2(0, -vq.altura * 0.5), inv.cor, 0.5)
+			EfeitosCombate.anel(mundo, vq.position + Vector2(0, -vq.altura * 0.5), inv.cor, 50.0)
+			vq.piscar(Color(1.0 + inv.cor.r, 1.0 + inv.cor.g, 1.0 + inv.cor.b))
+			hud.registrar("%s recebe um escudo de %s." % [HudBatalha.nome(quem), HudBatalha.destaque(str(e.escudo), EfeitosCombate.NUMEROS.escudo[0])])
+			atualizar()
+			await esperar(0.4)
+
+
 # ------------------------------------------------------------------ apoio
 func visual(c: Combatente) -> VisualLutador:
 	return _visuais[c]
@@ -550,8 +722,7 @@ func _previstos(acao: String) -> Array:
 	var do_kit := ativo.alvos_previstos(acao, vivos, alvo)
 	if not do_kit.is_empty():
 		return do_kit
-	var h := _habilidade(ativo, acao)
-	match h.get("alvo", ""):
+	match tipo_alvo(acao):
 		"aliado": return [aliado_atual()]
 		"unico": return [vivos[alvo]]
 		"vizinhos": return vivos.slice(maxi(0, alvo - 1), alvo + 2)
@@ -567,6 +738,8 @@ func atualizar() -> void:
 		_visuais[inimigos[i]].marcado = esperando_jogador and not em_aliado and inimigos[i].vivo() and vivos.find(inimigos[i]) == alvo
 	var mirado := aliado_atual() if esperando_jogador and em_aliado else null
 	for c in equipe:
+		_visuais[c].marcado = c == mirado
+	for c in invocacoes:
 		_visuais[c].marcado = c == mirado
 	# prévia: quem a habilidade em foco (ou no seletor) atingiria
 	var acao := _escolhendo if _escolhendo != "" else _foco
