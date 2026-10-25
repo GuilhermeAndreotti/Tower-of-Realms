@@ -69,6 +69,9 @@ var _ator: Combatente
 var _escolhendo := ""  ## ação com o seletor de opções aberto
 var _indice_opcao := 0
 var _radial: SeletorRadial  ## o seletor em anel, quando a ação pede
+## Primeiro inimigo que a ação de aliado em curso acertou (ver
+## _ataques_em_conjunto); zerado no começo de cada ação.
+var _primeiro_atingido: Combatente
 
 
 func _ready() -> void:
@@ -353,7 +356,9 @@ func _rodar() -> void:
 			ativo = _ator
 		atualizar()
 		if invocado:
+			_primeiro_atingido = null
 			await golpe_invocacao(invocado, invocado.golpe)
+			await _ataques_em_conjunto(invocado)
 		elif _ator.aliado:
 			await _turno_aliado(_ator)
 		else:
@@ -395,7 +400,9 @@ func _turno_aliado(a: Combatente) -> void:
 		_foco = ""
 		pontos -= h.get("custo_pontos", 0)
 		atualizar()
+		_primeiro_atingido = null
 		await acoes.executar(acao)
+		await _ataques_em_conjunto(a)
 		pontos = mini(PONTOS_MAX, pontos + h.get("ganho_pontos", 0))
 		a.iniciar_recarga(acao, h.get("recarga", 0))
 		if acabou or not h.get("livre", false):
@@ -435,10 +442,6 @@ func _turno_inimigo(ini: Inimigo) -> void:
 		tremer(8.0)
 	await esperar(0.15)
 	await vi.mover_para(origem, 0.3)
-	if vitima.vivo() and ini.vivo() and _acoes.has(vitima):
-		var contra := vitima.contra_atacar(ini)
-		if not contra.is_empty():
-			await (_acoes[vitima] as AcoesPersonagem).contra_atacar(ini, contra)
 
 
 ## `tipo_ataque` é o tipo de dano (Tipos); "" = o tipo do atacante.
@@ -455,6 +458,8 @@ func aplicar_dano(atacante: Combatente, vitima: Combatente, mult: float, tipo_at
 	var efetividade := vitima.efetividade_contra(tipo_ataque)
 	var absorvido := vitima.absorver(dano)
 	vitima.receber_dano(dano - absorvido)
+	if atacante.aliado and not vitima.aliado and not extra and _primeiro_atingido == null:
+		_primeiro_atingido = vitima
 	var v: VisualLutador = _visuais[vitima]
 	var tipo := "recebido" if vitima.aliado else ("dano" if mult >= 1.0 else "fraco")
 	if (efetividade > 1.0 or critico) and not vitima.aliado:
@@ -494,6 +499,22 @@ func aplicar_dano(atacante: Combatente, vitima: Combatente, mult: float, tipo_at
 		await esperar(0.08)
 		hud.registrar("%s: dano extra de %s." % [g.fonte, HudBatalha.destaque(Tipos.nome(g.tipo), Tipos.cor(g.tipo))])
 		await aplicar_dano(atacante, vitima, g.mult, g.tipo, true)
+
+
+## Ataque em conjunto (Combatente.atacar_junto): a ação de `ator` acertou um
+## inimigo, e quem da equipe tiver como ataca junto o primeiro atingido. Se
+## ele já caiu, ninguém ataca.
+func _ataques_em_conjunto(ator: Combatente) -> void:
+	var quem := _primeiro_atingido
+	_primeiro_atingido = null
+	if quem == null:
+		return
+	for c in aliados_vivos():
+		if acabou or not quem.vivo():
+			return
+		var g := c.atacar_junto(ator, quem)
+		if not g.is_empty():
+			await (_acoes[c] as AcoesPersonagem).atacar_junto(quem, g)
 
 
 ## Fim do turno de `c`: os estados genéricos perdem um turno.
@@ -743,7 +764,11 @@ func atualizar() -> void:
 		_visuais[c].marcado = c == mirado
 	# prévia: quem a habilidade em foco (ou no seletor) atingiria
 	var acao := _escolhendo if _escolhendo != "" else _foco
-	var atingidos := _previstos(acao) if esperando_jogador and not vivos.is_empty() else []
+	# lista sem tipo: _previstos pode devolver a de inimigos (tipada), e
+	# perguntar por um aliado nela dá erro
+	var atingidos: Array = []
+	if esperando_jogador and not vivos.is_empty():
+		atingidos.append_array(_previstos(acao))
 	for c in lutadores:
 		_visuais[c].realce = c in atingidos
 	for c in equipe:

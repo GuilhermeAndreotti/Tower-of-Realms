@@ -20,8 +20,9 @@ Os personagens jogáveis estão cadastrados em `Elenco` ([`elenco.gd`](../../scr
 2. Crie a classe de animações (`extends AcoesPersonagem`) e implemente `executar()`.
 3. Ponha o id em `Elenco.IDS` e os dados em `Elenco.dados()`, incluindo o `crescimento`.
 4. Se ele chega pela história, use `"inicial": false` e libere com um evento `desbloquear` (ver [Torre e andares](torre-e-andares.md#eventos-de-história)).
-5. Monte o kit no [padrão](#padrão-do-kit) e dê a ele uma passiva em `habilidades()` (`"passiva": true`, sem tecla, com ícone e descrição começando por "Passiva:"): a barra da batalha e a montagem da equipe explicam todos os kits no mesmo padrão. Os ícones seguem o padrão de [`ferramentas/icone_pixel.py`](../../ferramentas/icone_pixel.py): desenho 11x11 centrado num PNG 15x15, sem moldura, com a borda num tom escuro da própria cor.
-6. Rode os testes; `teste_combate.gd` confere que todo personagem está cadastrado completo e explica a passiva.
+5. Monte o kit no [padrão](#padrão-do-kit) e dê a ele uma passiva em `habilidades()` (`"passiva": true`, sem tecla, com ícone e descrição; a etiqueta PASSIVA vem do cartão). Habilidades com vários itens (opções, níveis, invocações) listam cada um em `detalhes`, em vez de um parágrafo: a barra da batalha e a montagem da equipe explicam todos os kits no mesmo padrão ([Combate](combate.md#kits)). Os ícones seguem o padrão de [`ferramentas/icone_pixel.py`](../../ferramentas/icone_pixel.py): desenho 11x11 centrado num PNG 15x15, sem moldura, com a borda num tom escuro da própria cor.
+6. Crie `personagens/<id>/README.md` com a apresentação e as marcas do trecho gerado (copie de um existente), rode `ferramentas/gerar_readme_personagens.gd` e ponha o link na tabela de personagens do README principal. Sempre que mudar o texto de um kit, rode o gerador de novo.
+7. Rode os testes; `teste_combate.gd` confere que todo personagem está cadastrado completo, explica a passiva e tem o README em dia.
 
 ## Padrão do kit
 
@@ -45,7 +46,7 @@ O crescimento tem que refletir o papel do personagem, e não ser igual para todo
 - **Andri** (Fogo, suporte): ATQ cresce menos; ganha VEL e DEF para agir cedo e sobreviver para entregar os artefatos.
 - **Àskara** (Trevas, invocadora, de Nariagari): frágil, com HP e DEF baixos; as invocações copiam uma fração dos atributos dela na hora em que são chamadas, então o crescimento dela é também o delas. Não usa energia: a ult é paga em Fragmentos d'Alma (ver [Combate](combate.md#invocações)).
 
-As skills 2 seguem o papel de cada um: a Shumi ganha um contra-ataque que escala com o Kaioken (Bang!, com o visual Kokoro em cada Finger Beam), o Andri usa o MOMC para proteger ou bater (Protocolo MOMC) e a Àskara tem uma passiva, o Último Ato dos demônios.
+As skills 2 seguem o papel de cada um: a Shumi ataca junto com a equipe, mais forte a cada nível do Kaioken (Bang!, com o visual Kokoro em cada Finger Beam), o Andri usa o MOMC para proteger ou bater (Protocolo MOMC) e a Àskara tem uma passiva, o Último Ato dos demônios.
 
 ## Liberação temporária
 

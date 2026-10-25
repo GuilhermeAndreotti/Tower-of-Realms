@@ -25,6 +25,7 @@ e o projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Progresso salvo em `user://progresso.cfg`: níveis, XP, equipe, andares vencidos e eventos ainda não apresentados.
 - Ferramenta de simulação dos andares com a batalha de verdade e um piloto automático (`ferramentas/simular_andares.gd`).
 - Logo do jogo em pixel art, no topo do README (gerada por `ferramentas/gerar_logo.py`).
+- Página de cada personagem (`personagens/<id>/README.md`), ligada ao README principal, com os atributos e as habilidades no mesmo texto do jogo, gerados por `ferramentas/gerar_readme_personagens.gd`.
 - Documentação do projeto em `docs/`, `AGENTS.md` e este changelog.
 - Nova personagem: Àskara, invocadora do abismo (Trevas), de Nariagari. Não usa energia: junta Fragmentos d'Alma (começa com 2, máximo 8; +1 por Seta Vil e +1 quando um inimigo cai) e os gasta em demônios.
   - Seta Vil (Q): 0,6× ATQ, gera 1 ponto de skill e 1 fragmento.
@@ -34,12 +35,13 @@ e o projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Invocações na batalha: entram na fila de turnos com HP e barra própria, agem sozinhas no inimigo marcado e podem ser atacadas pelos inimigos e receber artefatos do Andri. Não ganham XP e não seguram a luta: se a equipe cair, ela acaba.
 - Provocação: os inimigos passam a sortear o alvo com peso, e quem provoca tem mais chance de ser atacado.
 - Simulação dos andares aceita `equipe=id,id` para medir outra equipe.
-- Segunda habilidade (W) para a Shumi e o Andri, e uma segunda passiva para a Àskara. A W custa 1 ponto de skill e tem recarga de 3 turnos (a barra mostra no ícone quantos turnos faltam).
-  - Shumi, **Bang!**: Finger Beam no alvo e guarda pelos 2 turnos seguintes dela; cada inimigo que a acertar leva um Finger Beam de volta e ela ganha +5 de energia. Cada Finger Beam sai no visual Kokoro. O tiro vai de 0,4× (fora do Kaioken) a 0,5×, 0,65×, 0,85× e 1,1× (x2 a x20).
+- Segunda habilidade (W) para a Shumi e o Andri, e uma segunda passiva para a Àskara. A W custa 1 ponto de skill e tem recarga (3 turnos no Andri, 4 na Shumi; a barra mostra no ícone quantos turnos faltam).
+  - Shumi, **Bang!**: Finger Beam no alvo e, pelos 2 turnos seguintes dela, ataca junto: sempre que um aliado (inclusive invocação) acerta um inimigo, ela dispara um Finger Beam nele e ganha +4 de energia. A recarga é um turno maior que o efeito, para sempre sobrar um turno sem ele. Cada Finger Beam é uma bolinha de ki disparada do dedo, no visual Kokoro. O tiro vai de 0,4× (fora do Kaioken) a 0,5×, 0,65×, 0,85× e 1,1× (x2 a x20).
   - Andri, **Protocolo MOMC**: Sobrecarga (o MOMC dispara 0,9× com o elemento da lente) ou Escudo (10% do HP máximo do aliado por 2 turnos).
   - Àskara, **Último Ato** (passiva): cada demônio, ao ir embora por tempo ou ao cair, faz um último ato: Explosão Vil do Diabrete (0,5× no alvo e no inimigo ao lado), Muralha do Caos do Emissário (escudo de 8% do HP máximo dele no aliado com menos HP), Beijo Final da Lilith (Encanto em todos os inimigos, 0,2×) e Última Dança da Shivara (0,4× em todos). Não dispara ao sair para abrir vaga, ao ser apagado pelo Lorde nem quando a Àskara cai.
 - O nome de cada habilidade na barra da batalha tem largura fixa: nomes longos aparecem cortados com reticências e correm para ser lidos inteiros com o mouse em cima.
-- A lista de habilidades na montagem da equipe tem altura máxima e rola quando o kit não cabe.
+- A lista de habilidades na montagem da equipe ocupa o espaço que sobra na ficha e rola quando o kit não cabe.
+- Explicação das habilidades em cartões, na barra da batalha e na montagem da equipe: nome, etiquetas (passiva, custo, recarga, alvo e elemento), um resumo curto e, quando a habilidade tem vários itens, uma linha para cada um, com o atual em destaque: os demônios da Invocação e do Último Ato, os Lordes, os artefatos do Arsenal, as opções do Protocolo, os níveis do Kaioken e do Engo-ji, e o dano do Finger Beam e a energia do Limite Humano por nível.
 - A barra de habilidades da batalha mostra também a passiva de cada personagem, no fim, marcada como PASSIVA e explicada ao passar o mouse, no mesmo padrão das outras. A Shumi passa a ter a passiva Limite Humano explicada (com ícone novo), e a Àskara, o Fragmento d'Alma.
 
 ### Changed
@@ -56,4 +58,7 @@ e o projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ### Fixed
 
+- O botão COMEÇAR COMBATE e as dicas de controle da montagem da equipe ficavam fora da tela quando a ficha do personagem era alta.
+- A explicação da habilidade na batalha cobria o painel do personagem e o da equipe; agora fica acima da barra.
+- Passar o mouse numa habilidade que atinge vários inimigos gerava erro no registro do Godot.
 - O ícone da Mão de Tyr (artefato do Andri) tinha um dedo a mais; a luva agora tem quatro dedos e o polegar.

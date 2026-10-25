@@ -4,9 +4,9 @@ extends Combatente
 ##  Básico: corte de katana (gera 1 ponto de skill e um pouco de energia).
 ##  Skill: Engo-ji Beam, feixe que muda com o Kaioken: só o alvo, alvo + 1
 ##         (x2), alvo + vizinhos (x4), atravessa todos (x10) e Colapso (x20).
-##  Skill 2: Bang!. Finger Beam no alvo e fica em guarda pelos 2 turnos
-##           seguintes dela: cada inimigo que a acertar leva um Finger Beam de volta
-##           (mais forte a cada nível do Kaioken). Ela apanha normalmente.
+##  Skill 2: Bang!. Finger Beam no alvo e, pelos 2 turnos seguintes dela,
+##           ataca junto: sempre que um aliado acerta um inimigo, ela dispara
+##           um Finger Beam nele (mais forte a cada nível do Kaioken).
 ##  Ult: Kaioken. Entra na forma (x2) ou sobe um nível (x4, x10, x20).
 ##       Cada nível dá mais ATQ/VEL e drena mais HP no início do turno.
 ##       Quando acaba, ela fica exausta (VEL menor); depois do x20 perde um turno.
@@ -44,15 +44,17 @@ const ENGO_JI := [
 ]
 const MULT_ENGO_JI_SECUNDARIO := 0.9  ## alvos extras do x2 e do x4
 
-## Finger Beam do Bang! (o tiro ao usar e cada contra-ataque), por nível
-## (índice = nivel + 1). Começa fraco: o valor está em repetir a cada golpe.
+## Finger Beam do Bang! (o tiro ao usar e cada ataque junto), por nível
+## (índice = nivel + 1). Fraco de propósito: dispara a cada ação de aliado
+## que acerta, invocações inclusive.
 const MULT_FINGER_BEAM := [0.4, 0.5, 0.65, 0.85, 1.1]
-## Turnos dela, contando o da ação: a guarda cobre os 2 turnos seguintes.
-## Um a menos que a recarga de propósito: ela sempre fica pelo menos um
-## turno sem guarda.
+## Turnos dela, contando o da ação: o Bang! cobre os 2 turnos seguintes.
+## A recarga conta do mesmo jeito; um turno a mais que a duração para ela
+## sempre ficar pelo menos um turno sem ele (com as duas iguais, acabava e
+## voltava no mesmo turno).
 const DURACAO_BANG := 3
-const RECARGA_BANG := 3
-const ENERGIA_CONTRA := 5.0  ## por contra-ataque: apanhar em guarda acelera o Kaioken
+const RECARGA_BANG := DURACAO_BANG + 1
+const ENERGIA_JUNTO := 4.0  ## por ataque junto: a equipe atacando acelera o Kaioken
 
 var nivel := -1  ## -1 = fora do Kaioken
 var turnos_kaioken := 0
@@ -176,18 +178,18 @@ func mult_finger_beam() -> float:
 	return MULT_FINGER_BEAM[nivel + 1]
 
 
-## Guarda do Bang!: enquanto durar, contra_atacar() responde a cada golpe.
-static func guarda_bang() -> Estado:
+## Bang! ativo: enquanto durar, atacar_junto() acompanha os aliados.
+static func estado_bang() -> Estado:
 	var e := Estado.new("bang", "Bang!", "BNG", "buff", DURACAO_BANG)
 	e.cor = COR_KAIOKEN
-	e.detalhe = "contra-ataca com Finger Beam"
+	e.detalhe = "ataca junto com Finger Beam"
 	return e
 
 
-func contra_atacar(_atacante: Combatente) -> Dictionary:
-	if estado("bang") == null:
+func atacar_junto(atacante: Combatente, _alvo: Combatente) -> Dictionary:
+	if atacante == self or estado("bang") == null:
 		return {}
-	ganhar_energia(ENERGIA_CONTRA)
+	ganhar_energia(ENERGIA_JUNTO)
 	return {"nome": "Finger Beam", "mult": mult_finger_beam(), "tipo": tipo}
 
 
@@ -229,6 +231,14 @@ func habilidades(pontos: int) -> Array[Dictionary]:
 		"acao": "ult", "nome": "Kaioken", "tecla": "R", "icone": ICONE_KAIOKEN,
 		"alvo": "proprio", "cor": COR_KAIOKEN, "destaque": true, "livre": true,
 	}
+	var niveis: Array[Dictionary] = []
+	for i in NIVEIS.size():
+		var n: Dictionary = NIVEIS[i]
+		niveis.append({"rotulo": "Kaioken " + n.nome, "cor": COR_KAIOKEN, "atual": i == nivel,
+			"marca": "atual" if i == nivel else ("próximo" if i == nivel + 1 else ""),
+			"texto": "ATQ +%d%% · VEL +%d%% · queima %d%% do HP por turno" % [
+				roundi(n.atq * 100), roundi(n.vel * 100), roundi(n.dreno * 100)]})
+	ult.detalhes = niveis
 	if nivel_maximo():
 		ult.merge({"estado": "bloqueada", "selo": "MÁX",
 			"descricao": "Já está no x20. Quando acabar, perde um turno."})
@@ -238,10 +248,14 @@ func habilidades(pontos: int) -> Array[Dictionary]:
 			"estado": "pronta" if pode_ultar() else "sem_recurso",
 			"custo_energia": roundi(custo_ult()),
 			"selo": prox.nome,
-			"descricao": "%s %s: ATQ +%d%%, VEL +%d%%, queima %d%% do HP por turno (Limite Humano: +%d de energia se sobreviver)." % [
-				"Sobe para" if em_kaioken() else "Entra no", prox.nome,
-				roundi(prox.atq * 100), roundi(prox.vel * 100), roundi(prox.dreno * 100), roundi(prox.limite)],
+			"descricao": "%s %s. Cada nível dura %d turnos dela (subir renova); quando acaba, ela fica exausta, e depois do x20 perde um turno." % [
+				"Sobe para o" if em_kaioken() else "Entra no", prox.nome, DURACAO],
 		})
+	var engo: Array[Dictionary] = []
+	for i in ENGO_JI.size():
+		var g: Dictionary = ENGO_JI[i]
+		engo.append({"rotulo": _nome_nivel(i - 1), "marca": g.nome, "cor": COR_KAIOKEN, "atual": i == nivel + 1,
+			"texto": "Colapso: energia extrema contra todos os inimigos." if i == ENGO_JI.size() - 1 else DESCRICAO_ENGO_JI[g.alcance]})
 	return [
 		{
 			"acao": "basico", "nome": "Corte", "tecla": "Q", "icone": ICONE_CORTE,
@@ -253,26 +267,46 @@ func habilidades(pontos: int) -> Array[Dictionary]:
 			"estado": "pronta" if pontos > 0 else "sem_recurso",
 			"alvo": e.alcance, "tipo": tipo, "custo_pontos": 1,
 			"selo": nome_nivel(), "cor": COR_KAIOKEN,
-			"descricao": ("Colapso: energia extrema contra todos os inimigos, com dano massivo."
-				if nivel_maximo() else DESCRICAO_ENGO_JI[e.alcance])
-				+ ("" if em_kaioken() else " Muda a cada nível do Kaioken."),
+			"descricao": "Feixe de energia que cresce com o Kaioken: cada nível aumenta o alcance.",
+			"detalhes": engo,
 		},
 		com_recarga({
 			"acao": "skill2", "nome": "Bang!", "tecla": "W", "icone": ICONE_BANG,
 			"estado": "pronta" if pontos > 0 else "sem_recurso",
 			"alvo": "unico", "tipo": tipo, "custo_pontos": 1, "recarga": RECARGA_BANG,
 			"selo": nome_nivel(), "cor": COR_KAIOKEN,
-			"descricao": "Finger Beam no alvo (%sx) e fica em guarda por %d turnos: cada inimigo que a acertar leva um Finger Beam de volta e ela ganha %d de energia. Mais forte a cada nível do Kaioken. Recarga de %d turnos." % [
-				str(mult_finger_beam()).replace(".", ","), DURACAO_BANG - 1, roundi(ENERGIA_CONTRA), RECARGA_BANG],
+			"descricao": "Finger Beam no alvo e, pelos %d turnos seguintes dela, ataca junto com a equipe." % (DURACAO_BANG - 1),
+			"detalhes": [
+				{"rotulo": "Ataca junto", "cor": COR_KAIOKEN,
+					"texto": "Quando um aliado ou invocação acerta um inimigo, ela dispara um Finger Beam nele (uma vez por ação) e ganha %d de energia." % roundi(ENERGIA_JUNTO)},
+				{"rotulo": "Dano do Finger Beam", "cor": COR_KAIOKEN,
+					"valores": _por_nivel(MULT_FINGER_BEAM.map(func(m: float) -> String: return str(m).replace(".", ",") + "x"))},
+			],
 		}),
 		ult,
 		{
 			"acao": "limite_humano", "nome": "Limite Humano", "tecla": "", "icone": ICONE_LIMITE_HUMANO,
 			"estado": "pronta", "alvo": "proprio", "passiva": true, "cor": COR_KAIOKEN,
-			"descricao": "Passiva: se sobrevive ao dreno do Kaioken no começo do turno, recupera energia (%s do x2 ao x20)." % [
-				"/".join(NIVEIS.map(func(n: Dictionary) -> String: return str(roundi(n.limite))))],
+			"descricao": "Se sobrevive ao dreno do Kaioken no começo do turno, recupera energia.",
+			"detalhes": [{"rotulo": "Energia por nível", "cor": COR_KAIOKEN,
+				"valores": _por_nivel(NIVEIS.map(func(n: Dictionary) -> String: return "+%d" % roundi(n.limite)), false)}],
 		},
 	]
+
+
+## Nome do nível `i` do Kaioken (-1 = fora dele).
+static func _nome_nivel(i: int) -> String:
+	return "Base" if i < 0 else NIVEIS[i].nome
+
+
+## Um valor por nível ("Base 0,4x", "x2 0,5x"...), marcando o atual, para os
+## "valores" dos detalhes. `valores` começa no Base; sem `com_base`, no x2.
+func _por_nivel(valores: Array, com_base := true) -> Array[Dictionary]:
+	var lista: Array[Dictionary] = []
+	for i in valores.size():
+		var n := i - 1 if com_base else i
+		lista.append({"texto": "%s %s" % [_nome_nivel(n), valores[i]], "atual": n == nivel})
+	return lista
 
 
 func efeitos() -> Array[Dictionary]:

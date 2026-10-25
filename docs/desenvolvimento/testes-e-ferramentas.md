@@ -12,7 +12,7 @@ Cada arquivo é um `SceneTree` que roda, imprime `ok` ou `FALHOU` por verificaç
 
 | Arquivo                     | Cobre                                                                                   |
 | --------------------------- | --------------------------------------------------------------------------------------- |
-| `testes/teste_combate.gd`   | fila, dano, tipos, estados, kits da Shumi, do Andri e da Àskara (com as skills 2, a recarga e o contra-ataque), invocações e últimos atos (também numa batalha de verdade), descrição para a HUD, equipe |
+| `testes/teste_combate.gd`   | fila, dano, tipos, estados, kits da Shumi, do Andri e da Àskara (com as skills 2, a recarga e o ataque em conjunto), invocações e últimos atos (também numa batalha de verdade), descrição para a HUD, equipe, READMEs dos personagens em dia |
 | `testes/teste_progressao.gd`| curva, limite da Torre, atributos por nível, desbloqueio, save, recompensa na batalha real |
 | `testes/teste_torre.gd`     | andares, ritmo de XP, liberação, eventos, telas de andar e equipe, apresentação no saguão |
 | `testes/teste_lobby.gd`     | saguão montado de verdade: colisão, caminhos, foco, diálogo, porta                      |
@@ -48,6 +48,7 @@ Sem cenários, roda cada andar um nível abaixo do recomendado, no recomendado e
 | Ferramenta                        | Uso                                                                              |
 | --------------------------------- | -------------------------------------------------------------------------------- |
 | `ferramentas/demo_captura.gd`     | joga uma batalha sozinho e salva capturas (precisa de janela, não roda headless) |
+| `ferramentas/gerar_readme_personagens.gd` | reescreve o trecho gerado do `personagens/<id>/README.md` (atributos e habilidades com o texto do jogo, via `habilidades()` e `CartaoHabilidade.etiquetas()`); o resto do arquivo é escrito à mão. O `teste_combate.gd` falha se algum README ficar desatualizado |
 | `ferramentas/gerar_lobby.py`      | gera o fundo, os móveis e a porta do saguão                                       |
 | `ferramentas/gerar_andri.py`      | gera a spritesheet, o MOMC e os ícones do Andri                                   |
 | `ferramentas/gerar_caoimhe.py`    | gera a spritesheet da Caoimhe a partir do sprite parado                          |

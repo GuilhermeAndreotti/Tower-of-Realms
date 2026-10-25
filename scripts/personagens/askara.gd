@@ -46,25 +46,25 @@ const INVOCACOES := [
 		"golpe": {"nome": "Bola de Fogo Vil", "mult": 0.5, "alcance": "unico", "estilo": "projetil"},
 		"ultimo_ato": {"nome": "Explosão Vil", "mult": 0.5, "alcance": "dupla", "estilo": "projetil"},
 		"descricao": "Barato e rápido: Bola de Fogo Vil (0,5x) no alvo.",
-		"descricao_ato": "Explosão Vil: ao sair, explode no alvo e no inimigo ao lado (0,5x)."},
+		"descricao_ato": "Explode no alvo e no inimigo ao lado (0,5x)."},
 	{"id": "emissario", "nome": "Emissário do Caos", "sigla": "EMI", "fragmentos": 2, "turnos": 3,
 		"hp": 0.7, "atq": 1.0, "def": 1.5, "vel": 0.9, "cor": Color(0.35, 0.5, 1.0), "provocacao": PROVOCACAO_EMISSARIO,
 		"golpe": {"nome": "Golpe do Caos", "mult": 0.4, "alcance": "unico", "estilo": "investida"},
 		"ultimo_ato": {"nome": "Muralha do Caos", "escudo": 0.08},
 		"descricao": "Tanque: provoca (os inimigos miram mais nele) e golpeia o alvo (0,4x).",
-		"descricao_ato": "Muralha do Caos: ao sair, deixa um escudo de 8% do HP máximo dele no aliado com menos HP."},
+		"descricao_ato": "Escudo de 8% do HP máximo dele no aliado com menos HP."},
 	{"id": "lilith", "nome": "Lilith", "sigla": "LIL", "fragmentos": 2, "turnos": 3,
 		"hp": 0.35, "atq": 1.0, "def": 1.0, "vel": 1.0, "cor": Color(0.95, 0.85, 0.95), "debuff": "encanto",
 		"golpe": {"nome": "Encanto de Lilith", "mult": 0.3, "alcance": "unico", "mira": "mais_forte", "estilo": "projetil"},
 		"ultimo_ato": {"nome": "Beijo Final", "mult": 0.2, "alcance": "todos", "debuff_em_todos": true, "estilo": "projetil"},
 		"descricao": "Encanta o inimigo mais forte: ATQ e DEF -20% por 2 turnos (0,3x).",
-		"descricao_ato": "Beijo Final: ao sair, encanta todos os inimigos (0,2x)."},
+		"descricao_ato": "Encanta todos os inimigos (0,2x)."},
 	{"id": "shivara", "nome": "Shivara", "sigla": "SHI", "fragmentos": 3, "turnos": 3,
 		"hp": 0.4, "atq": 1.0, "def": 1.0, "vel": 1.05, "cor": Color(0.9, 0.45, 0.75),
 		"golpe": {"nome": "Dança das Lâminas", "mult": 0.9, "alcance": "vizinhos", "mult_vizinhos": 0.45, "estilo": "investida"},
 		"ultimo_ato": {"nome": "Última Dança", "mult": 0.4, "alcance": "todos", "estilo": "investida"},
 		"descricao": "Dano: Dança das Lâminas no alvo (0,9x) e nos vizinhos (0,45x).",
-		"descricao_ato": "Última Dança: ao sair, golpeia todos os inimigos (0,4x)."},
+		"descricao_ato": "Golpeia todos os inimigos (0,4x)."},
 ]
 
 ## Os Lordes da ult, no mesmo formato, com o golpe de chegada em "entrada".
@@ -225,16 +225,24 @@ func pode_usar(acao: String, pontos: int) -> bool:
 func habilidades(pontos: int) -> Array[Dictionary]:
 	var campo := em_campo()
 	var opcoes: Array[Dictionary] = []
+	var demonios: Array[Dictionary] = []
+	var atos: Array[Dictionary] = []
 	for d: Dictionary in INVOCACOES:
 		var ja := campo.any(func(i: Invocacao) -> bool: return i.id == d.id)
+		var custo := "%d fragmento%s" % [d.fragmentos, "" if d.fragmentos == 1 else "s"]
 		opcoes.append({"id": d.id, "nome": "%s (%d)" % [d.nome, d.fragmentos], "sigla": d.sigla, "cor": d.cor, "atual": ja,
-			"descricao": "%s %s Custa %d fragmento%s; age %d vezes.%s" % [d.descricao, d.descricao_ato, d.fragmentos,
-				"" if d.fragmentos == 1 else "s", d.turnos, " Já em campo: renova." if ja else ""]})
+			"descricao": "%s Último ato (%s): %s Custa %s; age %d vezes.%s" % [d.descricao, d.ultimo_ato.nome,
+				d.descricao_ato, custo, d.turnos, " Já em campo: renova." if ja else ""]})
+		demonios.append({"rotulo": d.nome, "marca": custo + (" · em campo" if ja else ""), "texto": d.descricao,
+			"cor": d.cor, "atual": ja})
+		atos.append({"rotulo": "%s · %s" % [d.nome, d.ultimo_ato.nome], "texto": d.descricao_ato, "cor": d.cor})
 	var skill := {
 		"acao": "skill", "nome": "Invocação", "tecla": "E", "icone": PASTA + "icone_invocacao.png",
 		"alvo": "proprio", "custo_pontos": 1, "seletor": "radial", "cor": COR_ASKARA,
 		"opcoes": opcoes, "opcao_padrao": INVOCACOES[0].id,
-		"descricao": "Invoca um demônio com Fragmentos d'Alma. Até %d em campo (sem vaga, o mais antigo sai)." % MAX_INVOCACOES,
+		"descricao": "Invoca um demônio com Fragmentos d'Alma. Cada um age %d vezes; até %d em campo (sem vaga, o mais antigo sai)." % [
+			INVOCACOES[0].turnos, MAX_INVOCACOES],
+		"detalhes": demonios,
 	}
 	if lorde():
 		skill.merge({"estado": "bloqueada", "falta": "O %s não divide o campo." % lorde().nome})
@@ -249,8 +257,14 @@ func habilidades(pontos: int) -> Array[Dictionary]:
 		"acao": "ult", "nome": "Lorde Demônio", "tecla": "R", "icone": PASTA + "icone_lorde.png",
 		"alvo": "todos", "tipo": tipo, "destaque": true, "cor": LORDES.lorde_demonio.cor, "selo": "%d FRA" % custo,
 		"custo_recurso": "%d fragmentos" % custo,
-		"descricao": "Invoca o Lorde Demônio: apaga as invocações em campo (cada uma desconta %d fragmento), ataca todos ao chegar e fica %d vezes. %d%% de chance de vir o Lorde da Luz." % [
-			DESCONTO_POR_INVOCACAO, LORDES.lorde_demonio.turnos, roundi(CHANCE_LORDE_LUZ * 100)],
+		"descricao": "Apaga as invocações em campo (cada uma desconta %d fragmento do custo), chega atacando todos os inimigos e fica %d vezes. Enquanto ele está em campo, não dá para invocar." % [
+			DESCONTO_POR_INVOCACAO, LORDES.lorde_demonio.turnos],
+		"detalhes": [
+			{"rotulo": LORDES.lorde_demonio.nome, "marca": "%d%%" % roundi((1 - CHANCE_LORDE_LUZ) * 100), "cor": LORDES.lorde_demonio.cor,
+				"texto": _texto_lorde(LORDES.lorde_demonio)},
+			{"rotulo": LORDES.lorde_luz.nome, "marca": "%d%% · Luz" % roundi(CHANCE_LORDE_LUZ * 100), "cor": LORDES.lorde_luz.cor,
+				"texto": _texto_lorde(LORDES.lorde_luz) + " Recebe %d%% menos dano." % roundi(REDUCAO_LORDE_LUZ * 100)},
+		],
 	}
 	if lorde():
 		ult.merge({"estado": "bloqueada", "selo": "", "falta": "O %s já está em campo." % lorde().nome})
@@ -262,22 +276,32 @@ func habilidades(pontos: int) -> Array[Dictionary]:
 		{
 			"acao": "basico", "nome": "Seta Vil", "tecla": "Q", "icone": PASTA + "icone_seta.png",
 			"estado": "pronta", "alvo": "unico", "tipo": tipo, "ganho_pontos": 1,
-			"descricao": "Seta de energia vil no alvo, com pouco dano. Gera 1 ponto de skill e %d Fragmento d'Alma." % FRAGMENTOS_SETA,
+			"descricao": "Seta de energia vil no alvo, com pouco dano. Gera %d Fragmento d'Alma." % FRAGMENTOS_SETA,
 		},
 		skill,
 		{
 			"acao": "ultimo_ato", "nome": "Último Ato", "tecla": "", "icone": PASTA + "icone_ultimo_ato.png",
 			"estado": "pronta", "alvo": "proprio", "passiva": true, "cor": COR_ASKARA,
-			"descricao": "Passiva: cada demônio, ao ir embora por tempo ou ao cair, faz o último ato. " + " ".join(
-				INVOCACOES.map(func(d: Dictionary) -> String: return d.descricao_ato)),
+			"descricao": "Cada demônio, ao ir embora por tempo ou ao cair, faz um último ato. Não vale ao sair para abrir vaga, ao ser apagado pelo Lorde nem se a Àskara cair.",
+			"detalhes": atos,
 		},
 		ult,
 		{
 			"acao": "fragmentos", "nome": "Fragmento d'Alma", "tecla": "", "icone": PASTA + "icone_fragmento.png",
 			"estado": "pronta", "alvo": "proprio", "passiva": true, "cor": COR_ASKARA,
-			"descricao": "Passiva: ganha 1 fragmento a cada Seta Vil e 1 quando um inimigo cai (máximo %d). Paga as invocações e o Lorde." % FRAGMENTOS_MAX,
+			"descricao": "Pagam as invocações e o Lorde. Começa a luta com %d, máximo de %d." % [FRAGMENTOS_INICIAIS, FRAGMENTOS_MAX],
+			"detalhes": [
+				{"rotulo": "Seta Vil", "marca": "+%d" % FRAGMENTOS_SETA},
+				{"rotulo": "Inimigo derrotado", "marca": "+%d" % FRAGMENTOS_ABATE},
+			],
 		},
 	]
+
+
+## Golpes do Lorde `l` (chegada e depois), para os detalhes da ult.
+static func _texto_lorde(l: Dictionary) -> String:
+	return "Chegada: %sx em todos. Depois: %sx em todos." % [
+		str(l.entrada.mult).replace(".", ","), str(l.golpe.mult).replace(".", ",")]
 
 
 func efeitos() -> Array[Dictionary]:

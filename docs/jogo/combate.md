@@ -52,7 +52,8 @@ Recursos que um kit pode usar sem mexer na batalha:
 - `livre`: a ação não gasta o turno.
 - `alvo` numa opção: a opção mira outro tipo de alvo que a ação (o Escudo do Protocolo MOMC mira um aliado; a Sobrecarga, um inimigo). A marcação, a prévia e o motivo inválido seguem a opção marcada (`Batalha.tipo_alvo()`).
 - `recarga`: turnos entre usos (ver [Recursos](#recursos)).
-- Contra-ataque: `Combatente.contra_atacar()` devolve um golpe quando um inimigo acerta o lutador e os dois seguem de pé (o Bang! da Shumi); a batalha chama `AcoesPersonagem.contra_atacar()` para a animação. O contra é golpe adicional: sem crítico, sem estados de acerto e sem encadear.
+- `detalhes`: uma linha por item da habilidade (cada demônio, cada artefato, cada nível do Kaioken), com rótulo, marca, texto e/ou valores por nível, e o item atual em destaque. O `CartaoHabilidade` mostra nome, etiquetas (passiva, custo, recarga, alvo, elemento), a `descricao` como resumo e os detalhes, na dica da barra (acima dela) e na ficha da montagem da equipe. Assim a `descricao` fica curta e não repete o que as etiquetas já dizem.
+- Ataque em conjunto: no fim de cada ação de outro aliado (da equipe ou invocação) que acertou um inimigo, a batalha pergunta a cada um da equipe `Combatente.atacar_junto()`; quem devolver um golpe ataca o primeiro inimigo atingido, se ele ainda estiver de pé (o Bang! da Shumi), com a animação de `AcoesPersonagem.atacar_junto()`. Uma vez por ação, não por golpe, para ataques em área não multiplicarem o efeito. É golpe adicional: sem crítico, sem estados de acerto e sem encadear (golpes `extra` não contam como acerto da ação).
 
 No seletor de opções, W e S não navegam (só ↑/↓): as teclas da barra têm prioridade, porque a lente do Andri abre sozinha no começo da vez e o W tem que continuar chamando a skill 2.
 

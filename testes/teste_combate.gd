@@ -491,11 +491,16 @@ func _teste_equipe() -> void:
 		checar(Elenco.criar(id).aliado and d.acoes != null and d.sprite.has("png") and d.get("universo", "") != "", "%s cadastrado completo" % id)
 		var passivas := Elenco.criar(id).habilidades(1).filter(func(h: Dictionary) -> bool: return h.get("passiva", false))
 		checar(not passivas.is_empty() and passivas.all(func(h: Dictionary) -> bool:
-				return h.tecla == "" and h.get("icone", "") != "" and h.descricao.begins_with("Passiva")),
+				return h.tecla == "" and h.get("icone", "") != "" and h.descricao != ""),
 			"%s explica as passivas na barra, no mesmo padrão dos outros" % id)
 		var kit := Elenco.criar(id).habilidades(1)
 		checar(kit.size() == 5 and kit[0].acao == "basico" and kit[1].acao == "skill" and kit[3].acao == "ult" and kit[4].get("passiva", false)
 			and (kit[2].acao == "skill2" or kit[2].get("passiva", false)), "%s segue a ordem: básico, skill, skill 2, ult e passiva" % id)
+	var gerador: GDScript = load("res://ferramentas/gerar_readme_personagens.gd")
+	for id in Elenco.IDS:
+		var readme := FileAccess.get_file_as_string(gerador.arquivo(id))
+		checar(readme == gerador.com_trecho(readme, gerador.trecho(id)),
+			"README de %s em dia com o kit (rode ferramentas/gerar_readme_personagens.gd)" % id)
 	checar(Elenco.dados("shumi").universo == "Dragon Ball New Age" and Elenco.dados("andri").universo == "Tales of Azeroth",
 		"cada personagem diz de onde vem")
 	var a := Combatente.new("A", true, 100, 1, 0, 100)
@@ -703,19 +708,24 @@ func _teste_shumi_bang() -> void:
 	var ini := Inimigo.new("Alvo", "", 1000, 10, 0, 100)
 	var h := _hab(s, "skill2")
 	checar(h.tecla == "W" and h.custo_pontos == 1 and h.recarga == Shumi.RECARGA_BANG and h.alvo == "unico", "Bang! na tecla W, custa 1 ponto e tem recarga")
-	checar(s.contra_atacar(ini).is_empty(), "sem a guarda, não contra-ataca")
-	s.aplicar_estado(Shumi.guarda_bang())
+	var andri := Andri.new()
+	checar(s.atacar_junto(andri, ini).is_empty(), "sem o Bang!, não ataca junto")
+	s.aplicar_estado(Shumi.estado_bang())
+	checar(s.atacar_junto(s, ini).is_empty(), "o próprio ataque dela não puxa outro")
 	var antes := s.energia
-	var g := s.contra_atacar(ini)
-	checar(g.nome == "Finger Beam" and is_equal_approx(g.mult, 0.4) and s.energia == antes + Shumi.ENERGIA_CONTRA,
-		"em guarda: Finger Beam de 0,4x e +5 de energia por contra")
+	var g := s.atacar_junto(andri, ini)
+	checar(g.nome == "Finger Beam" and is_equal_approx(g.mult, 0.4) and s.energia == antes + Shumi.ENERGIA_JUNTO,
+		"com o Bang!: Finger Beam de 0,4x e +4 de energia por ataque junto")
 	s.nivel = 3
-	checar(is_equal_approx(s.contra_atacar(ini).mult, 1.1), "no x20 o Finger Beam vai a 1,1x")
+	checar(is_equal_approx(s.atacar_junto(andri, ini).mult, 1.1), "no x20 o Finger Beam vai a 1,1x")
 	s.nivel = -1
+	s.iniciar_recarga("skill2", Shumi.RECARGA_BANG)
 	for i in Shumi.DURACAO_BANG:
 		s.passar_turno()
-	checar(s.estado("bang") == null and s.contra_atacar(ini).is_empty(), "a guarda acaba depois da duração")
-
+	checar(s.estado("bang") == null and s.atacar_junto(andri, ini).is_empty(), "o Bang! acaba depois da duração")
+	checar(not s.pode_usar("skill2", 1), "quando o Bang! acaba, a recarga ainda segura um turno sem ele")
+	s.passar_turno()
+	checar(s.pode_usar("skill2", 1), "e no turno seguinte ele volta")
 
 func _teste_andri_protocolo() -> void:
 	print("andri: protocolo MOMC")
@@ -760,7 +770,11 @@ func _teste_bang_na_batalha() -> void:
 	print("bang! na batalha")
 	Progressao.apagar()
 	Andares.escolher(1)
-	Elenco.definir_equipe(["shumi"])
+	for n in range(1, 3):
+		Progressao.marcar_andar_vencido(n)
+	Progressao.desbloquear("andri")
+	Andares.escolher(3)
+	Elenco.definir_equipe(["shumi", "andri"])
 	var b: Batalha = (load("res://scenes/batalha.tscn") as PackedScene).instantiate()
 	root.add_child(b)
 	current_scene = b
@@ -768,14 +782,25 @@ func _teste_bang_na_batalha() -> void:
 	for ini in b.inimigos:
 		ini.av = 1e9
 	var s := b.equipe[0] as Shumi
-	s.aplicar_estado(Shumi.guarda_bang())
+	var andri := b.equipe[1]
+	s.aplicar_estado(Shumi.estado_bang())
 	var ini: Inimigo = b.inimigos_vivos()[0]
-	var hp_antes := ini.hp
 	var energia_antes := s.energia
-	await b._turno_inimigo(ini)
-	checar(ini.hp < hp_antes, "quem acerta a Shumi em guarda leva o Finger Beam")
-	checar(is_equal_approx(s.energia, minf(s.energia_max, energia_antes + s.energia_ao_apanhar + Shumi.ENERGIA_CONTRA)),
-		"ela ganha a energia de apanhar e a do contra")
+	b._primeiro_atingido = null
+	await b.aplicar_dano(andri, ini, 0.1)
+	var hp_antes := ini.hp
+	await b._ataques_em_conjunto(andri)
+	checar(ini.hp < hp_antes and is_equal_approx(s.energia, minf(s.energia_max, energia_antes + Shumi.ENERGIA_JUNTO)),
+		"o Andri acerta e a Shumi ataca junto o mesmo inimigo (+4 de energia)")
+	b._primeiro_atingido = null
+	await b.aplicar_dano(s, ini, 0.1)
+	hp_antes = ini.hp
+	await b._ataques_em_conjunto(s)
+	checar(ini.hp == hp_antes, "o ataque dela mesma não puxa um ataque junto")
+	b._primeiro_atingido = null
+	await b.aplicar_dano(ini, s, 0.1)
+	await b._ataques_em_conjunto(ini)
+	checar(b._primeiro_atingido == null, "golpe de inimigo não conta")
 	var acoes := b._acoes[s] as AcoesShumi
 	var normal := b.visual(s).frames()
 	s.remover_estado("bang")
@@ -786,6 +811,6 @@ func _teste_bang_na_batalha() -> void:
 		if s.estado("bang"):
 			break
 		await process_frame
-	checar(s.estado("bang") != null and b.visual(s).frames() == normal, "depois do tiro, volta ao visual normal (a guarda continua)")
+	checar(s.estado("bang") != null and b.visual(s).frames() == normal, "depois do tiro, volta ao visual normal (o Bang! continua)")
 	b.queue_free()
 	await process_frame

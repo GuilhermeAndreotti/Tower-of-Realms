@@ -102,7 +102,14 @@ static func largura_selo_tipo(tipo: String, tamanho := 9, curto := false) -> flo
 
 ## O mesmo selo como Control, para painéis montados com containers.
 static func etiqueta_tipo(tipo: String, tamanho := 9) -> PanelContainer:
-	var cor := Tipos.cor(tipo)
+	var p := etiqueta(Tipos.nome(tipo), Tipos.cor(tipo), tamanho)
+	p.tooltip_text = "Elemento: " + Tipos.nome(tipo)
+	return p
+
+
+## Etiqueta curta na cor `cor` (custo, recarga, alvo...), no formato do
+## selo de elemento.
+static func etiqueta(texto: String, cor: Color, tamanho := 9) -> PanelContainer:
 	var p := PanelContainer.new()
 	var s := painel(cor.darkened(0.65), cor, 1)
 	s.shadow_size = 0
@@ -113,8 +120,7 @@ static func etiqueta_tipo(tipo: String, tamanho := 9) -> PanelContainer:
 	p.add_theme_stylebox_override("panel", s)
 	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	p.mouse_filter = Control.MOUSE_FILTER_PASS
-	p.tooltip_text = "Elemento: " + Tipos.nome(tipo)
-	p.add_child(label(Tipos.nome(tipo), tamanho, cor.lightened(0.4), 2))
+	p.add_child(label(texto, tamanho, cor.lightened(0.4), 2))
 	return p
 
 

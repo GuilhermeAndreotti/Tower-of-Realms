@@ -10,7 +10,7 @@ extends SceneTree
 ## O piloto joga razoavelmente bem, sem ser ótimo:
 ##  - foca o inimigo com menos HP;
 ##  - Shumi: entra no Kaioken x2 com HP acima de 60%; Bang! quando sai da
-##    recarga, fora da guarda e com 2+ pontos; Engo-ji com ponto sobrando e
+##    recarga, sem o Bang! ativo, com 2+ pontos e outro aliado em campo; Engo-ji com ponto sobrando e
 ##    2+ inimigos (ou no Kaioken); se não, Corte;
 ##  - Andri: lente mais efetiva no alvo; Protocolo: Escudo em quem estiver
 ##    abaixo de 50%; Análise (Fogo) quando nenhuma lente é super efetiva e o
@@ -135,7 +135,7 @@ func _pilotar() -> void:
 			b.pedir_acao("ult")
 			return
 		_turnos += 1
-		if s.pode_usar("skill2", b.pontos) and b.pontos >= 2 and s.estado("bang") == null:
+		if s.pode_usar("skill2", b.pontos) and b.pontos >= 2 and s.estado("bang") == null and b.aliados_em_campo().size() > 1:
 			b.pedir_acao("skill2")
 		elif b.pontos >= 1 and (vivos.size() >= 2 or s.em_kaioken()):
 			b.pedir_acao("skill")

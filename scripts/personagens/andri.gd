@@ -283,6 +283,12 @@ func habilidades(pontos: int) -> Array[Dictionary]:
 		artefatos.append({"id": a.id, "nome": a.nome, "cor": a.cor,
 			"descricao": (a.descricao as String).replace("{lente}", Tipos.nome(lente)),
 			"icone": PASTA + "icone_%s.png" % a.id})
+	var protocolo: Array[Dictionary] = [
+		{"id": "sobrecarga", "nome": "Sobrecarga", "alvo": "unico", "cor": cor_lente,
+			"descricao": "O MOMC dispara forte no inimigo (%sx de %s)." % [str(MULT_SOBRECARGA).replace(".", ","), Tipos.nome(lente)]},
+		{"id": "escudo", "nome": "Escudo", "alvo": "aliado", "cor": COR_MOMC,
+			"descricao": "O MOMC protege um aliado: escudo de %d%% do HP máximo por %d turnos." % [roundi(ESCUDO_MOMC * 100), DURACAO_ESCUDO_MOMC]},
+	]
 	return [
 		{
 			"acao": "basico", "nome": "Disparo", "tecla": "Q", "icone": PASTA + "icone_disparo.png",
@@ -300,29 +306,39 @@ func habilidades(pontos: int) -> Array[Dictionary]:
 			"acao": "skill2", "nome": "Protocolo", "tecla": "W", "icone": PASTA + "icone_protocolo.png",
 			"estado": "pronta" if pontos > 0 else "sem_recurso", "alvo": "unico", "custo_pontos": 1,
 			"recarga": RECARGA_PROTOCOLO, "selo": Tipos.sigla(lente), "cor": cor_lente,
-			"opcoes": [
-				{"id": "sobrecarga", "nome": "Sobrecarga", "alvo": "unico", "cor": cor_lente,
-					"descricao": "O MOMC dispara forte no inimigo (%sx de %s)." % [str(MULT_SOBRECARGA).replace(".", ","), Tipos.nome(lente)]},
-				{"id": "escudo", "nome": "Escudo", "alvo": "aliado", "cor": COR_MOMC,
-					"descricao": "O MOMC protege um aliado: escudo de %d%% do HP máximo por %d turnos." % [roundi(ESCUDO_MOMC * 100), DURACAO_ESCUDO_MOMC]},
-			],
-			"opcao_padrao": "sobrecarga",
-			"descricao": "Protocolo MOMC: o robô dá um escudo pequeno a um aliado ou dispara forte num inimigo com o elemento da lente. Recarga de %d turnos." % RECARGA_PROTOCOLO,
+			"opcoes": protocolo, "opcao_padrao": "sobrecarga",
+			"descricao": "Protocolo MOMC: o robô protege um aliado ou dispara forte num inimigo. Escolha ao usar:",
+			"detalhes": _opcoes_como_detalhes(protocolo),
 		}),
 		{
 			"acao": "ult", "nome": "Arsenal", "tecla": "R", "icone": PASTA + "icone_arsenal.png",
 			"estado": "pronta" if energia >= CUSTO_ULT else "sem_recurso", "alvo": "aliado",
 			"custo_energia": roundi(CUSTO_ULT), "destaque": true, "cor": COR_ANDRI,
 			"opcoes": artefatos,
-			"descricao": "Arsenal Titânico: entrega um artefato a um aliado ou a si mesmo.",
+			"descricao": "Arsenal Titânico: entrega um artefato a um aliado ou a si mesmo. Os efeitos duram %d turnos do portador, salvo quando o artefato diz outra coisa." % DURACAO_ARTEFATO,
+			"detalhes": _opcoes_como_detalhes(artefatos),
 		},
 		{
 			"acao": "lente", "nome": "Lente Elemental", "tecla": "", "icone": PASTA + "icone_lente.png",
 			"estado": "pronta", "alvo": "proprio", "livre": true, "passiva": true, "ao_iniciar_turno": true, "seletor": "radial",
 			"selo": Tipos.sigla(lente), "cor": cor_lente, "opcoes": lentes, "opcao_padrao": lente,
-			"descricao": "Passiva: no início de cada turno, escolhe o elemento do Disparo, do MOMC e dos artefatos de dano.",
+			"descricao": "No início de cada turno, escolhe o elemento do Disparo, do MOMC e dos artefatos de dano.",
 		},
 	]
+
+
+## Opções da ação no formato dos "detalhes" (uma linha por opção). As
+## descrições dos artefatos começam com o papel ("Proteção: ..."), que vira
+## a marca ao lado do nome.
+static func _opcoes_como_detalhes(opcoes: Array[Dictionary]) -> Array[Dictionary]:
+	var lista: Array[Dictionary] = []
+	for o in opcoes:
+		var partes := (o.descricao as String).split(": ", true, 1)
+		var papel := partes[0] if partes.size() == 2 and partes[0].length() < 20 else ""
+		var texto: String = partes[1].left(1).to_upper() + partes[1].substr(1) if papel != "" else o.descricao
+		lista.append({"rotulo": o.nome, "marca": papel, "texto": texto,
+			"cor": o.get("cor", COR_ANDRI)})
+	return lista
 
 
 func efeitos() -> Array[Dictionary]:

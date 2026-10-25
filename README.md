@@ -18,10 +18,7 @@
 - [Sistema de combate](#️-sistema-de-combate)
 - [A Torre](#-a-torre)
 - [Níveis e experiência](#-níveis-e-experiência)
-- [Personagens](#-personagens)
-  - [Shumi, espadachim do Kaioken](#-shumi--espadachim-do-kaioken)
-  - [Andri Findavil, inventor e artífice](#-andri-findavil--inventor-e-artífice)
-  - [Àskara, invocadora do abismo](#-àskara--invocadora-do-abismo)
+- [Personagens](#-personagens): [Shumi](personagens/shumi/README.md) · [Andri](personagens/andri/README.md) · [Àskara](personagens/askara/README.md)
 - [Inimigos](#-inimigos)
 - [Rodando o projeto](#-rodando-o-projeto)
 - [Estrutura do projeto](#-estrutura-do-projeto)
@@ -92,9 +89,9 @@ Cada lutador tem **um** tipo. Um golpe pode ser **super efetivo (2×)**, **pouco
 **Arcano** tem regra própria: um alvo Arcano recebe 2× de *qualquer* tipo, e um ataque Arcano causa 2× em tudo, menos em Físico (0,5×).
 
 ### Habilidades na barra
-Cada personagem mostra na barra, sempre nesta ordem, o básico (Q), a skill (E), a skill 2 (W), a ultimate (R) e, por último, a **passiva**, marcada como PASSIVA e sem tecla. A skill 2 pode ser também uma passiva, como o Último Ato da Àskara, e fica no mesmo lugar. Nomes longos aparecem cortados e correm quando o mouse passa por cima. Passar o mouse sobre qualquer uma explica o que ela faz e, se não estiver pronta, o que falta.
+Cada personagem mostra na barra, sempre nesta ordem, o básico (Q), a skill (E), a skill 2 (W), a ultimate (R) e, por último, a **passiva**, marcada como PASSIVA e sem tecla. A skill 2 pode ser também uma passiva, como o Último Ato da Àskara, e fica no mesmo lugar. Nomes longos aparecem cortados e correm quando o mouse passa por cima. Passar o mouse sobre qualquer uma abre um cartão acima da barra com o custo, a recarga, o alvo e o elemento, um resumo, uma linha para cada item (demônio, artefato, nível do Kaioken) e, se ela não estiver pronta, o que falta. A montagem da equipe mostra os mesmos cartões.
 
-As duas skills custam 1 ponto de skill cada. A do W tem também **recarga**: depois de usada, só volta 3 turnos depois, e a barra mostra no ícone quantos turnos faltam.
+As duas skills custam 1 ponto de skill cada. A do W tem também **recarga**: depois de usada, só volta alguns turnos depois (3 no Andri, 4 na Shumi), e a barra mostra no ícone quantos turnos faltam.
 
 ### Estados
 Buffs e debuffs (escudo, fraqueza, lentidão etc.) aparecem como ícones com a contagem de turnos acima de cada lutador.
@@ -153,132 +150,13 @@ Cada personagem tem nível e XP próprios. As regras ficam em `scripts/personage
 
 ## 👥 Personagens
 
-### 🔴 Shumi, espadachim do Kaioken
-*Universo: Dragon Ball New Age* · Tipo: **Físico**
+Cada personagem tem uma página própria com atributos e habilidades. Lá, o texto das habilidades é o mesmo do jogo (gerado a partir do kit), seguido de detalhes e dicas.
 
-| HP | ATQ | DEF | VEL | Energia |
+| | Personagem | Universo | Tipo | Papel |
 |---|---|---|---|---|
-| 1200 | 150 | 50 | 105 | 120 |
-
-A Shumi é uma personagem de **risco e recompensa**. O Kaioken aumenta o poder dela a cada nível, mas também consome o próprio corpo. Quanto mais ela sobe, mais forte fica o Engo-ji Beam e mais perto ela chega do limite.
-
-<img src="personagens/shumi/basic-attack-melee.png" width="32"> **Corte** · Básico (Q)
-> Corte de katana em um alvo, com 1,0× ATQ. Gera **1 ponto de skill** e 20 de energia. A animação fica mais rápida e intensa conforme o nível do Kaioken.
-
-<img src="personagens/shumi/icone_bang.png" width="32"> **Bang!** · Skill 2 (W) · custa 1 ponto · recarga de 3 turnos
-> Um **Finger Beam**, tiro de ki com o dedo, no alvo. Depois ela fica **em guarda pelos 2 turnos seguintes** (com a recarga de 3, sempre sobra pelo menos um turno sem guarda): cada inimigo que a acertar leva um Finger Beam de volta, e ela ganha **+5 de energia** por contra-ataque. Cada Finger Beam sai no visual **Kokoro**, que volta ao normal depois do tiro. Ela continua tomando o dano normal. O tiro fica mais forte a cada nível do Kaioken:
-
-| Nível | Normal | x2 | x4 | x10 | x20 |
-|---|---|---|---|---|---|
-| Finger Beam | 0,4× | 0,5× | 0,65× | 0,85× | 1,1× |
-
-<img src="personagens/shumi/engo-ji-beam-icon.png" width="32"> **Engo-ji Beam** · Skill (E) · custa 1 ponto
-> Um feixe de energia que **muda conforme o Kaioken**:
-
-| Nível | Nome | Alcance | Dano |
-|---|---|---|---|
-| Normal | Engo-ji Beam | Só o alvo | 1,8× |
-| x2 | Engo-ji Beam Amplificado | Alvo + o inimigo logo atrás | 1,8× / 0,9× |
-| x4 | Engo-ji Beam: Ruptura | Alvo + vizinhos | 1,8× / 0,9× |
-| x10 | Engo-ji Beam: Devastação | Atravessa todos | 1,8× em todos |
-| x20 | **Engo-ji Beam: Colapso** | Todos | **2,2×** em todos |
-
-<img src="personagens/shumi/kaiokenn-shumi.png" width="32"> **Kaioken** · Ultimate (R)
-> Entra no Kaioken x2 (120 de energia) ou sobe um nível (80 de energia). Usar o Kaioken **não gasta o turno**. Cada nível dura 3 turnos dela, e subir de nível renova a duração.
-
-| Nível | ATQ | VEL | Dreno de HP / turno | Energia do Limite Humano | Exaustão ao acabar |
-|---|---|---|---|---|---|
-| x2 | +20% | +20% | 3% | +15 | VEL −10% |
-| x4 | +40% | +35% | 5% | +20 | VEL −20% |
-| x10 | +80% | +55% | 8% | +25 | VEL −30% |
-| x20 | +150% | +80% | 12% | +30 | VEL −40% **e perde o próximo turno** |
-
-O dreno tira HP direto e ignora defesa e escudo. Quando o Kaioken acaba, ela fica **Exausta** por 2 turnos.
-
-🛡️ **Limite Humano** · Passiva
-> Se a Shumi sobrevive ao dreno do Kaioken no início do turno, ela recupera energia. Quanto mais alto o nível, mais energia ela ganha. Isso permite subir de nível em sequência... enquanto o HP aguentar.
-
-**Dica:** suba até o x10 para limpar a tela com a Devastação. O x20 causa um dano enorme, mas a Shumi perde um turno quando ele acaba, e os inimigos aproveitam.
-
----
-
-### 🟡 Andri Findavil, inventor e artífice
-*Universo: Tales of Azeroth* · Tipo: **Fogo**
-
-| HP | ATQ | DEF | VEL | Energia |
-|---|---|---|---|---|
-| 1000 | 130 | 45 | 112 | 120 |
-
-O Andri é o **suporte tático** da equipe. Ele troca de elemento a cada turno, cria fraquezas nos inimigos e distribui artefatos titânicos para os aliados. Ele luta ao lado do **MOMC**, seu robô assistente.
-
-<img src="personagens/andri/icone_lente.png" width="32"> **Lente Elemental** · Passiva
-> No início de cada turno do Andri, um **seletor radial** se abre em volta dele para escolher o elemento da lente (ou manter o atual). Esse elemento define o dano do Disparo, do MOMC e dos artefatos de dano.
-> Elementos disponíveis: 🔥 Fogo · 💧 Água · ❄️ Gelo · ⚡ Eletricidade · 🌿 Natureza · ☠️ Veneno · 🧪 Ácido.
-
-<img src="personagens/andri/icone_disparo.png" width="32"> **Disparo Elemental** · Básico (Q)
-> Disparo de 0,8× ATQ com o elemento da lente. O **MOMC ataca junto** o mesmo alvo com um golpe separado de 0,35×. Gera **1 ponto de skill** e 20 de energia.
-
-<img src="personagens/andri/icone_protocolo.png" width="32"> **Protocolo MOMC** · Skill 2 (W) · custa 1 ponto · recarga de 3 turnos
-> O Andri dá uma ordem ao MOMC: **Sobrecarga**, um disparo forte de 0,9× com o elemento da lente num inimigo, ou **Escudo**, um escudo de 10% do HP máximo num aliado por 2 turnos (menor que a Mão de Tyr, que é a ult). Gera 30 de energia.
-
-<img src="personagens/andri/icone_analise.png" width="32"> **Análise de Vulnerabilidade** · Skill (E) · custa 1 ponto
-> O inimigo fica **fraco** ao elemento de um aliado de pé, à escolha. Golpes desse elemento passam a ser super efetivos (2×) nele por 2 turnos. Não funciona em alvos Arcanos, que já recebem 2× de tudo.
-
-![Análise de Vulnerabilidade](docs/capturas/analise-vulnerabilidade.png)
-
-<img src="personagens/andri/icone_arsenal.png" width="32"> **Arsenal Titânico** · Ultimate (R) · 120 de energia
-> Entrega **um artefato** a um aliado ou a si mesmo. Os efeitos duram 3 turnos do portador, exceto quando a descrição diz outra coisa.
-
-| | Artefato | Efeito |
-|---|---|---|
-| <img src="personagens/andri/icone_odyn.png" width="24"> | **Olho de Odyn** | +50% de chance de crítico |
-| <img src="personagens/andri/icone_tyr.png" width="24"> | **Mão de Tyr** | Escudo de 25% do HP máximo |
-| <img src="personagens/andri/icone_loken.png" width="24"> | **Sussurro de Loken** | Por 2 turnos, quem o portador acerta fica *Enganado* (ATQ −25% e a vez atrasa) |
-| <img src="personagens/andri/icone_freya.png" width="24"> | **Raiz de Freya** | Cura 30% do HP máximo e remove os efeitos negativos |
-| <img src="personagens/andri/icone_hodir.png" width="24"> | **Manto de Hodir** | O próximo inimigo atingido fica *Lento* (VEL −30% por 2 turnos) |
-| <img src="personagens/andri/icone_thorim.png" width="24"> | **Braço de Thorim** | Cada golpe causa +30% de dano extra do elemento da lente |
-| <img src="personagens/andri/icone_archaedas.png" width="24"> | **Cinturão de Archaedas** | HP máximo +30% |
-| <img src="personagens/andri/icone_ra.png" width="24"> | **Lança de Rá** | O próximo golpe causa +150% de dano extra do elemento da lente |
-
-![Arsenal Titânico](docs/capturas/arsenal-titanico.png)
-
-**Dica:** use a Análise com o elemento físico da Shumi e depois o Engo-ji em Devastação. Também funciona dar a Lança de Rá para ela antes de um Colapso.
-
-### 🟣 Àskara, invocadora do abismo
-*Universo: Nariagari* · Tipo: **Trevas**
-
-| HP | ATQ | DEF | VEL | Recurso |
-|---|---|---|---|---|
-| 950 | 125 | 40 | 108 | Fragmentos d'Alma (0 a 8, começa com 2) |
-
-A Àskara luta pouco com as próprias mãos: ela junta **Fragmentos d'Alma** e os gasta chamando demônios. A decisão de cada turno é gastar agora em invocações mais fracas ou guardar para o Lorde Demônio. As invocações copiam uma fração dos atributos dela e causam dano de Trevas. A arte delas ainda é provisória.
-
-<img src="personagens/askara/icone_invocacao.png" width="32"> **Fragmento d'Alma** · Passiva
-> Ganha 1 fragmento a cada Seta Vil e 1 sempre que um inimigo cai. Os fragmentos aparecem ao lado do nome dela.
-
-<img src="personagens/askara/icone_seta.png" width="32"> **Seta Vil** · Básico (Q)
-> Seta de 0,6× ATQ no alvo. Pouco dano, mas gera **1 ponto de skill** e **1 fragmento**.
-
-<img src="personagens/askara/icone_ultimo_ato.png" width="32"> **Último Ato** · Passiva (no lugar do W)
-> Cada demônio, ao ir embora por tempo ou ao cair, faz o **último ato** dele (tabela abaixo). Vale deixar os demônios cumprirem o tempo.
-
-<img src="personagens/askara/icone_invocacao.png" width="32"> **Invocação** · Skill (E) · custa 1 ponto e fragmentos
-> Um seletor radial se abre em volta dela com os demônios. Até **2 em campo**; sem vaga, o mais antigo volta ao abismo. Chamar um que já está em campo renova o HP e as vezes dele. Cada um age 3 vezes.
-
-| Invocação | Fragmentos | Papel | O que faz na vez dele | Último ato (ao sair ou cair) |
-|---|---|---|---|---|
-| **Diabrete** | 1 | barato e rápido | Bola de Fogo Vil, 0,5× no alvo | **Explosão Vil**: 0,5× no alvo e no inimigo ao lado |
-| **Emissário do Caos** | 2 | tanque | provoca (3× mais chance de ser o alvo dos inimigos) e golpeia, 0,4× | **Muralha do Caos**: escudo de 8% do HP máximo dele no aliado com menos HP |
-| **Lilith** | 2 | debuff | encanta o inimigo de maior ATQ: ATQ e DEF −20% por 2 turnos, e 0,3× de dano | **Beijo Final**: encanta todos os inimigos, 0,2× |
-| **Shivara** | 3 | dano | Dança das Lâminas, 0,9× no alvo e 0,45× nos vizinhos | **Última Dança**: 0,4× em todos |
-
-O último ato não acontece quando o demônio sai para abrir vaga, quando o Lorde o apaga ou quando a Àskara cai.
-
-<img src="personagens/askara/icone_lorde.png" width="32"> **Lorde Demônio** · Ultimate (R) · 6 fragmentos
-> Apaga as invocações em campo, e cada uma desconta **1 fragmento** do custo. O Lorde chega e avança até cada inimigo, golpeando **todos** (1,2×), e fica 3 vezes, golpeando todos de novo (0,8×). Enquanto ele está em campo, não dá para invocar outros demônios.
-> Com **15% de chance**, quem atende ao chamado é o **Lorde da Luz**: dano de Luz, chegada de 2,0× e 1,2× em todos por 3 vezes, e resiste a todo dano (−50%).
-
-**Dica:** chame o Emissário para proteger a equipe enquanto junta fragmentos com a Seta Vil. Com duas invocações em campo, o Lorde custa só 4.
+| 🔴 | [**Shumi**, espadachim do Kaioken](personagens/shumi/README.md) | Dragon Ball New Age | Físico | Risco e recompensa: o Kaioken aumenta o poder a cada nível, mas drena o HP dela. |
+| 🟡 | [**Andri Findavil**, inventor e artífice](personagens/andri/README.md) | Tales of Azeroth | Fogo | Suporte tático: troca de elemento, cria fraquezas e entrega artefatos, ao lado do robô MOMC. |
+| 🟣 | [**Àskara**, invocadora do abismo](personagens/askara/README.md) | Nariagari | Trevas | Invocadora: junta Fragmentos d'Alma e os gasta em demônios ou no Lorde Demônio. |
 
 ---
 
@@ -319,6 +197,7 @@ godot --headless --path . -s testes/teste_menu.gd        # menu inicial e slots 
 |---|---|
 | `ferramentas/simular_andares.gd` | Simula os andares com a batalha de verdade e um piloto automático, e mostra as vitórias, os turnos e o HP restante em cada nível: `godot --headless --path . -s ferramentas/simular_andares.gd -- [rodadas] [andar:nível ...] [equipe=askara,shumi]` |
 | `ferramentas/demo_captura.gd` | Joga uma batalha sozinho e salva capturas de tela: `godot --path . -s ferramentas/demo_captura.gd -- <pasta> shumi andri` |
+| `ferramentas/gerar_readme_personagens.gd` | Atualiza os atributos e as habilidades no README de cada personagem, com o texto do jogo: `godot --headless --path . -s ferramentas/gerar_readme_personagens.gd` |
 | `ferramentas/gerar_andri.py` | Gera a spritesheet, o MOMC e os ícones do Andri a partir do sprite original (precisa do Pillow) |
 | `ferramentas/gerar_askara.py` | Gera a spritesheet e os ícones da Àskara e reduz a arte das invocações para a arena (precisa do Pillow) |
 | `ferramentas/gerar_assets_teste.py` | Gera a arte provisória (inimigos, cenário, onda do Engo-ji) e o ícone da passiva da Shumi |
@@ -335,7 +214,7 @@ scripts/
   torre/             andares e eventos de história
   lobby/             saguão, conversas e caixa de diálogo
   ui/                menu inicial, HUD, barras, slots de habilidade, seletor radial, efeitos visuais
-personagens/         sprites, spritesheets e ícones de cada herói
+personagens/         sprites, spritesheets, ícones e README de cada herói
 inimigos/ cenarios/ efeitos/   arte dos inimigos, do cenário e dos efeitos
 testes/              testes headless da lógica
 docs/                documentação técnica

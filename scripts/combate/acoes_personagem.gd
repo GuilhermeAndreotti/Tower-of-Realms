@@ -32,10 +32,10 @@ func fim_turno() -> void:
 	pass
 
 
-## Contra-ataque em `alvo` (o inimigo que acabou de acertá-lo), com o
-## `golpe` que a regra devolveu (Combatente.contra_atacar). Quem tem
-## contra-ataque no kit sobrescreve para dar a animação própria.
-func contra_atacar(alvo: Combatente, golpe: Dictionary) -> void:
+## Ataque junto com um aliado em `alvo`, com o `golpe` que a regra devolveu
+## (Combatente.atacar_junto). Quem ataca junto no kit sobrescreve para dar a
+## animação própria.
+func atacar_junto(alvo: Combatente, golpe: Dictionary) -> void:
 	await b.aplicar_dano(p, alvo, golpe.mult, golpe.get("tipo", ""), true)
 
 

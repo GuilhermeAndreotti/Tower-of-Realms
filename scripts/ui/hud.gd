@@ -15,15 +15,8 @@ signal saguao_pedido
 signal opcao_clicada(indice: int)
 
 const MAX_LINHAS_LOG := 5
+const LARGURA_DICA := 300.0  ## cartão da habilidade em foco, acima da barra
 const ARQUIVO_PREFS := "user://hud.cfg"
-const TEXTO_ALVO := {
-	"unico": "Alvo único",
-	"dupla": "Alvo + 1 atrás",
-	"vizinhos": "Alvo + vizinhos",
-	"todos": "Todos os inimigos",
-	"proprio": "Em si",
-	"aliado": "Aliado ou em si",
-}
 
 var _raiz: Control
 var _retratos := {}  ## Combatente -> Texture2D
@@ -72,7 +65,7 @@ var _caixa_slots: HBoxContainer
 var _slots := {}  ## acao -> SlotHabilidade
 var _ids_slots: Array[String] = []
 var _dica: PanelContainer
-var _dica_texto: RichTextLabel
+var _dica_cartao: CartaoHabilidade
 var _foco := ""
 var _vez := false
 
@@ -438,22 +431,16 @@ func _montar_habilidades() -> void:
 	v.add_child(margem)
 	p.add_child(v)
 
-	# explicação da habilidade em foco, à esquerda da barra (sobre o chão,
-	# longe dos inimigos); a posição x acompanha a largura da barra
+	# explicação da habilidade em foco, acima da barra; a posição y acompanha
+	# a altura da barra
 	_dica = _painel(Vector2(1, 1), Vector2(-m, -m))
-	_dica.custom_minimum_size.x = 220
-	_dica.add_theme_stylebox_override("panel", EstiloUI.painel(EstiloUI.FUNDO_CLARO, EstiloUI.OURO.darkened(0.35)))
-	_dica_texto = RichTextLabel.new()
-	_dica_texto.bbcode_enabled = true
-	_dica_texto.fit_content = true
-	_dica_texto.scroll_active = false
-	_dica_texto.custom_minimum_size.x = 208
-	_dica_texto.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_dica_texto.add_theme_font_size_override("normal_font_size", 11)
-	_dica_texto.add_theme_font_size_override("bold_font_size", 12)
-	_dica_texto.add_theme_constant_override("outline_size", 3)
-	_dica_texto.add_theme_color_override("font_outline_color", Color.BLACK)
-	_dica.add_child(_dica_texto)
+	# quase opaco: fica por cima da arena e do registro
+	var estilo := EstiloUI.painel(Color(EstiloUI.FUNDO_CLARO, 0.98), EstiloUI.OURO.darkened(0.35))
+	estilo.set_content_margin_all(8)
+	_dica.add_theme_stylebox_override("panel", estilo)
+	_dica_cartao = CartaoHabilidade.new()
+	_dica_cartao.custom_minimum_size.x = LARGURA_DICA
+	_dica.add_child(_dica_cartao)
 	_dica.visible = false
 
 
@@ -723,20 +710,13 @@ func _mostrar_dica() -> void:
 	_dica.visible = slot != null and not _opcoes.visible
 	if not slot:
 		return
-	var x := -EstiloUI.MARGEM - _painel_barra.get_combined_minimum_size().x - 6
-	_dica.offset_left = x
-	_dica.offset_right = x
+	# logo acima da barra, como o seletor de opções: ao lado dela ficam os
+	# painéis do personagem e da equipe
+	var y := -EstiloUI.MARGEM - _painel_barra.get_combined_minimum_size().y - 6
+	_dica.offset_top = y
+	_dica.offset_bottom = y
 	var h := slot.dados
-	var alvo_texto: String = "Passiva" if h.get("passiva", false) else TEXTO_ALVO.get(h.get("alvo"), "")
-	var linhas := ["[b][color=#%s]%s[/color][/b]  [color=#%s]%s[/color]" % [
-		EstiloUI.OURO.to_html(false), h.nome, EstiloUI.TEXTO_FRACO.to_html(false), alvo_texto]]
-	if h.has("tipo"):
-		linhas[0] += "  " + destaque(Tipos.nome(h.tipo), Tipos.cor(h.tipo))
-	linhas.append(h.get("descricao", ""))
-	var falta := _motivo_indisponivel(h)
-	if falta != "":
-		linhas.append("[color=#%s]%s[/color]" % [EstiloUI.DANO_RECEBIDO.to_html(false), falta])
-	_dica_texto.text = "\n".join(linhas)
+	_dica_cartao.mostrar(h, _motivo_indisponivel(h))
 
 
 func _motivo_indisponivel(h: Dictionary) -> String:

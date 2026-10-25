@@ -12,8 +12,6 @@ const CENA_ANDARES := "res://scenes/selecao_andar.tscn"
 const CARTOES_NO_ELENCO := 6  ## completa com "em breve" até este número
 ## Referência para as barrinhas de atributo (valor que enche a barra).
 const REF_STATUS := {"hp": 2000.0, "atq": 200.0, "def": 120.0, "vel": 150.0}
-## Altura máxima da lista de habilidades na ficha; kits maiores rolam.
-const ALTURA_MAX_HABILIDADES := 230.0
 
 var equipe: Array[String] = []
 var _cursor := 0
@@ -346,18 +344,18 @@ func _montar_ficha() -> void:
 	_detalhe.add_child(grade)
 
 	_detalhe.add_child(EstiloUI.label("HABILIDADES", 9, EstiloUI.TEXTO_FRACO, 2))
-	# a lista cresce com o kit até ALTURA_MAX_HABILIDADES; daí em diante rola
+	# a lista ocupa o que sobra da ficha e rola: assim a ficha nunca empurra
+	# o rodapé (e o botão de começar) para fora da tela
 	var rolagem := ScrollContainer.new()
 	rolagem.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	rolagem.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rolagem.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var lista := VBoxContainer.new()
-	lista.add_theme_constant_override("separation", 6)
+	lista.add_theme_constant_override("separation", 10)
 	lista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rolagem.add_child(lista)
 	for hab in p.habilidades(Batalha.PONTOS_MAX):
 		lista.add_child(_linha_habilidade(hab))
-	lista.resized.connect(func() -> void:
-		rolagem.custom_minimum_size.y = minf(lista.size.y, ALTURA_MAX_HABILIDADES))
 	_detalhe.add_child(rolagem)
 
 
@@ -402,27 +400,10 @@ func _linha_habilidade(hab: Dictionary) -> Control:
 		if hab.get("tecla", "") != "":
 			EstiloUI.tecla(c, Vector2(-3, -1), hab.tecla))
 	h.add_child(icone)
-	var texto := RichTextLabel.new()
-	texto.bbcode_enabled = true
-	texto.fit_content = true
-	texto.scroll_active = false
-	texto.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	texto.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	texto.add_theme_font_size_override("normal_font_size", 10)
-	texto.add_theme_font_size_override("bold_font_size", 12)
-	texto.add_theme_constant_override("outline_size", 3)
-	texto.add_theme_color_override("font_outline_color", Color.BLACK)
-	var custo := ""
-	if hab.get("passiva", false):
-		custo = "  [color=#%s]passiva[/color]" % EstiloUI.TEXTO_FRACO.to_html(false)
-	elif hab.get("custo_pontos", 0) > 0:
-		custo = "  [color=#%s]%d ponto%s[/color]" % [EstiloUI.PONTO.to_html(false), hab.custo_pontos, "" if hab.custo_pontos == 1 else "s"]
-	elif hab.get("custo_energia", 0) > 0:
-		custo = "  [color=#%s]%d energia[/color]" % [EstiloUI.ENERGIA.to_html(false), hab.custo_energia]
-	elif hab.get("custo_recurso", "") != "":
-		custo = "  [color=#%s]%s[/color]" % [hab.get("cor", EstiloUI.TEXTO).to_html(false), hab.custo_recurso]
-	texto.text = "[b]%s[/b]%s\n[color=#%s]%s[/color]" % [hab.nome, custo, Color(0.82, 0.8, 0.88).to_html(false), hab.get("descricao", "")]
-	h.add_child(texto)
+	var cartao := CartaoHabilidade.new()
+	cartao.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cartao.mostrar(hab)
+	h.add_child(cartao)
 	return h
 
 

@@ -2,7 +2,7 @@ class_name AcoesShumi
 extends AcoesPersonagem
 ## Animações e efeitos do kit da Shumi (regras em Shumi).
 ## Tudo que muda com o Kaioken é indexado por `s.nivel + 1` (0 = normal).
-## Cada Finger Beam (o do Bang! e os contra-ataques) é dado no visual Kokoro
+## Cada Finger Beam (o do Bang! e os ataques junto) é dado no visual Kokoro
 ## (gerado pelo mesmo script do sprite sheet, a partir de kokoro.png); depois
 ## do tiro ela volta ao visual normal.
 
@@ -225,22 +225,22 @@ func _bang() -> void:
 	var alvo := b.alvo_atual()
 	b.hud.registrar("%s: %s" % [HudBatalha.nome(s), HudBatalha.destaque("Bang!", Shumi.COR_KAIOKEN)])
 	await _finger_beam(alvo, s.mult_finger_beam())
-	s.aplicar_estado(Shumi.guarda_bang())
+	s.aplicar_estado(Shumi.estado_bang())
 	EfeitosCombate.anel(b.mundo, centro(s), Shumi.COR_KAIOKEN, 44.0)
-	b.hud.registrar("%s fica em guarda: quem a acertar leva um Finger Beam de volta." % HudBatalha.nome(s))
+	b.hud.registrar("%s aponta o dedo: vai atacar junto com a equipe." % HudBatalha.nome(s))
 	s.ganhar_energia(Shumi.ENERGIA_SKILL)
 	b.atualizar()
 	await b.esperar(0.25)
 
 
-func contra_atacar(alvo: Combatente, golpe: Dictionary) -> void:
-	b.hud.registrar("%s responde com %s!" % [HudBatalha.nome(s), HudBatalha.destaque(golpe.nome, Shumi.COR_KAIOKEN)])
+func atacar_junto(alvo: Combatente, golpe: Dictionary) -> void:
+	b.hud.registrar("%s ataca junto: %s!" % [HudBatalha.nome(s), HudBatalha.destaque(golpe.nome, Shumi.COR_KAIOKEN)])
 	await _finger_beam(alvo, golpe.mult, true)
-	EfeitosCombate.numero(b.mundo, v.topo() + Vector2(0, 24), "+%d EN" % roundi(Shumi.ENERGIA_CONTRA), "energia")
+	EfeitosCombate.numero(b.mundo, v.topo() + Vector2(0, 24), "+%d EN" % roundi(Shumi.ENERGIA_JUNTO), "energia")
 
 
-## Tiro de ki do dedo: um feixe fino e rápido, mais grosso e vermelho a cada
-## nível do Kaioken. O contra-ataque é golpe adicional (`extra`).
+## Tiro de ki do dedo: uma bolinha de energia, como os disparos do Andri,
+## maior a cada nível do Kaioken. O ataque junto é golpe adicional (`extra`).
 func _finger_beam(alvo: Combatente, mult: float, extra := false) -> void:
 	var n := s.nivel + 1
 	v.trocar_frames(_frames_kokoro)
@@ -249,12 +249,10 @@ func _finger_beam(alvo: Combatente, mult: float, extra := false) -> void:
 	await b.esperar(0.12)
 	var origem := v.position + Vector2(36, -45)
 	var c := centro(alvo)
-	var dir := (c - origem).normalized()
-	var estilo := {"largura": 4.0 + 1.5 * n, "velocidade": 2600.0,
-		"cores": [Shumi.COR_KAIOKEN if n > 0 else COR_ONDA, COR_ONDA, COR_BRANCA, Color.WHITE]}
-	EfeitosCombate.feixe(b.mundo, origem, dir.angle(), origem.distance_to(c) + 10.0, estilo.velocidade, estilo, 0.06)
-	await b.esperar(origem.distance_to(c) / estilo.velocidade)
-	EfeitosCombate.impacto(b.mundo, c, COR_BRANCA, 0.6 + 0.15 * n)
+	var tamanho := 0.8 + 0.15 * n
+	EfeitosCombate.anel(b.mundo, origem, Shumi.COR_KAIOKEN if n > 0 else COR_ONDA, 14.0)
+	await b.esperar(EfeitosCombate.projetil(b.mundo, origem, c, s.tipo, 1200.0, tamanho))
+	EfeitosCombate.impacto_elemental(b.mundo, c, s.tipo, tamanho)
 	await b.aplicar_dano(s, alvo, mult, s.tipo, extra)
 	await b.esperar(0.15)
 	v.trocar_frames(_frames_normal)

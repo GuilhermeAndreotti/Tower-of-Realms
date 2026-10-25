@@ -177,11 +177,12 @@ func peso_alvo() -> float:
 	return total
 
 
-## Um inimigo acertou este lutador e os dois continuam de pé. Devolve o
-## contra-ataque ({"nome", "mult", "tipo"?}; {} = nenhum), que a batalha
-## faz como golpe adicional: sem crítico, sem estados de acerto e sem
-## encadear. Quem tem contra-ataque no kit sobrescreve.
-func contra_atacar(_atacante: Combatente) -> Dictionary:
+## Outro aliado (`atacante`, da equipe ou invocação) acabou de acertar o
+## inimigo `alvo`, que segue de pé. Devolve o golpe com que este lutador
+## ataca junto ({"nome", "mult", "tipo"?}; {} = nenhum), que a batalha faz
+## como golpe adicional: sem crítico, sem estados de acerto e sem encadear.
+## Quem ataca junto no kit sobrescreve.
+func atacar_junto(_atacante: Combatente, _alvo: Combatente) -> Dictionary:
 	return {}
 
 
@@ -361,7 +362,11 @@ func efeitos() -> Array[Dictionary]:
 ## "seletor"? ("radial": as opções abrem em anel no próprio lutador; opções
 ## podem ter "sigla" e "atual"),
 ## "livre"? (não gasta o turno), "selo"?, "destaque"?, "cor"?,
-## "falta"? (por que não está pronta, quando o kit sabe dizer), "descricao"}, ...].
+## "falta"? (por que não está pronta, quando o kit sabe dizer), "descricao"
+## (resumo curto: custo, recarga e alvo já aparecem como etiquetas),
+## "detalhes"? (uma linha por item, no CartaoHabilidade: [{"rotulo",
+## "marca"?, "texto"?, "valores"? ([{"texto", "atual"?}], um por nível),
+## "cor"?, "atual"?}])}, ...].
 ## A batalha cobra "custo_pontos" antes da ação e dá "ganho_pontos" depois.
 func habilidades(_pontos: int) -> Array[Dictionary]:
 	return []
