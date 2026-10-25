@@ -35,7 +35,7 @@ Feixe de energia que cresce com o Kaioken: cada nível aumenta o alcance.
 ### <img src="icone_bang.png" width="24"> Bang!
 **Skill 2 (W)** · `1 ponto` · `recarga 4 turnos` · `Alvo único` · `Físico`
 
-Finger Beam no alvo e, pelos 2 turnos seguintes dela, ataca junto com a equipe.
+Dispara uma rajada de energia de seus dedos em um alvo e, pelos 2 turnos seguintes dela, ataca junto com a equipe.
 
 - **Ataca junto**: Quando um aliado ou invocação acerta um inimigo, ela dispara um Finger Beam nele (uma vez por ação) e ganha 4 de energia.
 - **Dano do Finger Beam**: Base 0,4x · x2 0,5x · x4 0,65x · x10 0,85x · x20 1,1x
@@ -63,7 +63,7 @@ Se sobrevive ao dreno do Kaioken no começo do turno, recupera energia.
 
 - **Kaioken:** entrar custa 120 de energia, e subir um nível custa 80. O dreno tira HP direto e ignora defesa e escudo. Quando o Kaioken acaba, ela fica **Exausta** por 2 turnos, com a VEL reduzida conforme o nível em que estava: −10% (x2), −20% (x4), −30% (x10) ou −40% (x20). Depois do x20, ela também **perde o próximo turno**.
 - **Engo-ji Beam:** no x2 e no x4, os alvos extras levam metade do dano (0,9×). No x10 e no x20 o feixe acerta todos com o dano cheio.
-- **Bang!:** a recarga é um turno maior que o efeito, então sempre sobra um turno sem ele antes de poder usar de novo. Sozinha na luta, o Bang! é só o primeiro tiro. Cada Finger Beam sai no visual **Kokoro**, que volta ao normal depois do tiro.
+- **Bang!:** o Finger Beam é uma rajada de ki disparada do dedo. A recarga é um turno maior que o efeito, então sempre sobra um turno sem ele antes de poder usar de novo. Sozinha na luta, o Bang! é só o primeiro tiro. Cada Finger Beam sai no visual **Kokoro**, que volta ao normal depois do tiro.
 - **Corte:** a animação fica mais rápida e intensa conforme o nível do Kaioken.
 
 **Dica:** suba até o x10 para limpar a tela com a Devastação. O x20 causa um dano enorme, mas a Shumi perde um turno quando ele acaba, e os inimigos aproveitam.

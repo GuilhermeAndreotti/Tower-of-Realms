@@ -275,7 +275,7 @@ func habilidades(pontos: int) -> Array[Dictionary]:
 			"estado": "pronta" if pontos > 0 else "sem_recurso",
 			"alvo": "unico", "tipo": tipo, "custo_pontos": 1, "recarga": RECARGA_BANG,
 			"selo": nome_nivel(), "cor": COR_KAIOKEN,
-			"descricao": "Finger Beam no alvo e, pelos %d turnos seguintes dela, ataca junto com a equipe." % (DURACAO_BANG - 1),
+			"descricao": "Dispara uma rajada de energia de seus dedos em um alvo e, pelos %d turnos seguintes dela, ataca junto com a equipe." % (DURACAO_BANG - 1),
 			"detalhes": [
 				{"rotulo": "Ataca junto", "cor": COR_KAIOKEN,
 					"texto": "Quando um aliado ou invocação acerta um inimigo, ela dispara um Finger Beam nele (uma vez por ação) e ganha %d de energia." % roundi(ENERGIA_JUNTO)},
