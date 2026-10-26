@@ -16,7 +16,7 @@ O fundo tem 640×180 pixels, ampliado 3× na tela. As constantes do `Lobby` (mó
 
 - O `Interactable` mais perto dos pés, dentro do raio, fica em foco; Enter interage.
 - Uma interação por vez: durante conversa, entrada na dungeon ou apresentação de eventos, o jogador fica parado (`busy`).
-- Um `Interactable` pode ter `requirement` (motivo para ainda não liberar) e `on_interact` (ação própria, como a porta); sem ação própria, abre a conversa dele.
+- Um `Interactable` pode ter `requirement` (motivo para ainda não liberar). Quando o jogador interage e o requisito deixa, ele emite `interacted`; quem decide o que acontece é quem escuta: o `Lobby` liga a porta à entrada na dungeon e cada personagem à conversa dele.
 
 ## Conversas
 

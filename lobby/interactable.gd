@@ -3,8 +3,12 @@ extends Node2D
 ## Algo do saguão que o jogador pode abordar: um personagem ou a porta.
 ## A origem fica nos pés (ou na base). O Lobby liga `focused` no mais
 ## próximo dentro do `radius`, e este nó desenha a dica: elipse no chão, nome
-## e a tecla com a ação. O que acontece ao interagir fica com o Lobby:
-## `on_interact` (a porta) ou a conversa de Conversations.from(id).
+## e a tecla com a ação. O que acontece ao interagir fica com quem escuta
+## `interacted`: o Lobby liga a porta à entrada na dungeon e cada personagem
+## à conversa dele (Conversations.from(id)).
+
+## O jogador interagiu e o `requirement` deixou.
+signal interacted
 
 var id := ""
 var title := ""
@@ -15,8 +19,6 @@ var base_width := 54.0  ## largura da elipse no chão
 var color := UIStyle.GOLD
 ## Opcional: () -> String. O motivo de ainda não dar para interagir ("" = liberado).
 var requirement := Callable()
-## Opcional: () -> void. Ação própria; sem ela, o Lobby abre a conversa.
-var on_interact := Callable()
 ## Retrato para a caixa de diálogo.
 var portrait: Texture2D
 
@@ -43,6 +45,14 @@ func _init() -> void:
 
 func block_reason() -> String:
 	return requirement.call() if requirement.is_valid() else ""
+
+
+## Interage, se o requisito deixar. Devolve o motivo de não poder ("" = foi).
+func interact() -> String:
+	var reason := block_reason()
+	if reason == "":
+		interacted.emit()
+	return reason
 
 
 func _process(delta: float) -> void:

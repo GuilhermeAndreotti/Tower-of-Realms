@@ -542,7 +542,7 @@ func _option_row(o: Dictionary, i: int, focused: bool, valid: bool) -> Control:
 
 ## Recusa de uma ação (alvo inválido, opção indisponível): mostra o motivo.
 func warn(text: String) -> void:
-	log_line(highlight(text, UIStyle.DAMAGE_TAKEN))
+	log_line(UIStyle.highlight(text, UIStyle.DAMAGE_TAKEN))
 	if _options.visible:
 		_option_reason.text = text
 		_option_reason.visible = true
@@ -777,15 +777,6 @@ func log_line(text: String) -> void:
 		var a := 1.0 if age == 0 else lerpf(0.75, 0.4, float(age - 1) / maxf(1, MAX_LOG_LINES - 2))
 		parts.append("[color=#%s]%s[/color]" % [Color(UIStyle.TEXT, a).to_html(), _log_lines[i]])
 	_log.text = "\n".join(parts)
-
-
-## Destaca um nome no registro com a cor do lado dele.
-static func fighter_name(c: Combatant) -> String:
-	return "[color=#%s]%s[/color]" % [UIStyle.side_color(c.ally).lightened(0.3).to_html(false), c.name]
-
-
-static func highlight(text: String, color: Color) -> String:
-	return "[color=#%s]%s[/color]" % [color.to_html(false), text]
 
 
 func announce(text: String, color := UIStyle.GOLD, font_size := 40) -> void:

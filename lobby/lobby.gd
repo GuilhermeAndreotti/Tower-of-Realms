@@ -238,7 +238,7 @@ func _build_door() -> void:
 	_door.height = 64 * SCALE
 	_door.radius = 96.0
 	_door.base_width = 150.0
-	_door.on_interact = enter_dungeon
+	_door.interacted.connect(enter_dungeon)
 	add_child(_door)
 	interactables.append(_door)
 
@@ -281,6 +281,7 @@ func _build_character(id: String) -> void:
 	it.position = v.position
 	it.height = v.height
 	it.portrait = v.portrait()
+	it.interacted.connect(_talk_to.bind(it))
 	add_child(it)
 	interactables.append(it)
 
@@ -358,18 +359,19 @@ func interact() -> void:
 	if busy or focus == null:
 		return
 	var it := focus
-	var reason := it.block_reason()
+	var reason := it.interact()
 	if reason != "":
 		hud.warn(reason)
-	elif it.on_interact.is_valid():
-		it.on_interact.call()
-	else:
-		var conversation := Conversations.from(it.id)
-		if conversation.get("lines", []).is_empty():
-			hud.warn("%s: interação ainda não disponível." % it.title)
-			return
-		_occupy(true)
-		hud.dialog.open(conversation, it.title, it.portrait)
+
+
+## Abre a conversa de quem foi abordado (ligado ao `interacted` de cada personagem).
+func _talk_to(it: Interactable) -> void:
+	var conversation := Conversations.from(it.id)
+	if conversation.get("lines", []).is_empty():
+		hud.warn("%s: interação ainda não disponível." % it.title)
+		return
+	_occupy(true)
+	hud.dialog.open(conversation, it.title, it.portrait)
 
 
 func _on_conversation_finished() -> void:

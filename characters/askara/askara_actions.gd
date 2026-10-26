@@ -27,7 +27,7 @@ func _cast() -> void:
 # ------------------------------------------------------------- seta vil
 func _vile_arrow() -> void:
 	var target := b.current_target()
-	b.hud.log_line("%s utilizou %s!" % [BattleHud.fighter_name(k), BattleHud.highlight("Seta Vil", Askara.VILE_COLOR)])
+	b.log_line("%s utilizou %s!" % [UIStyle.fighter_name(k), UIStyle.highlight("Seta Vil", Askara.VILE_COLOR)])
 	await _cast()
 	var flight := CombatEffects.projectile(b.world, v.position + ORB, center(target), k.type, 1100.0, 1.0)
 	await b.wait(flight)
@@ -43,8 +43,8 @@ func _on_fragments_gained(amount: int) -> void:
 		return
 	CombatEffects.number(b.world, v.top() + Vector2(0, -6), "+%d FRAGMENTO" % amount, "notice")
 	CombatEffects.ring(b.world, v.position + ORB, Askara.ASKARA_COLOR, 18.0)
-	b.hud.log_line("%s ganha %s (%d/%d)." % [BattleHud.fighter_name(k),
-		BattleHud.highlight("Fragmento d'Alma", Askara.ASKARA_COLOR), k.fragments, Askara.MAX_FRAGMENTS])
+	b.log_line("%s ganha %s (%d/%d)." % [UIStyle.fighter_name(k),
+		UIStyle.highlight("Fragmento d'Alma", Askara.ASKARA_COLOR), k.fragments, Askara.MAX_FRAGMENTS])
 	b.refresh()
 
 
@@ -54,11 +54,11 @@ func _summon() -> void:
 	await _cast()
 	var r := k.summon(b.option)
 	var inv: Summon = r.summon
-	b.hud.log_line("%s gasta %d %s e invoca %s!" % [BattleHud.fighter_name(k), d.fragments,
-		"fragment" if d.fragments == 1 else "fragments", BattleHud.highlight(d.name, d.color)])
+	b.log_line("%s gasta %d %s e invoca %s!" % [UIStyle.fighter_name(k), d.fragments,
+		"fragment" if d.fragments == 1 else "fragments", UIStyle.highlight(d.name, d.color)])
 	var replaced: Summon = r.replaced
 	if replaced:
-		b.hud.log_line("%s volta ao abismo para abrir espaço." % BattleHud.fighter_name(replaced))
+		b.log_line("%s volta ao abismo para abrir espaço." % UIStyle.fighter_name(replaced))
 		b.remove_summon(replaced)
 	if r.is_new:
 		await b.add_summon(inv)
@@ -66,7 +66,7 @@ func _summon() -> void:
 		var vi := b.visual(inv)
 		vi.flash(Color(1.0 + inv.color.r, 1.0 + inv.color.g, 1.0 + inv.color.b))
 		CombatEffects.ring(b.world, center(inv), inv.color, 50.0)
-		b.hud.log_line("%s é renovado: HP cheio e mais %d vezes." % [BattleHud.fighter_name(inv), inv.turns])
+		b.log_line("%s é renovado: HP cheio e mais %d vezes." % [UIStyle.fighter_name(inv), inv.turns])
 		b.refresh()
 	await b.wait(0.2)
 
@@ -80,14 +80,14 @@ func _lord() -> void:
 	var dismissed: Array = r.dismissed
 	for x: Summon in dismissed:
 		b.remove_summon(x)
-	b.hud.log_line("%s gasta %d fragmentos%s e abre o portal!" % [BattleHud.fighter_name(k), cost,
+	b.log_line("%s gasta %d fragmentos%s e abre o portal!" % [UIStyle.fighter_name(k), cost,
 		"" if dismissed.is_empty() else " (as invocações em campo alimentam o portal)"])
 	var veil := CombatEffects.veil(b.world, Color(inv.color.darkened(0.8), 0.55), 0.0, true)
 	if r.rare:
-		b.hud.announce("%d%%  ·  %s" % [roundi(Askara.LIGHT_LORD_CHANCE * 100), inv.name.to_upper()], inv.color, 30)
-		b.hud.log_line("Algo diferente atende ao chamado: o %s!" % BattleHud.highlight(inv.name, inv.color))
+		b.announce("%d%%  ·  %s" % [roundi(Askara.LIGHT_LORD_CHANCE * 100), inv.name.to_upper()], inv.color, 30)
+		b.log_line("Algo diferente atende ao chamado: o %s!" % UIStyle.highlight(inv.name, inv.color))
 	else:
-		b.hud.announce(inv.name.to_upper(), inv.color, 30)
+		b.announce(inv.name.to_upper(), inv.color, 30)
 	await b.add_summon(inv)
 	b.shake(6.0)
 	await b.summon_strike(inv, inv.entrance_strike)

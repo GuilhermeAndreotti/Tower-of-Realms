@@ -48,7 +48,7 @@ func _init(p_battle: Battle, p_character: Combatant, p_visual: FighterVisual) ->
 func start_turn() -> bool:
 	if s.loses_next_turn:
 		s.loses_next_turn = false
-		b.hud.log_line("%s está exausta depois do x20 e perde o turno." % BattleHud.fighter_name(s))
+		b.log_line("%s está exausta depois do x20 e perde o turno." % UIStyle.fighter_name(s))
 		v.flash(Color(0.5, 0.5, 0.6))
 		await b.wait(0.9)
 		s.end_turn()
@@ -62,18 +62,18 @@ func start_turn() -> bool:
 		v.flash(Color(2.5, 0.6, 0.4))
 		if is_instance_valid(_aura):
 			_aura.pulsar()
-		b.hud.log_line("O Kaioken %s queima %s de HP de %s." % [
-			level_before, BattleHud.highlight(str(overload.damage), UIStyle.DRAIN), BattleHud.fighter_name(s)])
+		b.log_line("O Kaioken %s queima %s de HP de %s." % [
+			level_before, UIStyle.highlight(str(overload.damage), UIStyle.DRAIN), UIStyle.fighter_name(s)])
 		b.refresh()
 		await b.wait(0.5)
 		if not s.is_alive():
-			b.hud.log_line("O Kaioken consumiu %s..." % BattleHud.fighter_name(s))
+			b.log_line("O Kaioken consumiu %s..." % UIStyle.fighter_name(s))
 			return false
 	if overload.energy > 0:
 		CombatEffects.number(b.world, v.top() + Vector2(0, 24), "+%d EN" % roundi(overload.energy), "energy")
-		b.hud.log_line("%s: %s recupera %s de energia." % [
-			BattleHud.highlight("Limite Humano", UIStyle.ENERGY), BattleHud.fighter_name(s),
-			BattleHud.highlight(str(roundi(overload.energy)), UIStyle.ENERGY)])
+		b.log_line("%s: %s recupera %s de energia." % [
+			UIStyle.highlight("Limite Humano", UIStyle.ENERGY), UIStyle.fighter_name(s),
+			UIStyle.highlight(str(roundi(overload.energy)), UIStyle.ENERGY)])
 		b.refresh()
 		await b.wait(0.35)
 	return true
@@ -94,14 +94,14 @@ func end_turn() -> void:
 		v.set_base_color(Color.WHITE)
 		_remove_aura()
 		var extra := " e vai perder o próximo turno" if s.loses_next_turn else ""
-		b.hud.log_line("O Kaioken %s acabou. %s está exausta%s." % [ended_level, BattleHud.fighter_name(s), extra])
+		b.log_line("O Kaioken %s acabou. %s está exausta%s." % [ended_level, UIStyle.fighter_name(s), extra])
 
 
 # ----------------------------------------------------------------- Corte
 func _slash() -> void:
 	var target := b.current_target()
 	var n := s.level + 1
-	b.hud.log_line("%s utilizou %s!" % [BattleHud.fighter_name(s), BattleHud.highlight("Corte", UIStyle.GOLD)])
+	b.log_line("%s utilizou %s!" % [UIStyle.fighter_name(s), UIStyle.highlight("Corte", UIStyle.GOLD)])
 	await charge_at(target, func() -> void:
 		v.play("attack_melee", SLASH[n][1])
 		await b.wait(0.12 / SLASH[n][1])
@@ -140,7 +140,7 @@ func _slash() -> void:
 func _engo_ji() -> void:
 	var targets := s.engo_ji_targets(b.living_enemies(), b.target)
 	var form := s.engo_ji()
-	b.hud.log_line("%s utilizou %s!" % [BattleHud.fighter_name(s), BattleHud.highlight(form.name, WAVE_COLOR)])
+	b.log_line("%s utilizou %s!" % [UIStyle.fighter_name(s), UIStyle.highlight(form.name, WAVE_COLOR)])
 	if s.at_max_level():
 		await _collapse(targets)
 	else:
@@ -197,7 +197,7 @@ func _collapse(targets: Array) -> void:
 	var shadow := CombatEffects.veil(b.world, Color(0.04, 0.0, 0.06, 0.55), 0.0, true)
 	shadow.modulate.a = 0.0
 	shadow.create_tween().tween_property(shadow, "modulate:a", 1.0, 0.3)
-	b.hud.announce("ENGO-JI BEAM: COLAPSO", Shumi.KAIOKEN_COLOR, 28)
+	b.announce("ENGO-JI BEAM: COLAPSO", Shumi.KAIOKEN_COLOR, 28)
 	v.play("kaioken")
 	var chest := center(s)
 	CombatEffects.charge(b.world, chest, [Color.WHITE, WAVE_COLOR, Shumi.KAIOKEN_COLOR], 1.1, 170.0)
@@ -216,25 +216,25 @@ func _collapse(targets: Array) -> void:
 	if s.is_alive():
 		v.play("hurt", 0.6)
 		v.flash(Color(0.55, 0.5, 0.65))
-		b.hud.log_line("%s ofega depois de liberar tanta energia." % BattleHud.fighter_name(s))
+		b.log_line("%s ofega depois de liberar tanta energia." % UIStyle.fighter_name(s))
 		await b.wait(0.45)
 
 
 # ----------------------------------------------------------------- Bang!
 func _bang() -> void:
 	var target := b.current_target()
-	b.hud.log_line("%s: %s" % [BattleHud.fighter_name(s), BattleHud.highlight("Bang!", Shumi.KAIOKEN_COLOR)])
+	b.log_line("%s: %s" % [UIStyle.fighter_name(s), UIStyle.highlight("Bang!", Shumi.KAIOKEN_COLOR)])
 	await _finger_beam(target, s.mult_finger_beam())
 	s.apply_status(Shumi.bang_status())
 	CombatEffects.ring(b.world, center(s), Shumi.KAIOKEN_COLOR, 44.0)
-	b.hud.log_line("%s aponta o dedo: vai atacar junto com a equipe." % BattleHud.fighter_name(s))
+	b.log_line("%s aponta o dedo: vai atacar junto com a equipe." % UIStyle.fighter_name(s))
 	s.gain_energy(Shumi.SKILL_ENERGY)
 	b.refresh()
 	await b.wait(0.25)
 
 
 func follow_up(target: Combatant, strike: Dictionary) -> void:
-	b.hud.log_line("%s ataca junto: %s!" % [BattleHud.fighter_name(s), BattleHud.highlight(strike.name, Shumi.KAIOKEN_COLOR)])
+	b.log_line("%s ataca junto: %s!" % [UIStyle.fighter_name(s), UIStyle.highlight(strike.name, Shumi.KAIOKEN_COLOR)])
 	await _finger_beam(target, strike.mult, true)
 	CombatEffects.number(b.world, v.top() + Vector2(0, 24), "+%d EN" % roundi(Shumi.FOLLOW_UP_ENERGY), "energy")
 
@@ -280,10 +280,10 @@ func _kaioken() -> void:
 		CombatEffects.veil(b.world, Color(1, 0.3, 0.25, 0.3), 0.4)
 		b.get_tree().create_timer(0.24).timeout.connect(func() -> void:
 			CombatEffects.ring(b.world, c, WHITE_COLOR, 140.0))
-	b.hud.announce("KAIOKEN %s!" % s.level_name(), Shumi.KAIOKEN_COLOR)
+	b.announce("KAIOKEN %s!" % s.level_name(), Shumi.KAIOKEN_COLOR)
 	var n: Dictionary = Shumi.LEVELS[s.level]
-	b.hud.log_line("%s ativado! ATQ +%d%%, VEL +%d%%, perde %d%% do HP por turno." % [
-		BattleHud.highlight("Kaioken " + s.level_name(), Shumi.KAIOKEN_COLOR),
+	b.log_line("%s ativado! ATQ +%d%%, VEL +%d%%, perde %d%% do HP por turno." % [
+		UIStyle.highlight("Kaioken " + s.level_name(), Shumi.KAIOKEN_COLOR),
 		roundi(n.atk * 100), roundi(n.spd * 100), roundi(n.drain * 100)])
 	b.shake(4.0 + 3.0 * intensity)
 	b.refresh()

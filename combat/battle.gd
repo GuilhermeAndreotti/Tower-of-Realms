@@ -15,6 +15,10 @@ extends Node2D
 ## equipe: agem sozinhas aqui e não contam para a derrota.
 
 signal action_chosen(action: String)
+## O que a batalha conta no registro e anuncia no meio da tela. A HUD escuta;
+## a batalha e as ações dos personagens só emitem, sem tocar na interface.
+signal message_logged(text: String)
+signal announced(text: String, color: Color, font_size: int)
 
 const MAX_POINTS := 5
 const STARTING_POINTS := 3
@@ -122,6 +126,8 @@ func _ready() -> void:
 
 	hud = BattleHud.new()
 	add_child(hud)
+	message_logged.connect(hud.log_line)
+	announced.connect(hud.announce)
 	hud.action_requested.connect(request_action)
 	hud.skill_focused.connect(func(action: String) -> void:
 		_focus = action
@@ -135,8 +141,8 @@ func _ready() -> void:
 	for c in _visuals:
 		_portraits[c] = _visuals[c].portrait()
 	hud.set_portraits(_portraits)
-	var names := ", ".join(team.map(func(c: Combatant) -> String: return BattleHud.fighter_name(c)))
-	hud.log_line("Andar %d, %s: %s %s os guardiões da Torre." % [floor_number, floor_data.name, names, "meets" if team.size() == 1 else "meet"])
+	var names := ", ".join(team.map(func(c: Combatant) -> String: return UIStyle.fighter_name(c)))
+	log_line("Andar %d, %s: %s %s os guardiões da Torre." % [floor_number, floor_data.name, names, "encontra" if team.size() == 1 else "encontram"])
 	refresh()
 	_run.call_deferred()
 
@@ -367,7 +373,7 @@ func _run() -> void:
 		if _actor.is_alive():
 			_pass_turn(_actor)
 		if summoned and summoned.in_play() and summoned.consume_turn():
-			hud.log_line("%s volta ao abismo." % BattleHud.fighter_name(summoned))
+			log_line("%s volta ao abismo." % UIStyle.fighter_name(summoned))
 			await last_act(summoned)
 			remove_summon(summoned)
 		_check_end()
@@ -425,12 +431,12 @@ func _enemy_turn(ini: Enemy) -> void:
 	var victim := ini.choose_target(allies_on_field())
 	ini.count_action()
 	if strike.heavy:
-		hud.log_line("%s concentra energia para um %s!" % [BattleHud.fighter_name(ini), BattleHud.highlight("Golpe Pesado", UIStyle.EFFECT_TYPE_COLORS.alert)])
+		log_line("%s concentra energia para um %s!" % [UIStyle.fighter_name(ini), UIStyle.highlight("Golpe Pesado", UIStyle.EFFECT_TYPE_COLORS.alert)])
 		vi.flash(Color(2.5, 0.8, 1.6))
 		CombatEffects.ring(world, vi.position + Vector2(0, -vi.height * 0.5), UIStyle.EFFECT_TYPE_COLORS.alert, vi.height * 0.7)
 		await wait(0.5)
 	else:
-		hud.log_line("%s utilizou %s em %s." % [BattleHud.fighter_name(ini), strike.name, BattleHud.fighter_name(victim)])
+		log_line("%s utilizou %s em %s." % [UIStyle.fighter_name(ini), strike.name, UIStyle.fighter_name(victim)])
 	var origin := vi.position
 	var va: FighterVisual = _visuals[victim]
 	await vi.move_to(Vector2(va.position.x + 110, origin.y), 0.25)
@@ -472,18 +478,18 @@ func apply_damage(attacker: Combatant, victim: Combatant, mult: float, attack_ty
 		CombatEffects.number(world, v.top(), str(damage - absorbed) + ("!" if critical else ""), type)
 	var notice := ""
 	if effectiveness > 1.0:
-		notice = " " + BattleHud.highlight("Super efetivo!", UIStyle.CRITICAL_DAMAGE)
+		notice = " " + UIStyle.highlight("Super efetivo!", UIStyle.CRITICAL_DAMAGE)
 		CombatEffects.number(world, v.top() + Vector2(0, -26), "SUPER EFETIVO", "effective")
 	elif effectiveness < 1.0:
-		notice = " " + BattleHud.highlight("Pouco efetivo...", UIStyle.DIM_TEXT)
+		notice = " " + UIStyle.highlight("Pouco efetivo...", UIStyle.DIM_TEXT)
 		CombatEffects.number(world, v.top() + Vector2(0, -26), "pouco efetivo", "not_very_effective")
 	if critical:
-		notice += " " + BattleHud.highlight("Crítico!", UIStyle.CRITICAL_DAMAGE)
+		notice += " " + UIStyle.highlight("Crítico!", UIStyle.CRITICAL_DAMAGE)
 	if absorbed > 0:
-		notice += " O escudo absorveu %s." % BattleHud.highlight(str(absorbed), CombatEffects.NUMBERS.shield[0])
-	hud.log_line("%s recebeu %s de dano %s.%s" % [BattleHud.fighter_name(victim),
-		BattleHud.highlight(str(damage - absorbed), CombatEffects.NUMBERS[type][0]),
-		BattleHud.highlight(Types.name(attack_type), Types.color(attack_type)), notice])
+		notice += " O escudo absorveu %s." % UIStyle.highlight(str(absorbed), CombatEffects.NUMBERS.shield[0])
+	log_line("%s recebeu %s de dano %s.%s" % [UIStyle.fighter_name(victim),
+		UIStyle.highlight(str(damage - absorbed), CombatEffects.NUMBERS[type][0]),
+		UIStyle.highlight(Types.name(attack_type), Types.color(attack_type)), notice])
 	if victim.is_alive():
 		v.take_hit()
 	else:
@@ -496,10 +502,10 @@ func apply_damage(attacker: Combatant, victim: Combatant, mult: float, attack_ty
 		return
 	for e in attacker.on_hit_statuses():
 		victim.apply_status(e)
-		hud.log_line("%s ficou %s." % [BattleHud.fighter_name(victim), BattleHud.highlight(e.name, UIStyle.effect_color(e.description()))])
+		log_line("%s ficou %s." % [UIStyle.fighter_name(victim), UIStyle.highlight(e.name, UIStyle.effect_color(e.description()))])
 	for g in attacker.extra_strikes(mult):
 		await wait(0.08)
-		hud.log_line("%s: dano extra de %s." % [g.source, BattleHud.highlight(Types.name(g.type), Types.color(g.type))])
+		log_line("%s: dano extra de %s." % [g.source, UIStyle.highlight(Types.name(g.type), Types.color(g.type))])
 		await apply_damage(attacker, victim, g.mult, g.type, true)
 
 
@@ -511,12 +517,12 @@ func _last_resort(ini: Enemy) -> void:
 		return
 	ini.apply_status(e)
 	var vi: FighterVisual = _visuals[ini]
-	hud.announce("%s ativado" % e.name, Enemy.LAST_RESORT_COLOR, 34)
+	announce("%s ativado" % e.name, Enemy.LAST_RESORT_COLOR, 34)
 	vi.flash(Color(2.0, 2.1, 2.6))
 	CombatEffects.ring(world, vi.position + Vector2(0, -vi.height * 0.5), Enemy.LAST_RESORT_COLOR, maxf(50.0, vi.height * 0.6))
 	CombatEffects.number(world, vi.top() + Vector2(0, -10), "+%d" % e.shield, "shield")
-	hud.log_line("%s ativou %s: escudo de %s." % [BattleHud.fighter_name(ini), BattleHud.highlight(e.name, Enemy.LAST_RESORT_COLOR),
-		BattleHud.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
+	log_line("%s ativou %s: escudo de %s." % [UIStyle.fighter_name(ini), UIStyle.highlight(e.name, Enemy.LAST_RESORT_COLOR),
+		UIStyle.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
 	refresh()
 	await wait(0.35)
 
@@ -540,7 +546,7 @@ func _follow_up_attacks(actor: Combatant) -> void:
 ## Fim do turno de `c`: os estados genéricos perdem um turno.
 func _pass_turn(c: Combatant) -> void:
 	for e in c.pass_turn():
-		hud.log_line("%s de %s acabou." % [e.name, BattleHud.fighter_name(c)])
+		log_line("%s de %s acabou." % [e.name, UIStyle.fighter_name(c)])
 
 
 func current_ally() -> Combatant:
@@ -558,7 +564,7 @@ func action_target(action: String) -> Combatant:
 
 
 func _fall(c: Combatant) -> void:
-	hud.log_line("%s foi derrotado." % BattleHud.fighter_name(c) if not c.ally else "%s caiu." % BattleHud.fighter_name(c))
+	log_line("%s foi derrotado." % UIStyle.fighter_name(c) if not c.ally else "%s caiu." % UIStyle.fighter_name(c))
 	if c is Summon:
 		await last_act(c as Summon)
 		remove_summon(c as Summon)
@@ -568,12 +574,12 @@ func _fall(c: Combatant) -> void:
 		for a in living_allies():
 			var gain := a.on_enemy_fallen()
 			if gain != "":
-				hud.log_line("%s absorve %s." % [BattleHud.fighter_name(a), gain])
+				log_line("%s absorve %s." % [UIStyle.fighter_name(a), gain])
 	else:
 		# quem invocou leva as invocações junto
 		for inv in summons.duplicate():
 			if inv.summoner == c:
-				hud.log_line("%s se desfaz." % BattleHud.fighter_name(inv))
+				log_line("%s se desfaz." % UIStyle.fighter_name(inv))
 				remove_summon(inv)
 	if c == active and not living_allies().is_empty():
 		active = living_allies()[0]
@@ -623,11 +629,11 @@ func _reward() -> void:
 		if not r.took_part:
 			continue
 		var c := team[team_ids.find(r.id)]
-		hud.log_line("%s recebeu %s." % [BattleHud.fighter_name(c), BattleHud.highlight("%d XP" % r.xp_gained, UIStyle.XP)])
+		log_line("%s recebeu %s." % [UIStyle.fighter_name(c), UIStyle.highlight("%d XP" % r.xp_gained, UIStyle.XP)])
 		if r.at_limit and r.level == r.level_before:
-			hud.log_line("%s está no limite de nível da Torre (%d)." % [BattleHud.fighter_name(c), r.limit])
+			log_line("%s está no limite de nível da Torre (%d)." % [UIStyle.fighter_name(c), r.limit])
 		if r.level > r.level_before:
-			hud.log_line("%s subiu para o %s!" % [BattleHud.fighter_name(c), BattleHud.highlight("nível %d" % r.level, UIStyle.GOLD)])
+			log_line("%s subiu para o %s!" % [UIStyle.fighter_name(c), UIStyle.highlight("nível %d" % r.level, UIStyle.GOLD)])
 			var v: FighterVisual = _visuals[c]
 			v.flash(Color(2.2, 1.9, 0.9))
 			CombatEffects.number(world, v.top() + Vector2(0, -10), "NÍVEL %d!" % r.level, "level")
@@ -684,7 +690,7 @@ func summon_strike(inv: Summon, g: Dictionary) -> void:
 	var vi: FighterVisual = _visuals[inv]
 	var main: Combatant = targets[0][0]
 	var debuffed: Array = targets.map(func(pair: Array) -> Combatant: return pair[0]) if g.get("debuff_all", false) else [main]
-	hud.log_line("%s utilizou %s." % [BattleHud.fighter_name(inv), BattleHud.highlight(g.name, inv.color)])
+	log_line("%s utilizou %s." % [UIStyle.fighter_name(inv), UIStyle.highlight(g.name, inv.color)])
 	if g.get("style", "projectile") == "charge":
 		# avança até cada alvo, do mais perto ao mais longe, e golpeia; o
 		# corte acompanha o tamanho da invocação
@@ -720,7 +726,7 @@ func summon_strike(inv: Summon, g: Dictionary) -> void:
 		var e: StatusEffect = inv.debuff.call()
 		victim.apply_status(e)
 		CombatEffects.ring(world, _visuals[victim].position + Vector2(0, -_visuals[victim].height * 0.5), UIStyle.effect_color(e.description()), 40.0)
-		hud.log_line("%s ficou %s." % [BattleHud.fighter_name(victim), BattleHud.highlight(e.name, UIStyle.effect_color(e.description()))])
+		log_line("%s ficou %s." % [UIStyle.fighter_name(victim), UIStyle.highlight(e.name, UIStyle.effect_color(e.description()))])
 	refresh()
 
 
@@ -733,7 +739,7 @@ func last_act(inv: Summon) -> void:
 	if g.has("mult"):
 		await summon_strike(inv, g)
 	else:
-		hud.log_line("%s utilizou %s." % [BattleHud.fighter_name(inv), BattleHud.highlight(g.name, inv.color)])
+		log_line("%s utilizou %s." % [UIStyle.fighter_name(inv), UIStyle.highlight(g.name, inv.color)])
 	if g.has("shield"):
 		var receiver := inv.shield_target(allies_on_field())
 		if receiver:
@@ -743,7 +749,7 @@ func last_act(inv: Summon) -> void:
 			CombatEffects.line(world, _visuals[inv].position + Vector2(0, -_visuals[inv].height * 0.5), vq.position + Vector2(0, -vq.height * 0.5), inv.color, 0.5)
 			CombatEffects.ring(world, vq.position + Vector2(0, -vq.height * 0.5), inv.color, 50.0)
 			vq.flash(Color(1.0 + inv.color.r, 1.0 + inv.color.g, 1.0 + inv.color.b))
-			hud.log_line("%s recebe um escudo de %s." % [BattleHud.fighter_name(receiver), BattleHud.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
+			log_line("%s recebe um escudo de %s." % [UIStyle.fighter_name(receiver), UIStyle.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
 			refresh()
 			await wait(0.4)
 
@@ -796,6 +802,16 @@ func refresh() -> void:
 	var queue := TurnQueue.forecast(fighters, QUEUE_SIZE)
 	hud.refresh(active, team, points, MAX_POINTS, queue, _actor, waiting_for_player)
 	hud.set_objective("Andar %d  ·  Derrote os guardiões  ·  %d/%d restantes" % [floor_number, alive.size(), enemies.size()])
+
+
+## Uma linha no registro da batalha (BBCode; ver UIStyle.fighter_name e
+## UIStyle.highlight).
+func log_line(text: String) -> void:
+	message_logged.emit(text)
+
+
+func announce(text: String, color := UIStyle.GOLD, font_size := 40) -> void:
+	announced.emit(text, color, font_size)
 
 
 func wait(seconds: float) -> void:

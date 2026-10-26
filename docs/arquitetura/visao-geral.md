@@ -30,6 +30,8 @@ O combate separa três coisas, e nenhuma invade a outra:
 
 `Battle` coordena: a vez, os pontos de skill do time, o alvo e o fim da luta. A HUD só lê descrições (`skills()`, `effects()`) que as regras fornecem, por isso personagens novos aparecem sem mudar a HUD. Detalhes em [Combate](../jogo/combate.md).
 
+A interface é avisada por sinais, nunca chamada pelas regras ou pelas animações: a batalha e as ações dos personagens contam o que aconteceu com `Battle.log_line()` e `Battle.announce()`, que emitem `message_logged` e `announced`; a HUD se liga a esses sinais quando a batalha monta a cena. Para o registro, a cor dos nomes e dos destaques vem de `UIStyle.fighter_name()` e `UIStyle.highlight()`, então as ações não dependem da HUD. No sentido contrário, a HUD avisa o que o jogador pediu pelos sinais dela (`action_requested`, `skill_focused`...).
+
 Fora do combate, a mesma ideia: `Floors` e `StoryEvents` (dados e regras da Torre), `Progression` (regras e save), `Lobby` e as telas de seleção (só apresentam e chamam essas classes).
 
 ## Estado entre cenas

@@ -182,6 +182,7 @@ func _test_battle_floor_1() -> void:
 	Roster.set_team(["shumi"])
 	var b: Battle = await _open("res://combat/battle.tscn")
 	check(b.floor_number == 1 and b.enemies.size() == 2 and b.enemies[0].max_hp == 420, "o andar 1 traz as duas sentinelas dele")
+	check("Shumi[/color] encontra os guardiões" in b.hud._log_lines[0], "o registro abre em pt-BR: \"%s\"" % b.hud._log_lines[0])
 	await _win(b)
 	check(b.completion.first and b.completion.unlocked_floor == 2, "vencer libera o andar 2")
 	check(Progression.progress("shumi") == {"level": 2, "xp": 50}, "Shumi: 150 XP, nível 2")

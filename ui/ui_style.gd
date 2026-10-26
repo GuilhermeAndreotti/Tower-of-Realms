@@ -162,3 +162,13 @@ static func shield_outline(ci: CanvasItem, r: Rect2, fraction: float) -> void:
 	ci.draw_rect(Rect2(band.position, Vector2(band.size.x, 1)), SHIELD.lightened(0.5))
 	ci.draw_rect(r.grow(1), Color.BLACK, false, 1.0)
 	ci.draw_rect(r, SHIELD.lightened(0.15), false, 1.0)
+
+
+# ------------------------------------------------- registro da batalha (BBCode)
+## Destaca um nome no registro com a cor do lado dele.
+static func fighter_name(c: Combatant) -> String:
+	return "[color=#%s]%s[/color]" % [side_color(c.ally).lightened(0.3).to_html(false), c.name]
+
+
+static func highlight(text: String, color: Color) -> String:
+	return "[color=#%s]%s[/color]" % [color.to_html(false), text]

@@ -54,8 +54,8 @@ func selector_anchor(action: String) -> Vector2:
 func _shot() -> void:
 	var target := b.current_target()
 	var strikes := a.shot_strikes()
-	b.hud.log_line("%s utilizou %s de %s!" % [BattleHud.fighter_name(a), BattleHud.highlight("Disparo Elemental", UIStyle.GOLD),
-		BattleHud.highlight(Types.name(a.lens), Types.color(a.lens))])
+	b.log_line("%s utilizou %s de %s!" % [UIStyle.fighter_name(a), UIStyle.highlight("Disparo Elemental", UIStyle.GOLD),
+		UIStyle.highlight(Types.name(a.lens), Types.color(a.lens))])
 	v.play("shot")
 	await b.wait(0.1)
 	var flight := CombatEffects.projectile(b.world, v.position + DEVICE_TIP, center(target), a.lens, 1000.0, 1.2)
@@ -85,13 +85,13 @@ func _momc_attack(target: Combatant, strike: Dictionary, size := 0.7, notice := 
 	back.parallel().tween_property(_momc, "modulate", Color.WHITE, 0.25)
 	await b.wait(flight)
 	CombatEffects.elemental_impact(b.world, center(target) + Vector2(6, 8), strike.type, size)
-	b.hud.log_line(notice % BattleHud.highlight("MOMC", Andri.MOMC_COLOR))
+	b.log_line(notice % UIStyle.highlight("MOMC", Andri.MOMC_COLOR))
 	await b.apply_damage(a, target, strike.mult, strike.type, strike.extra)
 
 
 # ------------------------------------------------------ protocolo MOMC
 func _protocol() -> void:
-	b.hud.log_line("%s ativa o %s: %s." % [BattleHud.fighter_name(a), BattleHud.highlight("Protocolo MOMC", UIStyle.GOLD),
+	b.log_line("%s ativa o %s: %s." % [UIStyle.fighter_name(a), UIStyle.highlight("Protocolo MOMC", UIStyle.GOLD),
 		"Escudo" if b.option == "shield" else "Sobrecarga"])
 	v.play("analysis")
 	if b.option == "shield":
@@ -119,8 +119,8 @@ func _momc_shield(target: Combatant) -> void:
 	CombatEffects.impact(b.world, center(target), Color.WHITE, 0.9)
 	va.flash(Color(1.55, 1.8, 2.0))
 	CombatEffects.number(b.world, va.top(), "(%d)" % e.shield, "shield")
-	b.hud.log_line("O %s protege %s: escudo de %s." % [BattleHud.highlight("MOMC", Andri.MOMC_COLOR), BattleHud.fighter_name(target),
-		BattleHud.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
+	b.log_line("O %s protege %s: escudo de %s." % [UIStyle.highlight("MOMC", Andri.MOMC_COLOR), UIStyle.fighter_name(target),
+		UIStyle.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
 	b.refresh()
 	var back := _momc.create_tween()
 	back.tween_property(_momc, "position", base, 0.3).set_trans(Tween.TRANS_SINE)
@@ -132,7 +132,7 @@ func _analysis() -> void:
 	var target := b.current_target()
 	var element := b.option
 	var color := Types.color(element)
-	b.hud.log_line("%s utilizou %s em %s." % [BattleHud.fighter_name(a), BattleHud.highlight("Análise de Vulnerabilidade", UIStyle.GOLD), BattleHud.fighter_name(target)])
+	b.log_line("%s utilizou %s em %s." % [UIStyle.fighter_name(a), UIStyle.highlight("Análise de Vulnerabilidade", UIStyle.GOLD), UIStyle.fighter_name(target)])
 	v.play("analysis")
 	var c := center(target)
 	var radius := maxf(30.0, b.visual(target).height * 0.55)
@@ -144,8 +144,8 @@ func _analysis() -> void:
 	CombatEffects.ring(b.world, c, color, radius * 1.3)
 	CombatEffects.number(b.world, b.visual(target).top() + Vector2(0, -10), "FRACO A %s" % Types.name(element).to_upper(), "notice")
 	b.visual(target).flash(Color(color.r * 2.0, color.g * 2.0, color.b * 2.0))
-	b.hud.log_line("%s fica fraco a %s por %d turnos." % [BattleHud.fighter_name(target),
-		BattleHud.highlight(Types.name(element), color), Andri.WEAKNESS_DURATION])
+	b.log_line("%s fica fraco a %s por %d turnos." % [UIStyle.fighter_name(target),
+		UIStyle.highlight(Types.name(element), color), Andri.WEAKNESS_DURATION])
 	a.gain_energy(Andri.SKILL_ENERGY)
 	b.refresh()
 	await b.wait(0.5)
@@ -156,7 +156,7 @@ func _arsenal() -> void:
 	var id := b.option
 	var target := b.current_ally()
 	var art := Andri.artifact(id)
-	b.hud.announce(art.name.to_upper(), art.color, 26)
+	b.announce(art.name.to_upper(), art.color, 26)
 	v.play("analysis")
 	# o artefato surge acima do Andri, brilha e voa até o alvo
 	var item := Sprite2D.new()
@@ -183,13 +183,13 @@ func _arsenal() -> void:
 		CombatEffects.number(b.world, b.visual(target).top(), "+%d" % r.heal, "heal")
 	var extra := ""
 	if r.heal > 0:
-		extra += " Recupera %s de HP." % BattleHud.highlight(str(r.heal), UIStyle.HEAL)
+		extra += " Recupera %s de HP." % UIStyle.highlight(str(r.heal), UIStyle.HEAL)
 	if r.cleared > 0:
 		extra += " Remove %d efeito%s negativo%s." % [r.cleared, "" if r.cleared == 1 else "s", "" if r.cleared == 1 else "s"]
 	if r.state:
 		var e: StatusEffect = r.state
 		extra += " " + art.description.split(":")[0] + (" (escudo %d)." % e.shield if e.shield > 0 else ".")
-	b.hud.log_line("%s entrega %s a %s.%s" % [BattleHud.fighter_name(a), BattleHud.highlight(art.name, art.color), BattleHud.fighter_name(target), extra])
+	b.log_line("%s entrega %s a %s.%s" % [UIStyle.fighter_name(a), UIStyle.highlight(art.name, art.color), UIStyle.fighter_name(target), extra])
 	b.refresh()
 	await b.wait(0.5)
 
@@ -242,8 +242,8 @@ func _switch_lens() -> void:
 	var color := Types.color(a.lens)
 	CombatEffects.ring(b.world, v.position + LENS, color, 22.0)
 	CombatEffects.impact(b.world, v.position + LENS, color, 0.5)
-	b.hud.log_line("%s ajusta a %s: %s." % [BattleHud.fighter_name(a), BattleHud.highlight("Lente Elemental", UIStyle.GOLD),
-		BattleHud.highlight(Types.name(a.lens), color)])
+	b.log_line("%s ajusta a %s: %s." % [UIStyle.fighter_name(a), UIStyle.highlight("Lente Elemental", UIStyle.GOLD),
+		UIStyle.highlight(Types.name(a.lens), color)])
 	b.refresh()
 	await b.wait(0.3)
 
