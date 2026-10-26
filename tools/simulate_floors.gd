@@ -262,9 +262,9 @@ func _print() -> void:
 ## Níveis testados em cada andar: 1 abaixo do recomendado, o recomendado e
 ## o máximo que dá para ter ao entrar (o limite da Torre nesse ponto).
 func _test_levels(n: int) -> Array[int]:
-	var rec: int = Floors.data(n).recommended_level
+	var recommended: int = Floors.data(n).recommended_level
 	var levels: Array[int] = []
-	for level in [rec - 1, rec, Floors.floor_limit(n)]:
+	for level in [recommended - 1, recommended, Floors.floor_limit(n)]:
 		if level >= 1 and level not in levels:
 			levels.append(level)
 	return levels

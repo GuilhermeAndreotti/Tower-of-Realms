@@ -101,17 +101,17 @@ static func entry_level(levels: Array[int], limit := MAX_LEVEL) -> int:
 	return clampi(roundi(float(sum) / levels.size()), 1, clampi(limit, 1, MAX_LEVEL))
 
 
-static func enemy_xp(ini: Enemy) -> int:
-	if ini.xp >= 0:
-		return ini.xp
-	return roundi(ini.level_1_stats().hp * XP_PER_ENEMY_HP)
+static func enemy_xp(foe: Enemy) -> int:
+	if foe.xp >= 0:
+		return foe.xp
+	return roundi(foe.level_1_stats().hp * XP_PER_ENEMY_HP)
 
 
 ## XP que cada participante ganha ao vencer: a soma da dos inimigos.
 static func battle_xp(enemies: Array[Enemy]) -> int:
 	var total := 0
-	for ini in enemies:
-		total += enemy_xp(ini)
+	for foe in enemies:
+		total += enemy_xp(foe)
 	return total
 
 

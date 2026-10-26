@@ -145,12 +145,12 @@ func _test_paths() -> void:
 	var space := lobby.get_world_2d().direct_space_state
 	var form := RectangleShape2D.new()
 	form.size = LobbyPlayer.FEET
-	var consulta := PhysicsShapeQueryParameters2D.new()
-	consulta.shape = form
-	consulta.exclude = [lobby.player.get_rid()]
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = form
+	query.exclude = [lobby.player.get_rid()]
 	var free := func(p: Vector2) -> bool:
-		consulta.transform = Transform2D(0, p + Vector2(0, -form.size.y / 2))
-		return space.intersect_shape(consulta, 1).is_empty()
+		query.transform = Transform2D(0, p + Vector2(0, -form.size.y / 2))
+		return space.intersect_shape(query, 1).is_empty()
 	var step := 6.0
 	var start := Lobby.screen(Lobby.ENTRANCES.start).snapped(Vector2(step, step))
 	var seen := {start: true}

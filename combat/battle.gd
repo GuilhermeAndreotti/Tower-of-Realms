@@ -425,24 +425,24 @@ func _skill(a: Combatant, action: String) -> Dictionary:
 	return {}
 
 
-func _enemy_turn(ini: Enemy) -> void:
-	var vi: FighterVisual = _visuals[ini]
-	var strike := ini.next_strike()
-	var victim := ini.choose_target(allies_on_field())
-	ini.count_action()
+func _enemy_turn(foe: Enemy) -> void:
+	var vi: FighterVisual = _visuals[foe]
+	var strike := foe.next_strike()
+	var victim := foe.choose_target(allies_on_field())
+	foe.count_action()
 	if strike.heavy:
-		log_line("%s concentra energia para um %s!" % [UIStyle.fighter_name(ini), UIStyle.highlight("Golpe Pesado", UIStyle.EFFECT_TYPE_COLORS.alert)])
+		log_line("%s concentra energia para um %s!" % [UIStyle.fighter_name(foe), UIStyle.highlight("Golpe Pesado", UIStyle.EFFECT_TYPE_COLORS.alert)])
 		vi.flash(Color(2.5, 0.8, 1.6))
 		CombatEffects.ring(world, vi.position + Vector2(0, -vi.height * 0.5), UIStyle.EFFECT_TYPE_COLORS.alert, vi.height * 0.7)
 		await wait(0.5)
 	else:
-		log_line("%s utilizou %s em %s." % [UIStyle.fighter_name(ini), strike.name, UIStyle.fighter_name(victim)])
+		log_line("%s utilizou %s em %s." % [UIStyle.fighter_name(foe), strike.name, UIStyle.fighter_name(victim)])
 	var origin := vi.position
 	var va: FighterVisual = _visuals[victim]
 	await vi.move_to(Vector2(va.position.x + 110, origin.y), 0.25)
 	CombatEffects.impact(world, va.position + Vector2(10, -va.height * 0.5),
 		UIStyle.EFFECT_TYPE_COLORS.alert if strike.heavy else CHARGE_COLOR, 1.4 if strike.heavy else 1.0)
-	await apply_damage(ini, victim, strike.mult, strike.type)
+	await apply_damage(foe, victim, strike.mult, strike.type)
 	victim.gain_energy(victim.energy_on_hit)
 	if strike.heavy:
 		shake(8.0)
@@ -511,17 +511,17 @@ func apply_damage(attacker: Combatant, victim: Combatant, mult: float, attack_ty
 
 ## Último recurso do inimigo (Enemy.last_resort), se o golpe o deixou
 ## abaixo da fração: anúncio no meio da tela e o escudo nele.
-func _last_resort(ini: Enemy) -> void:
-	var e := ini.activate_last_resort()
+func _last_resort(foe: Enemy) -> void:
+	var e := foe.activate_last_resort()
 	if e == null:
 		return
-	ini.apply_status(e)
-	var vi: FighterVisual = _visuals[ini]
+	foe.apply_status(e)
+	var vi: FighterVisual = _visuals[foe]
 	announce("%s ativado" % e.name, Enemy.LAST_RESORT_COLOR, 34)
 	vi.flash(Color(2.0, 2.1, 2.6))
 	CombatEffects.ring(world, vi.position + Vector2(0, -vi.height * 0.5), Enemy.LAST_RESORT_COLOR, maxf(50.0, vi.height * 0.6))
 	CombatEffects.number(world, vi.top() + Vector2(0, -10), "+%d" % e.shield, "shield")
-	log_line("%s ativou %s: escudo de %s." % [UIStyle.fighter_name(ini), UIStyle.highlight(e.name, Enemy.LAST_RESORT_COLOR),
+	log_line("%s ativou %s: escudo de %s." % [UIStyle.fighter_name(foe), UIStyle.highlight(e.name, Enemy.LAST_RESORT_COLOR),
 		UIStyle.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
 	refresh()
 	await wait(0.35)

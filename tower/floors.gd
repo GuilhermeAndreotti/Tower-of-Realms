@@ -145,10 +145,10 @@ static func max_team(number: int) -> int:
 static func create_enemies(number: int) -> Array[Enemy]:
 	var list: Array[Enemy] = []
 	for d: Dictionary in data(number).enemies:
-		var ini := Enemy.new(d.name, d.texture, d.hp, d.atk, d.def, d.spd, d.get("heavy_every", 0), d.get("type", Types.PHYSICAL))
-		ini.xp = d.get("xp", -1)
-		ini.last_resort = d.get("last_resort", {})
-		list.append(ini)
+		var foe := Enemy.new(d.name, d.texture, d.hp, d.atk, d.def, d.spd, d.get("heavy_every", 0), d.get("type", Types.PHYSICAL))
+		foe.xp = d.get("xp", -1)
+		foe.last_resort = d.get("last_resort", {})
+		list.append(foe)
 	return list
 
 

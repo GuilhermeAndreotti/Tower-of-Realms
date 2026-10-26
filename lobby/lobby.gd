@@ -98,7 +98,7 @@ var busy := false  ## conversa aberta ou entrando na dungeon
 var _door: Interactable
 var _runes: Sprite2D
 var _door_glow: Sprite2D
-var _circulo: Node2D
+var _rune_circle: Node2D
 var _rune_light := 0.35
 var _time := 0.0
 var _visuals := {}  ## id do Roster -> FighterVisual no saguão
@@ -223,12 +223,12 @@ func _build_door() -> void:
 	_door_glow = Glow.create(44, RUNE_COLOR, 0.12)
 	_door_glow.position = screen(DOOR + Vector2(0, -38))
 	add_child(_door_glow)
-	_circulo = Node2D.new()
-	_circulo.position = screen(DOOR + Vector2(0, 8))
-	_circulo.z_as_relative = false
-	_circulo.z_index = -6
-	_circulo.draw.connect(_draw_circle)
-	add_child(_circulo)
+	_rune_circle = Node2D.new()
+	_rune_circle.position = screen(DOOR + Vector2(0, 8))
+	_rune_circle.z_as_relative = false
+	_rune_circle.z_index = -6
+	_rune_circle.draw.connect(_draw_circle)
+	add_child(_rune_circle)
 
 	_door = Interactable.new()
 	_door.id = "door"
@@ -310,7 +310,7 @@ func _process(delta: float) -> void:
 		_rune_light = move_toward(_rune_light, target, delta * 1.5)
 	_runes.modulate.a = _rune_light
 	_door_glow.modulate.a = 0.06 + 0.14 * _rune_light
-	_circulo.queue_redraw()
+	_rune_circle.queue_redraw()
 
 
 ## O interagível mais perto dos pés do jogador, dentro do raio dele. A
@@ -482,6 +482,6 @@ func _draw_circle() -> void:
 		var p := Vector2(cos(ang) * rx, sin(ang) * ry).snapped(Vector2.ONE) * SCALE
 		var mark := i % 6 == 0
 		var color := Color(RUNE_COLOR, (0.55 if mark else 0.3) * a)
-		_circulo.draw_rect(Rect2(p - Vector2(1.5, 1.5), Vector2(3, 3)), color)
+		_rune_circle.draw_rect(Rect2(p - Vector2(1.5, 1.5), Vector2(3, 3)), color)
 		if mark:
-			_circulo.draw_rect(Rect2(p + Vector2(-1.5, -4.5), Vector2(3, 3)), Color(RUNE_COLOR, 0.4 * a))
+			_rune_circle.draw_rect(Rect2(p + Vector2(-1.5, -4.5), Vector2(3, 3)), Color(RUNE_COLOR, 0.4 * a))

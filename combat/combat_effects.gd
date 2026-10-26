@@ -199,14 +199,14 @@ class _Slash extends _Effect:
 
 	func _draw() -> void:
 		# o arco cresce rápido e depois some pelo começo
-		var ini := lerpf(-1.1, 0.9, maxf(0, progress - 0.35) / 0.65)
+		var foe := lerpf(-1.1, 0.9, maxf(0, progress - 0.35) / 0.65)
 		var end := lerpf(-1.1, 0.9, minf(1, progress / 0.45))
-		if end <= ini:
+		if end <= foe:
 			return
 		var center := Vector2(-radius * 0.55, 0)
 		var a := 1.0 - maxf(0, progress - 0.6) / 0.4
-		draw_arc(center, radius, ini, end, 10, Color(color, a), 4.0)
-		draw_arc(center, radius - 4, ini + 0.15, end, 8, Color(1, 1, 1, a), 2.0)
+		draw_arc(center, radius, foe, end, 10, Color(color, a), 4.0)
+		draw_arc(center, radius - 4, foe + 0.15, end, 8, Color(1, 1, 1, a), 2.0)
 
 
 class _Impact extends _Effect:
@@ -321,14 +321,14 @@ class Beam extends Node2D:
 	func _draw() -> void:
 		if length <= 0:
 			return
-		var vis := 1.0 - fading
+		var visibility := 1.0 - fading
 		# a espessura tremula um pixel e afina ao sumir
-		var l := width * vis * (1.0 + 0.08 * sin(_time * 40.0))
+		var l := width * visibility * (1.0 + 0.08 * sin(_time * 40.0))
 		var layers := [[1.9, Color(colors[0], 0.28)], [1.0, colors[1]], [0.6, colors[2]], [0.28, colors[3]]]
 		for c: Array in layers:
 			var h := CombatEffects._px(l * c[0])
 			if h > 0:
-				draw_rect(Rect2(0, -h / 2, CombatEffects._px(length), h), Color(c[1], c[1].a * vis))
+				draw_rect(Rect2(0, -h / 2, CombatEffects._px(length), h), Color(c[1], c[1].a * visibility))
 		# distorção: lascas que escapam do feixe, sorteadas de novo a cada ~50 ms
 		if distortion > 0:
 			var r := RandomNumberGenerator.new()
@@ -336,7 +336,7 @@ class Beam extends Node2D:
 			for i in int(10 * distortion):
 				var x := CombatEffects._px(r.randf() * length)
 				var y := CombatEffects._px(r.randf_range(0.5, 1.2) * l * (1 if r.randf() < 0.5 else -1))
-				draw_rect(Rect2(x, y, CombatEffects._px(r.randf_range(12, 48)), CombatEffects.PIXEL), Color(distortion_color, 0.8 * vis))
+				draw_rect(Rect2(x, y, CombatEffects._px(r.randf_range(12, 48)), CombatEffects.PIXEL), Color(distortion_color, 0.8 * visibility))
 		for p: Array in _particles:
 			CombatEffects._square(self, p[0], 3, Color(p[3], clampf(p[2] * 3.0, 0, 1)))
 		# a lâmina na ponta, enquanto o feixe avança
@@ -353,7 +353,7 @@ class Aura extends Node2D:
 	var colors: Array[Color]  ## [fora, dentro, faísca]
 	var _visual: FighterVisual
 	var _time := 0.0
-	var _pulso := 0.0
+	var _pulse := 0.0
 	var _accumulated := 0.0
 	var _particles := []  ## [posição, velocidade, vida, cor]
 	var _radii := []  ## [pontos, vida]
@@ -365,16 +365,16 @@ class Aura extends Node2D:
 		colors = p_colors
 
 	func pulsar() -> void:
-		_pulso = 1.0
+		_pulse = 1.0
 
 	func _process(delta: float) -> void:
 		if not _visual.combatant.is_alive():
 			queue_free()
 			return
 		_time += delta
-		_pulso = maxf(0.0, _pulso - delta * 2.5)
+		_pulse = maxf(0.0, _pulse - delta * 2.5)
 		var alt := _visual.height
-		_accumulated += SPARKS_PER_S[level] * (1.0 + _pulso * 2.0) * delta
+		_accumulated += SPARKS_PER_S[level] * (1.0 + _pulse * 2.0) * delta
 		while _accumulated >= 1.0:
 			_accumulated -= 1.0
 			var white := level >= 2 and randf() < 0.25
@@ -387,8 +387,8 @@ class Aura extends Node2D:
 		_particles = _particles.filter(func(p: Array) -> bool: return p[2] > 0)
 		# x10+: estalos de energia em zigue-zague perto do corpo
 		if level >= 2 and randf() < delta * (3.0 if level == 2 else 6.0):
-			var ini := Vector2(randf_range(-28, 28), -randf_range(0.2, 0.9) * alt)
-			var pts := PackedVector2Array([ini])
+			var foe := Vector2(randf_range(-28, 28), -randf_range(0.2, 0.9) * alt)
+			var pts := PackedVector2Array([foe])
 			for i in 3:
 				pts.append(pts[-1] + Vector2(randf_range(-9, 9), randf_range(-12, -3)).snapped(Vector2(3, 3)))
 			_radii.append([pts, 0.12])
@@ -402,7 +402,7 @@ class Aura extends Node2D:
 	func _draw() -> void:
 		var alt := _visual.height
 		var n := float(level)
-		var p := _pulso
+		var p := _pulse
 		# chamas atrás do corpo: colunas de 3 px com o topo tremulando
 		# fraca no x2, nunca opaca: o sprite precisa continuar legível
 		_flames(26.0 + 5.0 * n + 8.0 * p, alt * (0.98 + 0.06 * n) + 12.0 * p, Color(colors[0], 0.1 + 0.05 * n + 0.2 * p), 0.0)
@@ -533,10 +533,10 @@ class _Line extends _Effect:
 			draw_polyline(pts, Color(1, 1, 1, a), 1.0)
 			return
 		# tracejado que corre na direção do alvo
-		var comp := vector.length()
-		var dir := vector / comp
+		var dash_length := vector.length()
+		var dir := vector / dash_length
 		var step := 12.0
 		var x := fposmod(progress * 60.0, step)
-		while x < comp:
-			draw_line(dir * x, dir * minf(comp, x + 6.0), Color(color, a * 0.85), 2.0)
+		while x < dash_length:
+			draw_line(dir * x, dir * minf(dash_length, x + 6.0), Color(color, a * 0.85), 2.0)
 			x += step

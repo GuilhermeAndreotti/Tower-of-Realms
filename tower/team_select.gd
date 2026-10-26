@@ -361,15 +361,15 @@ func _build_sheet() -> void:
 
 ## Nível, barra de XP e quanto falta para o próximo (ou o limite da Torre).
 func _level_row(id: String) -> Control:
-	var prog := Progression.progress(id)
-	var next := Progression.xp_to_next(prog.level)
-	var at_limit: bool = prog.level >= Floors.level_limit() and prog.level < Progression.MAX_LEVEL
+	var saved := Progression.progress(id)
+	var next := Progression.xp_to_next(saved.level)
+	var at_limit: bool = saved.level >= Floors.level_limit() and saved.level < Progression.MAX_LEVEL
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 2)
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 8)
-	top.add_child(UIStyle.label("NÍVEL %d" % prog.level, 13, UIStyle.GOLD, 3))
-	var text := UIStyle.label(BattleHud.xp_text(prog.level, prog.xp, at_limit), 10,
+	top.add_child(UIStyle.label("NÍVEL %d" % saved.level, 13, UIStyle.GOLD, 3))
+	var text := UIStyle.label(BattleHud.xp_text(saved.level, saved.xp, at_limit), 10,
 		UIStyle.GOLD if at_limit else UIStyle.DIM_TEXT, 2)
 	text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	top.add_child(text)
@@ -379,7 +379,7 @@ func _level_row(id: String) -> Control:
 	bar.marks = 0
 	bar.custom_minimum_size = Vector2(0, 6)
 	var full: bool = next == 0 or at_limit
-	bar.set_values(1.0 if full else prog.xp, 1 if full else next, false)
+	bar.set_values(1.0 if full else saved.xp, 1 if full else next, false)
 	v.add_child(bar)
 	return v
 

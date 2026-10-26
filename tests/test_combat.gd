@@ -414,14 +414,14 @@ func _test_andri_arsenal() -> void:
 	print("andri: arsenal titânico")
 	var a := Andri.new()
 	var s := Shumi.new()
-	var ini := Enemy.new("I", "", 550, 60, 40, 95)
+	var foe := Enemy.new("I", "", 550, 60, 40, 95)
 	var kit := a.skills(1)
 	check(_skill_at(kit, "ult").target == "ally" and _skill_at(kit, "ult").options.size() == Andri.ARTIFACTS.size() and _skill_at(kit, "ult").options.size() == 8, "a ult mira aliados e oferece os 8 artefatos")
 	check(_skill_at(kit, "ult").options.all(func(o: Dictionary) -> bool: return o.has("icon") and o.description != ""), "cada artefato tem ícone e descrição")
 	check(not a.can_use("ult", 1), "começa sem energia para a ult (60/120)")
 	a.energy = 120
 	check(a.can_use("ult", 1), "com 120 de energia pode usar")
-	check(a.invalid_reason("ult", "odyn", ini) != "", "artefatos não vão para inimigos")
+	check(a.invalid_reason("ult", "odyn", foe) != "", "artefatos não vão para inimigos")
 	check(a.invalid_reason("ult", "freya", s) != "", "Raiz de Freya recusa alvo com HP cheio e sem efeitos negativos")
 	check(a.invalid_reason("ult", "nothing", s) != "", "artefato desconhecido é recusado")
 
@@ -559,12 +559,12 @@ func _test_team() -> void:
 		"cada personagem diz de onde vem")
 	var a := Combatant.new("A", true, 100, 1, 0, 100)
 	var b := Combatant.new("B", true, 100, 1, 0, 100)
-	var ini := Enemy.new("I", "", 100, 1, 0, 100)
-	check(ini.choose_target([a, b], 0.0) == a and ini.choose_target([a, b], 0.99) == b, "inimigo sorteia entre os aliados")
+	var foe := Enemy.new("I", "", 100, 1, 0, 100)
+	check(foe.choose_target([a, b], 0.0) == a and foe.choose_target([a, b], 0.99) == b, "inimigo sorteia entre os aliados")
 	a.hp = 0
-	check(ini.choose_target([a, b], 0.0) == b, "inimigo não ataca quem já caiu")
+	check(foe.choose_target([a, b], 0.0) == b, "inimigo não ataca quem já caiu")
 	b.hp = 0
-	check(ini.choose_target([a, b], 0.5) == null, "sem aliados vivos, sem alvo")
+	check(foe.choose_target([a, b], 0.5) == null, "sem aliados vivos, sem alvo")
 	var s := Shumi.new()
 	var free := s.skills(1).filter(func(h: Dictionary) -> bool: return h.get("free", false))
 	check(free.size() == 1 and free[0].action == "ult", "só o Kaioken não gasta o turno")
@@ -579,8 +579,8 @@ func _test_askara_fragments() -> void:
 	check(a.on_enemy_fallen() == "", "no máximo, um inimigo caído não dá nada")
 	a.fragments = 3
 	check(a.on_enemy_fallen() != "" and a.fragments == 4, "inimigo caído dá 1 fragmento")
-	var ini := Enemy.new("I", "", 1000, 100, 0, 100)
-	var damage := Combatant.calculate_damage(a, ini, Askara.ARROW_MULT, 0.5)
+	var foe := Enemy.new("I", "", 1000, 100, 0, 100)
+	var damage := Combatant.calculate_damage(a, foe, Askara.ARROW_MULT, 0.5)
 	check(damage == roundi(125 * 0.6), "Seta Vil: 0,6x do ATQ (75)")
 	check(a.skills(0).map(func(h: Dictionary) -> String: return h.key) == ["Q", "E", "", "R", ""], "barra na mesma ordem, com o Último Ato (passiva) no lugar da skill 2")
 	check(a.skills(0)[0].point_gain == 1, "Seta Vil gera ponto de skill")
@@ -609,13 +609,13 @@ func _test_askara_summon() -> void:
 	r = a.summon("imp")
 	check(not r.is_new and r.summon == day and day.hp == day.max_hp and day.turns == day.max_turns and a.fragments == 7,
 		"invocar a mesma renova HP e vezes (e cobra)")
-	var emi: Summon = a.summon("emissary").summon
+	var emissary: Summon = a.summon("emissary").summon
 	r = a.summon("shivara")
-	check(r.replaced == day and not day.on_field and a.on_field() == [emi, r.summon], "sem vaga, a mais antiga sai")
-	check(emi.target_weight() == 1.0 + Askara.EMISSARY_TAUNT, "Emissário do Caos provoca")
-	check(not emi.consume_turn() and not emi.consume_turn() and emi.consume_turn(), "vai embora depois de 3 vezes")
-	var lil: Summon = Askara.new().summon("lilith").summon
-	var e: StatusEffect = lil.debuff.call()
+	check(r.replaced == day and not day.on_field and a.on_field() == [emissary, r.summon], "sem vaga, a mais antiga sai")
+	check(emissary.target_weight() == 1.0 + Askara.EMISSARY_TAUNT, "Emissário do Caos provoca")
+	check(not emissary.consume_turn() and not emissary.consume_turn() and emissary.consume_turn(), "vai embora depois de 3 vezes")
+	var lilith: Summon = Askara.new().summon("lilith").summon
+	var e: StatusEffect = lilith.debuff.call()
 	check(e.type == "debuff" and is_equal_approx(e.mods.atk, -0.2) and is_equal_approx(e.mods.def, -0.2), "Lilith encanta: ATQ e DEF -20%")
 
 
@@ -641,9 +641,9 @@ func _test_askara_lord() -> void:
 	r = a.summon_lord(0.005)
 	var light: Summon = r.summon
 	check(r.rare and light.id == "light_lord" and light.type == Types.LIGHT, "sorteio abaixo da chance (15%): vem o Lorde da Luz")
-	var ini := Enemy.new("I", "", 1000, 100, 0, 100)
+	var foe := Enemy.new("I", "", 1000, 100, 0, 100)
 	var common := Combatant.new("C", true, 1000, 1, 0, 100)
-	check(Combatant.calculate_damage(ini, light, 1.0) == roundi(Combatant.calculate_damage(ini, common, 1.0) * 0.5 * 100.0 / (100.0 + light.defense())),
+	check(Combatant.calculate_damage(foe, light, 1.0) == roundi(Combatant.calculate_damage(foe, common, 1.0) * 0.5 * 100.0 / (100.0 + light.defense())),
 		"Lorde da Luz resiste a todo dano (-50%)")
 
 
@@ -654,12 +654,12 @@ func _test_summon_targets_and_taunt() -> void:
 	var i1 := Enemy.new("A", "", 100, 10, 0, 100)
 	var i2 := Enemy.new("B", "", 100, 50, 0, 100)
 	var i3 := Enemy.new("C", "", 100, 20, 0, 100)
-	var ini := [i1, i2, i3]
-	var targets := inv.targets({"mult": 0.9, "reach": "neighbors", "neighbor_mult": 0.45}, ini, 0)
+	var foe := [i1, i2, i3]
+	var targets := inv.targets({"mult": 0.9, "reach": "neighbors", "neighbor_mult": 0.45}, foe, 0)
 	check(targets == [[i1, 0.9], [i2, 0.45]], "vizinhos: o marcado e o do lado")
-	targets = inv.targets({"mult": 0.3, "aim": "strongest"}, ini, 0)
+	targets = inv.targets({"mult": 0.3, "aim": "strongest"}, foe, 0)
 	check(targets == [[i2, 0.3]], "mira no mais forte (maior ATQ)")
-	check(inv.targets({"mult": 1.0, "reach": "all"}, ini, 2).size() == 3, "all")
+	check(inv.targets({"mult": 1.0, "reach": "all"}, foe, 2).size() == 3, "all")
 	var c := Combatant.new("C", true, 100, 1, 0, 100)
 	var p := StatusEffect.new("taunt", "P", "P", "buff", -1)
 	p.taunt = 2.0
@@ -682,37 +682,37 @@ func _test_askara_in_battle() -> void:
 	root.add_child(b)
 	current_scene = b
 	await process_frame
-	for ini in b.enemies:
-		ini.av = 1e9
+	for foe in b.enemies:
+		foe.av = 1e9
 	var a := b.team[0] as Askara
 	check(a != null, "a Askara entra na batalha pelo Elenco")
 	a.fragments = 8
-	var emi: Summon = a.summon("emissary").summon
-	await b.add_summon(emi)
-	check(emi in b.fighters and b.allies_on_field() == [a, emi] and b.living_allies() == [a],
+	var emissary: Summon = a.summon("emissary").summon
+	await b.add_summon(emissary)
+	check(emissary in b.fighters and b.allies_on_field() == [a, emissary] and b.living_allies() == [a],
 		"a invocação entra na fila e no campo, mas não na equipe")
-	check(b.enemies[0].choose_target(b.allies_on_field(), 0.5) == emi, "os inimigos podem mirar nela (e o Emissário provoca)")
-	var ini: Enemy = b.living_enemies()[0]
-	var hp_before := ini.hp
-	await b.summon_strike(emi, emi.strike)
-	check(ini.hp < hp_before, "o golpe da invocação machuca o inimigo marcado")
-	emi.hp = 1
-	await b.apply_damage(ini, emi, 5.0)
-	check(not emi.on_field and emi not in b.fighters and b.summons.is_empty() and not b.over, "invocação que cai sai de campo; a luta segue")
-	check(a.status("shield_emissary") != null and a.shield() == roundi(emi.max_hp * 0.08),
+	check(b.enemies[0].choose_target(b.allies_on_field(), 0.5) == emissary, "os inimigos podem mirar nela (e o Emissário provoca)")
+	var foe: Enemy = b.living_enemies()[0]
+	var hp_before := foe.hp
+	await b.summon_strike(emissary, emissary.strike)
+	check(foe.hp < hp_before, "o golpe da invocação machuca o inimigo marcado")
+	emissary.hp = 1
+	await b.apply_damage(foe, emissary, 5.0)
+	check(not emissary.on_field and emissary not in b.fighters and b.summons.is_empty() and not b.over, "invocação que cai sai de campo; a luta segue")
+	check(a.status("shield_emissary") != null and a.shield() == roundi(emissary.max_hp * 0.08),
 		"ao cair, o Emissário deixa a Muralha do Caos em quem tem menos HP")
 	var day: Summon = a.summon("imp").summon
 	await b.add_summon(day)
-	var lil: Summon = a.summon("lilith").summon
-	await b.add_summon(lil)
-	check(b.summons.size() == 2 and b.visual(day).position != b.visual(lil).position, "duas invocações, em vagas diferentes")
+	var lilith: Summon = a.summon("lilith").summon
+	await b.add_summon(lilith)
+	check(b.summons.size() == 2 and b.visual(day).position != b.visual(lilith).position, "duas invocações, em vagas diferentes")
 	b.target = 0
-	var hps_before := b.living_enemies().map(func(i: Enemy) -> int: return i.hp)
+	var hp_values_before := b.living_enemies().map(func(i: Enemy) -> int: return i.hp)
 	day.hp = 1
 	await b.apply_damage(b.living_enemies()[0], day, 5.0)
 	var after := b.enemies.map(func(i: Enemy) -> int: return i.hp)
-	check(not day.on_field and day not in b.fighters and b.summons == [lil], "o Diabrete caiu e saiu de campo")
-	check(after[0] < hps_before[0] and (hps_before.size() < 2 or after[1] < hps_before[1]),
+	check(not day.on_field and day not in b.fighters and b.summons == [lilith], "o Diabrete caiu e saiu de campo")
+	check(after[0] < hp_values_before[0] and (hp_values_before.size() < 2 or after[1] < hp_values_before[1]),
 		"ao cair, a Explosão Vil acerta o alvo e o inimigo ao lado")
 	day = a.summon("imp").summon
 	await b.add_summon(day)
@@ -722,12 +722,12 @@ func _test_askara_in_battle() -> void:
 		b.remove_summon(x)
 	var lord: Summon = r.summon
 	await b.add_summon(lord)
-	var hps := b.living_enemies().map(func(i: Enemy) -> int: return i.hp)
+	var hp_values := b.living_enemies().map(func(i: Enemy) -> int: return i.hp)
 	await b.summon_strike(lord, lord.entrance_strike)
 	var alive := b.living_enemies()
 	var all_took := true
 	for i in alive.size():
-		all_took = all_took and alive[i].hp < hps[i]
+		all_took = all_took and alive[i].hp < hp_values[i]
 	check(b.summons == [lord] and all_took, "o Lorde apaga as outras e acerta todos ao chegar")
 	var frag := a.fragments
 	var target: Enemy = b.living_enemies()[0]
@@ -759,24 +759,24 @@ func _test_cooldown() -> void:
 func _test_shumi_bang() -> void:
 	print("shumi: bang!")
 	var s := Shumi.new()
-	var ini := Enemy.new("Alvo", "", 1000, 10, 0, 100)
+	var foe := Enemy.new("Alvo", "", 1000, 10, 0, 100)
 	var h := _skill_data(s, "skill2")
 	check(h.key == "W" and h.point_cost == 1 and h.cooldown == Shumi.BANG_COOLDOWN and h.target == "single", "Bang! na tecla W, custa 1 ponto e tem recarga")
 	var andri := Andri.new()
-	check(s.follow_up(andri, ini).is_empty(), "sem o Bang!, não ataca junto")
+	check(s.follow_up(andri, foe).is_empty(), "sem o Bang!, não ataca junto")
 	s.apply_status(Shumi.bang_status())
-	check(s.follow_up(s, ini).is_empty(), "o próprio ataque dela não puxa outro")
+	check(s.follow_up(s, foe).is_empty(), "o próprio ataque dela não puxa outro")
 	var before := s.energy
-	var g := s.follow_up(andri, ini)
+	var g := s.follow_up(andri, foe)
 	check(g.name == "Finger Beam" and is_equal_approx(g.mult, 0.4) and s.energy == before + Shumi.FOLLOW_UP_ENERGY,
 		"com o Bang!: Finger Beam de 0,4x e +4 de energia por ataque junto")
 	s.level = 3
-	check(is_equal_approx(s.follow_up(andri, ini).mult, 1.1), "no x20 o Finger Beam vai a 1,1x")
+	check(is_equal_approx(s.follow_up(andri, foe).mult, 1.1), "no x20 o Finger Beam vai a 1,1x")
 	s.level = -1
 	s.start_cooldown("skill2", Shumi.BANG_COOLDOWN)
 	for i in Shumi.BANG_DURATION:
 		s.pass_turn()
-	check(s.status("bang") == null and s.follow_up(andri, ini).is_empty(), "o Bang! acaba depois da duração")
+	check(s.status("bang") == null and s.follow_up(andri, foe).is_empty(), "o Bang! acaba depois da duração")
 	check(not s.can_use("skill2", 1), "quando o Bang! acaba, a recarga ainda segura um turno sem ele")
 	s.pass_turn()
 	check(s.can_use("skill2", 1), "e no turno seguinte ele volta")
@@ -784,12 +784,12 @@ func _test_shumi_bang() -> void:
 func _test_andri_protocol() -> void:
 	print("andri: protocolo MOMC")
 	var a := Andri.new()
-	var ini := Enemy.new("Alvo", "", 1000, 10, 0, 100)
+	var foe := Enemy.new("Alvo", "", 1000, 10, 0, 100)
 	var h := _skill_data(a, "skill2")
 	check(h.key == "W" and h.options.map(func(o: Dictionary) -> String: return o.id) == ["overload", "shield"]
 		and h.options[1].target == "ally" and h.options[0].target == "single", "duas ordens, cada uma com o próprio alvo")
-	check(a.invalid_reason("skill2", "shield", a) == "" and a.invalid_reason("skill2", "shield", ini) != "", "o Escudo vai num aliado")
-	check(a.invalid_reason("skill2", "overload", ini) == "" and a.invalid_reason("skill2", "overload", a) != "", "a Sobrecarga vai num inimigo")
+	check(a.invalid_reason("skill2", "shield", a) == "" and a.invalid_reason("skill2", "shield", foe) != "", "o Escudo vai num aliado")
+	check(a.invalid_reason("skill2", "overload", foe) == "" and a.invalid_reason("skill2", "overload", a) != "", "a Sobrecarga vai num inimigo")
 	check(Andri.momc_shield(a).shield == roundi(a.max_hp * Andri.MOMC_SHIELD) and Andri.MOMC_SHIELD < Andri.TYR_SHIELD,
 		"o escudo do MOMC é menor que o da Mão de Tyr")
 	a.switch_lens(Types.ICE)
@@ -811,10 +811,10 @@ func _test_askara_last_act() -> void:
 	var pair := func(target: int) -> Array:
 		return day.targets(day.last_act, enemies, target).map(func(pair: Array) -> Combatant: return pair[0])
 	check(pair.call(0) == [enemies[0], enemies[1]] and pair.call(2) == [enemies[2], enemies[1]], "a Explosão Vil pega o alvo e o de trás (ou o da frente, no último)")
-	var emi: Summon = a.summon("emissary").summon
+	var emissary: Summon = a.summon("emissary").summon
 	var shumi := Shumi.new()
 	shumi.hp = 100
-	check(emi.shield_target([a, emi, shumi]) == shumi, "a Muralha do Caos vai em quem tem a menor fração de HP")
+	check(emissary.shield_target([a, emissary, shumi]) == shumi, "a Muralha do Caos vai em quem tem a menor fração de HP")
 	a.fragments = 8
 	var lord: Summon = a.summon_lord(0.5).summon
 	check(lord.last_act.is_empty(), "os Lordes não têm último ato")
@@ -833,27 +833,27 @@ func _test_bang_in_battle() -> void:
 	root.add_child(b)
 	current_scene = b
 	await process_frame
-	for ini in b.enemies:
-		ini.av = 1e9
+	for foe in b.enemies:
+		foe.av = 1e9
 	var s := b.team[0] as Shumi
 	var andri := b.team[1]
 	s.apply_status(Shumi.bang_status())
-	var ini: Enemy = b.living_enemies()[0]
+	var foe: Enemy = b.living_enemies()[0]
 	var energy_before := s.energy
 	b._first_hit = null
-	await b.apply_damage(andri, ini, 0.1)
-	var hp_before := ini.hp
+	await b.apply_damage(andri, foe, 0.1)
+	var hp_before := foe.hp
 	await b._follow_up_attacks(andri)
-	check(ini.hp < hp_before and is_equal_approx(s.energy, minf(s.max_energy, energy_before + Shumi.FOLLOW_UP_ENERGY)),
+	check(foe.hp < hp_before and is_equal_approx(s.energy, minf(s.max_energy, energy_before + Shumi.FOLLOW_UP_ENERGY)),
 		"o Andri acerta e a Shumi ataca junto o mesmo inimigo (+4 de energia)")
 	b._first_hit = null
-	await b.apply_damage(s, ini, 0.1)
-	hp_before = ini.hp
+	await b.apply_damage(s, foe, 0.1)
+	hp_before = foe.hp
 	await b._follow_up_attacks(s)
-	check(ini.hp == hp_before, "o ataque dela mesma não puxa um ataque junto")
+	check(foe.hp == hp_before, "o ataque dela mesma não puxa um ataque junto")
 	b._first_hit = null
-	await b.apply_damage(ini, s, 0.1)
-	await b._follow_up_attacks(ini)
+	await b.apply_damage(foe, s, 0.1)
+	await b._follow_up_attacks(foe)
 	check(b._first_hit == null, "golpe de inimigo não conta")
 	var actions := b._actions[s] as ShumiActions
 	var normal := b.visual(s).frames()
@@ -872,17 +872,17 @@ func _test_bang_in_battle() -> void:
 
 func _test_last_resort() -> void:
 	print("último recurso dos inimigos (Ferro Negro)")
-	var ini := Enemy.new("G", "", 1000, 100, 0, 100)
-	ini.last_resort = Floors.BLACK_IRON
-	ini.hp = 400
-	check(ini.activate_last_resort() == null, "acima de 30% do HP, nada")
-	ini.hp = 290
-	var e := ini.activate_last_resort()
+	var foe := Enemy.new("G", "", 1000, 100, 0, 100)
+	foe.last_resort = Floors.BLACK_IRON
+	foe.hp = 400
+	check(foe.activate_last_resort() == null, "acima de 30% do HP, nada")
+	foe.hp = 290
+	var e := foe.activate_last_resort()
 	check(e != null and e.name == "Ferro Negro" and e.shield == 250 and e.turns == 3, "abaixo de 30%: escudo de 25% do HP máximo por 3 turnos")
-	ini.apply_status(e)
-	check(ini.shield() == 250 and ini.effects().any(func(d: Dictionary) -> bool: return d.short == "FN"), "o escudo aparece nos efeitos")
-	ini.hp = 100
-	check(ini.activate_last_resort() == null, "uma vez por luta")
+	foe.apply_status(e)
+	check(foe.shield() == 250 and foe.effects().any(func(d: Dictionary) -> bool: return d.short == "FN"), "o escudo aparece nos efeitos")
+	foe.hp = 100
+	check(foe.activate_last_resort() == null, "uma vez por luta")
 	var fallen := Enemy.new("G", "", 1000, 100, 0, 100)
 	fallen.last_resort = Floors.BLACK_IRON
 	fallen.hp = 0

@@ -136,15 +136,15 @@ static func situation(n: int) -> String:
 
 func _draw_card(c: Control, n: int) -> void:
 	var d := Floors.data(n)
-	var sit := situation(n)
+	var floor_state := situation(n)
 	var at_cursor := n == cursor
 	var r := Rect2(Vector2.ZERO, c.size)
-	var locked := sit == "locked"
+	var locked := floor_state == "locked"
 	c.draw_rect(r.grow(1), Color.BLACK)
 	c.draw_rect(r, UIStyle.LIGHT_BACKGROUND if at_cursor else UIStyle.BACKGROUND)
 	# número do andar num bloco de pedra
 	var block := Rect2(6, 6, 50, r.size.y - 12)
-	var block_color := UIStyle.BORDER.darkened(0.3) if locked else (UIStyle.GOLD.darkened(0.55) if sit == "new" else UIStyle.ALLY.darkened(0.6))
+	var block_color := UIStyle.BORDER.darkened(0.3) if locked else (UIStyle.GOLD.darkened(0.55) if floor_state == "new" else UIStyle.ALLY.darkened(0.6))
 	c.draw_rect(block, block_color)
 	c.draw_rect(block, Color(1, 1, 1, 0.12), false, 1.0)
 	UIStyle.text(c, Vector2(block.position.x, block.get_center().y + 10), str(n), 26,
@@ -155,7 +155,7 @@ func _draw_card(c: Control, n: int) -> void:
 		UIStyle.DIM_TEXT if locked else (UIStyle.GOLD if at_cursor else UIStyle.TEXT), w)
 	var state := {"cleared": ["✓ Vencido", CLEARED_COLOR], "new": ["✦ Novo", UIStyle.GOLD],
 		"locked": ["Trancado: vença o andar %d" % (n - 1), UIStyle.DIM_TEXT]}
-	UIStyle.text(c, Vector2(x, 40), state[sit][0], 10, state[sit][1], w)
+	UIStyle.text(c, Vector2(x, 40), state[floor_state][0], 10, state[floor_state][1], w)
 	if not locked:
 		var info := "Nv %d  ·  equipe %d" % [d.recommended_level, Floors.max_team(n)]
 		UIStyle.text(c, Vector2(x, 40), info, 10, UIStyle.DIM_TEXT, w, HORIZONTAL_ALIGNMENT_RIGHT)
@@ -181,9 +181,9 @@ func _build_sheet() -> void:
 		child.queue_free()
 	var n := cursor
 	var d := Floors.data(n)
-	var sit := situation(n)
+	var floor_state := situation(n)
 	_detail.add_child(UIStyle.label("ANDAR %d" % n, 10, UIStyle.DIM_TEXT, 2))
-	if sit == "locked":
+	if floor_state == "locked":
 		_detail.add_child(UIStyle.label("???", 20, UIStyle.DIM_TEXT, 5))
 		_detail.add_child(UIStyle.label("Vença o andar %d para liberar." % (n - 1), 12, UIStyle.DIM_TEXT))
 		return
@@ -197,9 +197,9 @@ func _build_sheet() -> void:
 	for id in Progression.main_team():
 		levels.append(Progression.level(id))
 	var average := Progression.entry_level(levels)
-	var rec: int = d.recommended_level
-	var level_row := UIStyle.label("Nível recomendado: %d  (sua equipe: %d)" % [rec, average], 11,
-		UIStyle.DAMAGE_TAKEN if average < rec else UIStyle.TEXT, 3)
+	var recommended: int = d.recommended_level
+	var level_row := UIStyle.label("Nível recomendado: %d  (sua equipe: %d)" % [recommended, average], 11,
+		UIStyle.DAMAGE_TAKEN if average < recommended else UIStyle.TEXT, 3)
 	_detail.add_child(level_row)
 	var maximum := Floors.max_team(n)
 	_detail.add_child(UIStyle.label("Equipe: %s" % ("só 1 personagem" if maximum == 1 else "até %d personagens" % maximum), 11, UIStyle.TEXT, 3))
@@ -207,10 +207,10 @@ func _build_sheet() -> void:
 	_detail.add_child(UIStyle.label("INIMIGOS", 9, UIStyle.DIM_TEXT, 2))
 	var enemies := Floors.create_enemies(n)
 	var groups := {}  ## nome -> [quantidade, tipo]
-	for ini in enemies:
-		if not groups.has(ini.name):
-			groups[ini.name] = [0, ini.type]
-		groups[ini.name][0] += 1
+	for foe in enemies:
+		if not groups.has(foe.name):
+			groups[foe.name] = [0, foe.type]
+		groups[foe.name][0] += 1
 	for enemy_name: String in groups:
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 6)
@@ -221,7 +221,7 @@ func _build_sheet() -> void:
 
 	_detail.add_child(UIStyle.label("RECOMPENSA", 9, UIStyle.DIM_TEXT, 2))
 	_detail.add_child(UIStyle.label("%d XP para cada personagem" % Progression.battle_xp(enemies), 12, UIStyle.XP, 3))
-	if sit == "new":
+	if floor_state == "new":
 		if not d.get("on_win", []).is_empty():
 			_detail.add_child(UIStyle.label("✦ A primeira vitória muda algo na Torre...", 11, UIStyle.GOLD, 3))
 		if n < Floors.total():

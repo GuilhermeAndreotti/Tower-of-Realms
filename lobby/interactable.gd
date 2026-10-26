@@ -65,14 +65,14 @@ func _process(delta: float) -> void:
 func _draw_ground() -> void:
 	if not focused:
 		return
-	var pulso := 0.5 + 0.5 * sin(_time * 5.0)
+	var pulse := 0.5 + 0.5 * sin(_time * 5.0)
 	var pts := PackedVector2Array()
 	for i in 24:
 		var a := TAU * i / 24
 		pts.append(Vector2(cos(a) * base_width / 2, -2 + sin(a) * 7))
-	_ground.draw_colored_polygon(pts, Color(color, 0.14 + 0.1 * pulso))
+	_ground.draw_colored_polygon(pts, Color(color, 0.14 + 0.1 * pulse))
 	pts.append(pts[0])
-	_ground.draw_polyline(pts, Color(color, 0.5 + 0.35 * pulso), 2.0)
+	_ground.draw_polyline(pts, Color(color, 0.5 + 0.35 * pulse), 2.0)
 
 
 func _draw() -> void:

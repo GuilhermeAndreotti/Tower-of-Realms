@@ -81,12 +81,12 @@ func _test_curve() -> void:
 		growing = growing and Progression.xp_to_next(n + 1) > Progression.xp_to_next(n)
 	check(growing, "cada nível custa mais que o anterior")
 	check(Progression.xp_to_next(Progression.MAX_LEVEL) == 0, "no nível máximo não há próximo")
-	var ini: Array[Enemy] = [Enemy.new("S", "", 550, 1, 0, 100), Enemy.new("G", "", 1400, 1, 0, 100)]
-	check(Progression.battle_xp(ini) == 66 + 168, "XP pelo HP dos inimigos (66 + 168)")
-	ini[0].xp = 10
-	check(Progression.battle_xp(ini) == 10 + 168, "inimigo com XP própria usa a dele")
-	ini[1].take_damage(500)
-	check(Progression.enemy_xp(ini[1]) == 168, "a XP vem do HP de definição, não do atual")
+	var foe: Array[Enemy] = [Enemy.new("S", "", 550, 1, 0, 100), Enemy.new("G", "", 1400, 1, 0, 100)]
+	check(Progression.battle_xp(foe) == 66 + 168, "XP pelo HP dos inimigos (66 + 168)")
+	foe[0].xp = 10
+	check(Progression.battle_xp(foe) == 10 + 168, "inimigo com XP própria usa a dele")
+	foe[1].take_damage(500)
+	check(Progression.enemy_xp(foe[1]) == 168, "a XP vem do HP de definição, não do atual")
 
 
 func _test_level_up() -> void:
@@ -296,8 +296,8 @@ func _test_battle_victory() -> void:
 	var xp := Progression.battle_xp(b.enemies)
 	check(xp == 600, "o andar 3 vale 600 XP")
 	b.team[1].hp = 0  # quem caiu na luta também ganha
-	for ini in b.enemies:
-		ini.hp = 0
+	for foe in b.enemies:
+		foe.hp = 0
 	b._check_end()
 	check(b.over and b.rewards.size() == Roster.available().size()
 		and b.rewards.filter(func(r: Dictionary) -> bool: return r.took_part).size() == 2,
@@ -322,8 +322,8 @@ func _test_shared_xp() -> void:
 	print("XP de quem ficou de fora")
 	_clear()
 	var b := await _open_battle(["shumi"])
-	for ini in b.enemies:
-		ini.hp = 0
+	for foe in b.enemies:
+		foe.hp = 0
 	b._check_end()
 	var by_id := {}
 	for r in b.rewards:
@@ -340,8 +340,8 @@ func _test_shared_xp() -> void:
 	b = (load("res://combat/battle.tscn") as PackedScene).instantiate()
 	root.add_child(b)
 	await process_frame
-	for ini in b.enemies:
-		ini.hp = 0
+	for foe in b.enemies:
+		foe.hp = 0
 	b._check_end()
 	check(not b.rewards.any(func(r: Dictionary) -> bool: return r.id == "andri") and not Progression.is_unlocked("andri")
 		and Progression.progress("andri").xp == 0,

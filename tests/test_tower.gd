@@ -74,8 +74,8 @@ func _confirm_back(b: Battle, key: Key, description: String) -> void:
 
 
 func _win(b: Battle) -> void:
-	for ini in b.enemies:
-		ini.hp = 0
+	for foe in b.enemies:
+		foe.hp = 0
 	b._check_end()
 
 
@@ -93,8 +93,8 @@ func _test_registry() -> void:
 	check(ok, "todo andar tem nome, de 1 a 3 inimigos e eventos válidos")
 	check(Floors.max_team(1) == 1 and Floors.max_team(2) == 1 and Floors.max_team(3) == 2 and Floors.max_team(4) == 2
 		and Floors.max_team(5) == 3, "equipe: 1, 1, 2, 2, 3")
-	var xps: Array = range(1, 6).map(func(n: int) -> int: return Progression.battle_xp(Floors.create_enemies(n)))
-	check(xps == [150, 350, 600, 900, 1000], "XP por andar: 150, 350, 600, 900, 1000")
+	var xp_values: Array = range(1, 6).map(func(n: int) -> int: return Progression.battle_xp(Floors.create_enemies(n)))
+	check(xp_values == [150, 350, 600, 900, 1000], "XP por andar: 150, 350, 600, 900, 1000")
 	var boss := Floors.create_enemies(4)[1]
 	check(boss.name == "Guardião Sombrio" and boss.type == Types.DARKNESS and boss.heavy_strike_every == 2, "andar 4 tem o chefe de Trevas")
 	var forge := Floors.create_enemies(5)
@@ -107,7 +107,7 @@ func _test_registry() -> void:
 	var total := 0
 	var pace := true
 	for n in range(1, Floors.total()):
-		total += xps[n - 1]
+		total += xp_values[n - 1]
 		var p := Progression.add_xp(1, 0, total)
 		pace = pace and p.level == Floors.data(n + 1).recommended_level
 	check(pace, "sem repetir andares, chega-se a cada andar no nível recomendado")
@@ -116,8 +116,8 @@ func _test_registry() -> void:
 		slack = slack and Floors.floor_limit(n) > Floors.data(n).recommended_level
 	check(slack, "o limite de cada andar fica acima do recomendado (há espaço para treinar)")
 	# os tipos tiram o x2 automático do Andri onde importa
-	var without_x2 := func(ini: Enemy) -> bool:
-		return Andri.LENSES.all(func(t: String) -> bool: return Types.effectiveness(t, ini.type) < Types.SUPER)
+	var without_x2 := func(foe: Enemy) -> bool:
+		return Andri.LENSES.all(func(t: String) -> bool: return Types.effectiveness(t, foe.type) < Types.SUPER)
 	check(without_x2.call(Floors.create_enemies(3)[1]) and without_x2.call(boss), "o Guardião do 3 e o chefe não são fracos a nenhuma lente")
 	check(Floors.data(2).on_win == [{"type": "unlock", "id": "andri"}], "o Andri chega no fim do andar 2")
 

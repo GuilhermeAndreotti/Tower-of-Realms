@@ -198,11 +198,11 @@ func _draw() -> void:
 		return
 	# elipse nos pés: dourada no alvo escolhido, clara nos outros atingidos
 	if marked or highlighted:
-		var pulso := 0.5 + 0.5 * sin(_time * 6.0)
+		var pulse := 0.5 + 0.5 * sin(_time * 6.0)
 		var color := UIStyle.GOLD if marked else Color(1, 0.95, 0.8)
 		var width := clampf(height * 0.55, 40, 90)
-		_ellipse(Vector2(0, -2), Vector2(width / 2, 7), Color(color, 0.18 + 0.12 * pulso), true)
-		_ellipse(Vector2(0, -2), Vector2(width / 2, 7), Color(color, 0.55 + 0.35 * pulso), false)
+		_ellipse(Vector2(0, -2), Vector2(width / 2, 7), Color(color, 0.18 + 0.12 * pulse), true)
+		_ellipse(Vector2(0, -2), Vector2(width / 2, 7), Color(color, 0.55 + 0.35 * pulse), false)
 
 	if acting:
 		# losango dourado sobre a cabeça + base no chão
