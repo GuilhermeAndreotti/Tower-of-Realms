@@ -113,7 +113,13 @@ func _test_walls() -> void:
 	var y := lobby.player.position.y
 	check(y >= Lobby.BACK_LIMIT * Lobby.SCALE - 1, "não atravessa a parede do fundo (y=%d)" % y)
 	check(y <= Lobby.BACK_LIMIT * Lobby.SCALE + 15, "chega até a parede do fundo")
+	var walking := [false]
+	var watch := func(_from: int, to: int) -> void:
+		walking[0] = walking[0] or to == LobbyPlayer.Motion.WALKING
+	lobby.player._motion.changed.connect(watch)
 	await _hold(KEY_DOWN, 2.0)
+	lobby.player._motion.changed.disconnect(watch)
+	check(walking[0] and lobby.player._motion.state == LobbyPlayer.Motion.IDLE, "andando passa a WALKING e, ao soltar, volta a IDLE")
 	check(lobby.player.position.y <= Lobby.FRONT_LIMIT * Lobby.SCALE + 1, "não sai pela frente da tela")
 	await _by(Lobby.screen(Vector2(40, 170)))
 	await _hold(KEY_A, 1.0)
@@ -234,7 +240,9 @@ func _test_dialog() -> void:
 		{"text": "três"},
 		{"text": "quatro"},
 	]}
-	lobby._occupy(true)
+	lobby._mode.go(Lobby.Mode.TALKING)
+	check(lobby.mode == Lobby.Mode.TALKING and lobby.player.locked and lobby.player._motion.state == LobbyPlayer.Motion.LOCKED,
+		"conversa: o saguão fica em TALKING e a Caoimhe, travada (LOCKED)")
 	d.open(conversation, "Teste", null)
 	check(d.is_open() and events == ["opened"], "abre na primeira fala e avisa o evento")
 	await _by(lobby.player.position)
@@ -260,7 +268,7 @@ func _test_door() -> void:
 	await create_timer(0.6).timeout
 	check(lobby._rune_light > light, "as runas acendem com o jogador perto")
 	lobby.interact()
-	check(lobby.busy and lobby.player.locked, "ativar a porta trava o jogador")
+	check(lobby.mode == Lobby.Mode.LEAVING and lobby.player.locked, "ativar a porta trava o jogador (LEAVING)")
 	lobby.interact()
 	check(lobby.focus == null, "nada mais pode ser ativado durante a entrada")
 	await create_timer(1.0).timeout

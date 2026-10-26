@@ -290,7 +290,7 @@ func _test_lobby_presents() -> void:
 	Floors.complete(2)
 	var l: Lobby = await _open("res://lobby/lobby.tscn")
 	check(l._visuals.has("andri") and l._visuals.andri.modulate.a == 0.0, "o Andri começa escondido")
-	check(l.busy and l.player.locked, "o jogador fica parado durante a apresentação")
+	check(l.mode == Lobby.Mode.PRESENTING and l.player.locked, "o jogador fica parado durante a apresentação (PRESENTING)")
 	await create_timer(1.0).timeout
 	check(l._visuals.andri.modulate.a > 0.0 and "Andri Findavil chegou" in l.hud.announcement_text(), "ele surge com o anúncio")
 	await create_timer(2.5).timeout
@@ -309,7 +309,7 @@ func _test_lobby_line_event() -> void:
 	await create_timer(0.7).timeout
 	check(not l._visuals.has("andri"), "jogo novo: o Andri não está no saguão")
 	var conversation := {"lines": [{"text": "Chegou alguém.", "event": "unlock:andri"}, {"text": "Fim."}]}
-	l._occupy(true)
+	l._mode.go(Lobby.Mode.TALKING)
 	l.hud.dialog.open(conversation, "Teste", null)
 	check("andri" in Roster.available(), "a fala com evento libera na hora")
 	l.hud.dialog.handle_key(KEY_ENTER)

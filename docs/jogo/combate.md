@@ -88,6 +88,20 @@ A batalha não sabe que invocações existem em cada kit: tudo vem da `Summon` q
 
 **Último recurso** (`last_resort`, como o Ferro Negro do andar 5): quando um golpe deixa o inimigo de pé abaixo da fração `below` do HP, ele ganha um escudo (um `StatusEffect`) uma vez por luta. A regra é `Enemy.activate_last_resort()`; a batalha chama depois de cada golpe (`apply_damage()`), aplica o escudo e anuncia no meio da tela ("Ferro Negro ativado"). Golpe que mata direto não ativa.
 
+## Fases da luta
+
+A batalha é uma máquina de estados (`Battle.Phase`, numa `StateMachine`). A fase decide o que a entrada do jogador faz e quais trocas são possíveis; uma troca não declarada é recusada com erro no registro do Godot.
+
+| Fase              | O que acontece                                        | Entrada                                   | Vai para |
+| ----------------- | ----------------------------------------------------- | ----------------------------------------- | -------- |
+| `STARTING`        | a arena monta                                         | —                                         | `ACTING`, `OVER` |
+| `ACTING`          | alguém age: inimigo, invocação ou o aliado depois de escolher | ←/→ e clique trocam o alvo (para o próximo golpe) | `PLAYER_TURN`, `OVER` |
+| `PLAYER_TURN`     | esperando a ação do aliado da vez                     | teclas da barra, alvo                      | `CHOOSING_OPTION`, `ACTING`, `OVER` |
+| `CHOOSING_OPTION` | o seletor de opções da ação está aberto               | ↑/↓, 1-9 (no anel, ←/→), Enter, Esc       | `PLAYER_TURN`, `ACTING`, `OVER` |
+| `OVER`            | o resultado está na tela                              | Enter, Esc ou clique voltam ao saguão     | — |
+
+`waiting_for_player` e `over` são leituras da fase (`PLAYER_TURN` ou `CHOOSING_OPTION`; `OVER`), não variáveis soltas.
+
 ## Fim da luta
 
 A luta acaba quando um dos lados cai (do lado aliado, a equipe; invocações não contam). Na vitória, a batalha dá a XP e registra o andar uma única vez (`_reward()`); depois, Enter, Esc ou clique voltam ao saguão. Não existe abandonar no meio.

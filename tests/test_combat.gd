@@ -44,6 +44,7 @@ func _initialize() -> void:
 	await _test_askara_in_battle()
 	await _test_bang_in_battle()
 	await _test_black_iron_in_battle()
+	await _test_battle_phases()
 	Progression.delete()
 	print("\n%s (%d falha%s)" % ["TUDO OK" if _failures == 0 else "FALHOU", _failures, "" if _failures == 1 else "s"])
 	quit(1 if _failures else 0)
@@ -931,3 +932,43 @@ func _test_black_iron_in_battle() -> void:
 	check(is_zero_approx(b.hud._hp_bar.shield) and not b.hud._shield_text.visible, "sem escudo, a barra volta ao normal")
 	b.queue_free()
 	await process_frame
+
+
+func _test_battle_phases() -> void:
+	print("fases da batalha (máquina de estados)")
+	Progression.delete()
+	for n in range(1, 3):
+		Progression.mark_floor_cleared(n)
+	Progression.unlock("andri")
+	Floors.choose(3)
+	Roster.set_team(["andri", "shumi"])
+	var b: Battle = (load("res://combat/battle.tscn") as PackedScene).instantiate()
+	root.add_child(b)
+	current_scene = b
+	var seen: Array = []
+	b._phase.changed.connect(func(_from: int, to: int) -> void: seen.append(to))
+	await process_frame
+	check(b.phase == Battle.Phase.STARTING and not b.waiting_for_player and not b.over, "a luta começa montando a arena")
+	for foe in b.enemies:
+		foe.av = 1e9
+	b.team[1].av = 1e9  # o Andri age primeiro
+	while not b.waiting_for_player:
+		await process_frame
+	# a lente do Andri abre sozinha no começo da vez
+	check(b.phase == Battle.Phase.CHOOSING_OPTION and b._choosing == "lens" and b.waiting_for_player,
+		"a vez do Andri abre o seletor da lente (CHOOSING_OPTION)")
+	check(seen.slice(0, 3) == [Battle.Phase.ACTING, Battle.Phase.PLAYER_TURN, Battle.Phase.CHOOSING_OPTION],
+		"STARTING -> ACTING -> PLAYER_TURN -> CHOOSING_OPTION")
+	b.cancel_choice()
+	check(b.phase == Battle.Phase.PLAYER_TURN and b.waiting_for_player, "Esc fecha o seletor e a vez continua (PLAYER_TURN)")
+	b.request_action("basic")
+	check(b.phase == Battle.Phase.ACTING and not b.waiting_for_player, "escolhida a ação, a fase é ACTING")
+	check(not b._phase.can_go(Battle.Phase.STARTING) and b._phase.can_go(Battle.Phase.PLAYER_TURN),
+		"só as trocas declaradas valem (ACTING não volta a STARTING)")
+	for foe in b.enemies:
+		foe.hp = 0
+	b._check_end()
+	check(b.phase == Battle.Phase.OVER and b.over, "inimigos no chão: OVER")
+	b.queue_free()
+	await process_frame
+

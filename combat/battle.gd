@@ -20,6 +20,14 @@ signal action_chosen(action: String)
 signal message_logged(text: String)
 signal announced(text: String, color: Color, font_size: int)
 
+## Fases da luta. A fase decide o que a entrada do jogador faz (ver
+## _unhandled_input); as trocas possíveis estão em _phase.
+##  STARTING: a arena monta. ACTING: alguém age (inimigo, invocação ou o
+##  aliado depois de escolher). PLAYER_TURN: esperando a ação do aliado da
+##  vez. CHOOSING_OPTION: o seletor de opções da ação está aberto. OVER: a
+##  luta acabou e o resultado está na tela.
+enum Phase { STARTING, ACTING, PLAYER_TURN, CHOOSING_OPTION, OVER }
+
 const MAX_POINTS := 5
 const STARTING_POINTS := 3
 const QUEUE_SIZE := 7
@@ -46,8 +54,13 @@ var enemies: Array[Enemy] = []
 var fighters: Array[Combatant] = []
 var summons: Array[Summon] = []  ## as que estão em campo
 var points := STARTING_POINTS
-var waiting_for_player := false
-var over := false
+var phase: Phase:
+	get: return _phase.state as Phase
+## A vez é do jogador (com ou sem o seletor de opções aberto).
+var waiting_for_player: bool:
+	get: return _phase.is_in([Phase.PLAYER_TURN, Phase.CHOOSING_OPTION])
+var over: bool:
+	get: return _phase.state == Phase.OVER
 var active: Combatant  ## aliado da vez (ou o último que agiu)
 var target := 0  ## índice entre os inimigos vivos
 var ally_target := 0  ## índice em allies_on_field() (ações com alvo "ally")
@@ -70,7 +83,13 @@ var _summon_slots := {}  ## Summon -> índice em SUMMON_POSITIONS
 var _actions := {}  ## aliado -> CharacterActions
 var _focus := ""  ## habilidade com o mouse em cima (prévia de alvos)
 var _actor: Combatant
-var _choosing := ""  ## ação com o seletor de opções aberto
+var _phase := StateMachine.new(Phase.STARTING, {
+	Phase.STARTING: [Phase.ACTING, Phase.OVER],
+	Phase.ACTING: [Phase.PLAYER_TURN, Phase.OVER],
+	Phase.PLAYER_TURN: [Phase.CHOOSING_OPTION, Phase.ACTING, Phase.OVER],
+	Phase.CHOOSING_OPTION: [Phase.PLAYER_TURN, Phase.ACTING, Phase.OVER],
+}, Phase.keys())
+var _choosing := ""  ## ação com o seletor de opções aberto (CHOOSING_OPTION)
 var _option_index := 0
 var _radial: RadialSelector  ## o seletor em anel, quando a ação pede
 ## Primeiro inimigo que a ação de aliado em curso acertou (ver
@@ -159,6 +178,7 @@ func request_action(action: String) -> void:
 	var h := _skill(active, action)
 	if h.has("options") and active.can_use(action, points):
 		_choosing = action
+		_phase.go(Phase.CHOOSING_OPTION)
 		var ids: Array = h.options.map(func(o: Dictionary) -> String: return o.id)
 		_option_index = maxi(0, ids.find(h.get("default_option", "")))
 		if h.get("selector", "") == "radial":
@@ -207,8 +227,11 @@ func cancel_choice() -> void:
 		refresh()
 
 
+## Fecha o seletor. Se a ação foi confirmada, a fase já passou a ACTING.
 func _close_choice() -> void:
 	_choosing = ""
+	if _phase.state == Phase.CHOOSING_OPTION:
+		_phase.go(Phase.PLAYER_TURN)
 	hud.close_options()
 	if is_instance_valid(_radial):
 		_radial.close()
@@ -242,51 +265,75 @@ func _refresh_choice() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if over:
-		if event is InputEventKey and event.pressed and not event.echo:
-			if event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_ESCAPE]:
-				_back_to_lobby()
+	if _phase.state == Phase.OVER:
+		_input_over(event)
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
-		if _choosing != "":
-			var n: int = _skill(active, _choosing).get("options", []).size()
-			var step := 0
-			match event.keycode:
-				KEY_UP: step = -1
-				KEY_DOWN: step = 1
-				KEY_LEFT, KEY_A: step = -1 if is_instance_valid(_radial) else 0
-				KEY_RIGHT, KEY_D: step = 1 if is_instance_valid(_radial) else 0
-				KEY_ENTER, KEY_KP_ENTER, KEY_SPACE: confirm_choice()
-				KEY_ESCAPE: cancel_choice()
-			if step != 0:
-				# no anel, ←/→ giram o tambor em vez de trocar o alvo
-				select_option(posmod(_option_index + step, n))
-				return
-			if event.keycode >= KEY_1 and event.keycode <= KEY_9:
-				select_option(event.keycode - KEY_1)
-		match event.keycode:
-			KEY_LEFT, KEY_A: _change_target(-1)
-			KEY_RIGHT, KEY_D: _change_target(1)
-			_:
-				# teclas das habilidades vêm do kit de quem está na vez
-				var key := OS.get_keycode_string(event.keycode)
-				for h in active.skills(points):
-					if h.key == key:
-						request_action(h.action)
+		if _phase.state == Phase.CHOOSING_OPTION and _input_choosing(event.keycode):
+			return
+		_input_keys(event.keycode)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var on_ally := _aiming_at_ally()
-		var alive: Array = allies_on_field() if on_ally else living_enemies()
-		for i in alive.size():
-			var v: FighterVisual = _visuals[alive[i]]
-			var area := Rect2(v.position.x - 60, v.position.y - v.height - 20, 120, v.height + 30)
-			if area.has_point(get_global_mouse_position()):
-				if on_ally:
-					ally_target = i
-				else:
-					target = i
-				_on_target_changed()
+		_click_fighter(get_global_mouse_position())
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		cancel_choice()
+
+
+## OVER: Enter, Espaço ou Esc voltam ao saguão.
+func _input_over(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_ESCAPE]:
+			_back_to_lobby()
+
+
+## CHOOSING_OPTION: navega no seletor. Devolve true se a tecla acabou aqui;
+## senão ela segue para as teclas de sempre (alvo e habilidades).
+func _input_choosing(keycode: int) -> bool:
+	var n: int = _skill(active, _choosing).get("options", []).size()
+	var step := 0
+	match keycode:
+		KEY_UP: step = -1
+		KEY_DOWN: step = 1
+		KEY_LEFT, KEY_A: step = -1 if is_instance_valid(_radial) else 0
+		KEY_RIGHT, KEY_D: step = 1 if is_instance_valid(_radial) else 0
+		KEY_ENTER, KEY_KP_ENTER, KEY_SPACE: confirm_choice()
+		KEY_ESCAPE: cancel_choice()
+	if step != 0:
+		# no anel, ←/→ giram o tambor em vez de trocar o alvo
+		select_option(posmod(_option_index + step, n))
+		return true
+	if keycode >= KEY_1 and keycode <= KEY_9:
+		select_option(keycode - KEY_1)
+	return false
+
+
+## Fora do fim: ←/→ trocam o alvo (também enquanto outros agem, para o
+## próximo golpe) e as teclas da barra pedem a habilidade, que só vale na vez
+## do jogador (request_action confere).
+func _input_keys(keycode: int) -> void:
+	match keycode:
+		KEY_LEFT, KEY_A: _change_target(-1)
+		KEY_RIGHT, KEY_D: _change_target(1)
+		_:
+			# teclas das habilidades vêm do kit de quem está na vez
+			var key := OS.get_keycode_string(keycode)
+			for h in active.skills(points):
+				if h.key == key:
+					request_action(h.action)
+
+
+## Clique num lutador o escolhe como alvo (aliado ou inimigo, conforme a ação em foco).
+func _click_fighter(point: Vector2) -> void:
+	var on_ally := _aiming_at_ally()
+	var alive: Array = allies_on_field() if on_ally else living_enemies()
+	for i in alive.size():
+		var v: FighterVisual = _visuals[alive[i]]
+		var area := Rect2(v.position.x - 60, v.position.y - v.height - 20, 120, v.height + 30)
+		if area.has_point(point):
+			if on_ally:
+				ally_target = i
+			else:
+				target = i
+			_on_target_changed()
 
 
 ## A ação em foco (ou no seletor) mira um aliado?
@@ -354,6 +401,7 @@ func allies_on_field() -> Array[Combatant]:
 
 func _run() -> void:
 	await wait(0.6)
+	_phase.go(Phase.ACTING)
 	while not over:
 		_actor = TurnQueue.next(fighters)
 		TurnQueue.advance_to(fighters, _actor)
@@ -389,7 +437,7 @@ func _ally_turn(a: Combatant) -> void:
 		return
 
 	ally_target = maxi(0, allies_on_field().find(a))  # o próprio, por padrão
-	waiting_for_player = true
+	_phase.go(Phase.PLAYER_TURN)
 	refresh()
 	# escolhas de começo de turno (ex.: a lente do Andri) abrem sozinhas;
 	# usar outra ação direto fecha o seletor e mantém a escolha anterior
@@ -402,7 +450,7 @@ func _ally_turn(a: Combatant) -> void:
 		if not a.can_use(action, points):
 			continue
 		var h := _skill(a, action)
-		waiting_for_player = false
+		_phase.go(Phase.ACTING)
 		_focus = ""
 		points -= h.get("point_cost", 0)
 		refresh()
@@ -413,7 +461,7 @@ func _ally_turn(a: Combatant) -> void:
 		a.start_cooldown(action, h.get("cooldown", 0))
 		if over or not h.get("free", false):
 			break
-		waiting_for_player = true
+		_phase.go(Phase.PLAYER_TURN)
 		refresh()
 	actions.end_turn()
 
@@ -596,8 +644,7 @@ func _check_end() -> void:
 
 
 func _finish(victory: bool, text: String) -> void:
-	over = true
-	waiting_for_player = false
+	_phase.go(Phase.OVER)
 	if victory:
 		_reward()
 	var extras: Array[String] = []

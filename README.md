@@ -212,7 +212,9 @@ godot --headless --path . -s tests/test_menu.gd         # menu inicial e slots d
 ## 📁 Estrutura do projeto
 
 ```
+core/                o que não é de uma feature só (a máquina de estados)
 combat/              batalha: cena, regras (combatente, estados, tipos, fila, invocações), base das animações e efeitos
+  components/        componentes do lutador: HP, estados e recargas
   hud/               interface da batalha: HUD, slots de habilidade, ordem de ação, seletor radial
 characters/          elenco e uma pasta por herói: regras, animações, sprites, ícones e README
 enemies/             inimigo comum e a arte dos inimigos
@@ -226,7 +228,7 @@ tools/               scripts de captura, simulação e geração de assets
 docs/                documentação técnica
 ```
 
-As **regras** (`Combatant`) ficam separadas das **animações** (`CharacterActions`) e da **interface** (`BattleHud`). Por isso a lógica pode ser testada sem abrir o jogo.
+As **regras** (`Combatant`) ficam separadas das **animações** (`CharacterActions`) e da **interface** (`BattleHud`). Por isso a lógica pode ser testada sem abrir o jogo. O lutador é montado com componentes (HP, estados, recargas), a interface é avisada por sinais e as fases da batalha e do saguão são máquinas de estados ([padrões do projeto](docs/arquitetura/visao-geral.md#padrões)).
 
 ---
 

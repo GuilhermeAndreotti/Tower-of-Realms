@@ -11,6 +11,14 @@ extends Node2D
 ## apresenta os eventos de história pendentes (StoryEvents), na ordem: quem
 ## chegou à Torre surge com destaque e as conversas de história abrem.
 
+## O que está acontecendo no saguão. O estado decide o que as teclas fazem
+## e se o jogador anda (ver _on_mode_changed); as trocas possíveis estão em
+## _mode.
+##  EXPLORING: anda e aborda. TALKING: conversa aberta. PRESENTING: os
+##  eventos de história pendentes estão sendo apresentados. LEAVING: a tela
+##  escurece para a dungeon ou para o menu.
+enum Mode { EXPLORING, TALKING, PRESENTING, LEAVING }
+
 const SCALE := 3.0
 const FOLDER := "res://lobby/art/"
 ## A porta leva à escolha do andar (depois, a equipe e a batalha).
@@ -93,7 +101,11 @@ var hud: LobbyHud
 var world: Node2D  ## móveis e personagens, ordenados pela altura dos pés
 var interactables: Array[Interactable] = []
 var focus: Interactable  ## o que está ao alcance agora
-var busy := false  ## conversa aberta ou entrando na dungeon
+var mode: Mode:
+	get: return _mode.state as Mode
+## Uma interação está em andamento: o jogador não anda nem aborda ninguém.
+var busy: bool:
+	get: return _mode.state != Mode.EXPLORING
 
 var _door: Interactable
 var _runes: Sprite2D
@@ -103,7 +115,11 @@ var _rune_light := 0.35
 var _time := 0.0
 var _visuals := {}  ## id do Roster -> FighterVisual no saguão
 var _free_spots: Array = []
-var _running_events := false
+var _mode := StateMachine.new(Mode.EXPLORING, {
+	Mode.EXPLORING: [Mode.TALKING, Mode.PRESENTING, Mode.LEAVING],
+	Mode.TALKING: [Mode.EXPLORING],
+	Mode.PRESENTING: [Mode.EXPLORING],
+}, Mode.keys())
 
 
 static func screen(p: Vector2) -> Vector2:
@@ -126,6 +142,7 @@ func _ready() -> void:
 	_build_lights()
 	_build_door()
 	_build_player()
+	_mode.changed.connect(_on_mode_changed)
 	_build_characters()
 	_build_camera()
 
@@ -138,9 +155,10 @@ func _ready() -> void:
 		if e.get("type", "") == "unlock" and _visuals.has(e.get("id", "")):
 			_visuals[e.id].modulate.a = 0.0
 	if not Progression.pending_events().is_empty():
-		_occupy(true)
+		_mode.go(Mode.PRESENTING)  # parado já durante o fade
 	await hud.veil(0.0, 0.5).finished
-	run_events()
+	if _mode.state == Mode.PRESENTING:
+		await _present_pending()
 
 
 # ------------------------------------------------------------------ montagem
@@ -245,7 +263,7 @@ func _build_door() -> void:
 
 func _build_player() -> void:
 	player = LobbyPlayer.new()
-	player.start("caoimhe", CAOIMHE)
+	player.setup("caoimhe", CAOIMHE)
 	var entrance: Vector2 = ENTRANCES.get(Engine.get_meta(ENTRANCE_META, "start"), ENTRANCES.start)
 	player.position = screen(entrance)
 	player.reset_physics_interpolation.call_deferred()
@@ -341,16 +359,19 @@ func _refresh_focus() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
-	if hud.dialog.is_open():
-		hud.dialog.handle_key(event.keycode)
-		get_viewport().set_input_as_handled()
-		return
-	if event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
-		interact()
-		get_viewport().set_input_as_handled()
-	elif event.keycode == KEY_ESCAPE:
-		back_to_menu()
-		get_viewport().set_input_as_handled()
+	match _mode.state:
+		Mode.TALKING, Mode.PRESENTING:
+			# a caixa de diálogo fica com as teclas enquanto estiver aberta
+			if hud.dialog.is_open():
+				hud.dialog.handle_key(event.keycode)
+				get_viewport().set_input_as_handled()
+		Mode.EXPLORING:
+			if event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+				interact()
+				get_viewport().set_input_as_handled()
+			elif event.keycode == KEY_ESCAPE:
+				back_to_menu()
+				get_viewport().set_input_as_handled()
 
 
 ## Interage com o que está em foco. Uma interação por vez: enquanto uma
@@ -370,14 +391,14 @@ func _talk_to(it: Interactable) -> void:
 	if conversation.get("lines", []).is_empty():
 		hud.warn("%s: interação ainda não disponível." % it.title)
 		return
-	_occupy(true)
+	_mode.go(Mode.TALKING)
 	hud.dialog.open(conversation, it.title, it.portrait)
 
 
 func _on_conversation_finished() -> void:
-	if _running_events:
-		return  # quem segue é run_events()
-	_occupy(false)
+	if _mode.state != Mode.TALKING:
+		return  # conversa de história: quem segue é _present_pending()
+	_mode.go(Mode.EXPLORING)
 	run_events()
 
 
@@ -396,15 +417,17 @@ func _on_line_event(event_text: String) -> void:
 ## Cada um sai da fila depois de apresentado (fechar o jogo no meio não perde
 ## o resto).
 func run_events() -> void:
-	if _running_events or Progression.pending_events().is_empty():
+	if _mode.state != Mode.EXPLORING or Progression.pending_events().is_empty():
 		return
-	_running_events = true
-	_occupy(true)
+	_mode.go(Mode.PRESENTING)
+	await _present_pending()
+
+
+func _present_pending() -> void:
 	while not Progression.pending_events().is_empty():
 		await _present(Progression.pending_events()[0])
 		Progression.pop_pending_event()
-	_running_events = false
-	_occupy(false)
+	_mode.go(Mode.EXPLORING)
 
 
 func _present(e: Dictionary) -> void:
@@ -445,16 +468,16 @@ func _interactable(id: String) -> Interactable:
 	return null
 
 
-func _occupy(yes: bool) -> void:
-	busy = yes
-	player.locked = yes
-	if yes and focus:
+## Fora de EXPLORING o jogador fica parado e nada fica em foco.
+func _on_mode_changed(_from: int, to: int) -> void:
+	player.locked = to != Mode.EXPLORING
+	if to != Mode.EXPLORING and focus:
 		focus.focused = false
 		focus = null
 
 
 func enter_dungeon() -> void:
-	_occupy(true)
+	_mode.go(Mode.LEAVING)
 	_rune_light = 1.6
 	CombatEffects.ring(self, screen(DOOR + Vector2(0, -36)), RUNE_COLOR, 110.0)
 	await hud.veil(1.0, 0.6).finished
@@ -466,7 +489,7 @@ func enter_dungeon() -> void:
 func back_to_menu() -> void:
 	if busy:
 		return
-	_occupy(true)
+	_mode.go(Mode.LEAVING)
 	await hud.veil(1.0, 0.4).finished
 	get_tree().change_scene_to_file(MENU_SCENE)
 

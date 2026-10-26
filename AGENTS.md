@@ -20,7 +20,8 @@ Não crie documento novo sem verificar se o assunto já tem um. Mudou uma regra?
 
 ## Invariantes essenciais
 
-- Regras, animações e interface ficam separadas: `Combatant` e subclasses não tocam em nós de cena; `CharacterActions` não decide dano; a HUD não tem regra ([visão geral](docs/arquitetura/visao-geral.md#camadas)).
+- Regras, animações e interface ficam separadas: `Combatant` e subclasses não tocam em nós de cena; `CharacterActions` não decide dano; a HUD não tem regra ([visão geral](docs/arquitetura/visao-geral.md#camadas)). Regras e animações falam com a interface por sinais (`Battle.log_line()`, `Battle.announce()`), nunca chamando a HUD.
+- Fases de fluxo (a vez na batalha, o que acontece no saguão, o movimento da Caoimhe) ficam numa `StateMachine` com as trocas declaradas; não volte a controlar isso com flags soltas ([padrões](docs/arquitetura/visao-geral.md#padrões)).
 - Batalha, HUD e progressão não têm condicionais por personagem: tudo vem de `Roster.data()` e do kit ([personagens](docs/jogo/personagens.md)).
 - Fórmulas de XP e nível só em `Progression`; o limite de nível só em `Floors.level_limit()` ([progressão](docs/jogo/progressao.md)).
 - Atributos de nível são sempre recalculados a partir do nível 1; modificadores temporários nunca são somados nos campos base.

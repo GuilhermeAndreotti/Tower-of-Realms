@@ -1,6 +1,6 @@
 # Visão geral da arquitetura
 
-*Tower of Realms* é um projeto Godot 4.7 em GDScript com tipagem estática, sem plugins nem autoloads. Tudo que é compartilhado entre telas mora em classes com `class_name` e funções `static`.
+*Tower of Realms* é um projeto Godot 4.7 em GDScript com tipagem estática, sem plugins nem autoloads. Tudo que é compartilhado entre telas mora em classes com `class_name` e funções `static`. O código usa nomes em inglês; comentários, documentação e textos do jogo ficam em pt-BR.
 
 ## Fluxo de cenas
 
@@ -48,7 +48,9 @@ O save é um `ConfigFile` lido uma vez e mantido em memória (`Progression._save
 ## Pastas
 
 ```
+core/          o que não é de uma feature só (a StateMachine)
 combat/        a batalha: cena, regras (Combatant, StatusEffect, Types, fila, invocações), base das animações e efeitos
+  components/  componentes do lutador: Health, StatusEffects, Cooldowns
   hud/         interface da batalha: HUD, slots, ordem de ação, seletor radial
 characters/    Roster e uma pasta por herói (regras, animações, arte, README)
 enemies/       Enemy e a arte dos inimigos
@@ -65,3 +67,15 @@ docs/          esta documentação
 Cada pasta é uma feature: a cena, o script e a arte dela ficam juntos, e o que só ela usa não sai de lá. O que várias telas usam (estilo, barras, cartão de habilidade) fica em `ui/`.
 
 As cenas montam a interface por código no `_ready()`; os `.tscn` só apontam para o script e ficam na pasta da feature.
+
+## Padrões
+
+| Padrão | Onde | Por quê |
+| ------ | ---- | ------- |
+| Pastas por feature | todas as pastas acima | a cena, o script e a arte de uma feature mudam juntos; dá para mexer numa (ou tirar) sem caçar arquivos pelo projeto |
+| Composição | `Combatant` com `Health`, `StatusEffects` e `Cooldowns`; `FighterVisual` com o nó `FighterBar`; o saguão com nós `Interactable` | cada parte faz uma coisa e é testada sozinha; kits novos herdam só o que é regra de kit |
+| Sinais | `Battle.message_logged`/`announced` → HUD; `Health.changed` → `FighterBar`; `Interactable.interacted` → `Lobby`; a HUD, o `SkillSlot`, o `RadialSelector` e a `DialogBox` avisam o que o jogador pediu | quem emite não conhece quem escuta: regras e animações não chamam a interface, e cada cena pode ser testada sozinha |
+| Máquina de estados | `StateMachine` (`core/`) nas fases da batalha (`Battle.Phase`), no saguão (`Lobby.Mode`) e no movimento da Caoimhe (`LobbyPlayer.Motion`) | troca o emaranhado de flags (`waiting_for_player`, `over`, `busy`...) por um estado só, com as trocas declaradas e a entrada decidida por estado |
+| Autoloads | nenhum | o estado entre cenas cabe em classes estáticas (`Progression`, `Roster`, `Floors`) e no save; um autoload só entra se aparecer algo que precise de um nó vivo entre cenas (áudio contínuo, por exemplo) |
+
+Na hora de acrescentar algo: lógica que aparece em mais de um lutador vira componente; aviso para a interface vira sinal; mais de um booleano dizendo "em que momento estamos" vira estado de uma `StateMachine`.
