@@ -14,7 +14,7 @@ e o projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Esc no saguão volta ao menu inicial.
 - Saguão da Torre como tela inicial: a Caoimhe anda livre pela sala (setas ou WASD), com colisão nos móveis, câmera que a acompanha, tochas, lareira e braseiros acesos. Os personagens liberados ficam espalhados pela sala e mostram nome e "[Enter] Falar" quando ela se aproxima. A porta da dungeon fica no centro da parede do fundo, com runas que acendem de perto.
 - Caixa de diálogo do saguão, com retrato, nome, falas, respostas e eventos por fala, pronta para receber conversas.
-- Quatro andares na Torre, cada um com nome, descrição, inimigos, nível recomendado, limite de equipe e limite de nível: Vigia da Entrada, Salão do Guardião, Guarnição e Trono Sombrio (chefe: Guardião Sombrio, de Trevas). Vencer um andar libera o seguinte; andares vencidos podem ser repetidos.
+- Cinco andares na Torre, cada um com nome, descrição, inimigos, nível recomendado, limite de equipe e limite de nível: Vigia da Entrada, Salão do Guardião, Guarnição, Trono Sombrio (chefe: Guardião Sombrio, de Trevas) e Forja de Pedra. Vencer um andar libera o seguinte; andares vencidos podem ser repetidos.
 - Tela de escolha do andar entre a porta e a montagem da equipe, com os andares empilhados como uma torre (vencido, novo ou trancado), inimigos, recompensa, nível recomendado e o limite de nível atual.
 - Eventos de história: o Andri chega à Torre na primeira vitória do Salão do Guardião e surge no saguão com um anúncio. Andares e falas de conversa podem liberar personagens ou abrir conversas.
 - Níveis e experiência (nível 1 a 20) para cada personagem, com crescimento próprio por nível (Shumi: HP +60, ATQ +8, DEF +2, VEL +0,5; Andri: HP +50, ATQ +5,5, DEF +3, VEL +1).
@@ -43,6 +43,9 @@ e o projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - A lista de habilidades na montagem da equipe ocupa o espaço que sobra na ficha e rola quando o kit não cabe.
 - Explicação das habilidades em cartões, na barra da batalha e na montagem da equipe: nome, etiquetas (passiva, custo, recarga, alvo e elemento), um resumo curto e, quando a habilidade tem vários itens, uma linha para cada um, com o atual em destaque: os demônios da Invocação e do Último Ato, os Lordes, os artefatos do Arsenal, as opções do Protocolo, os níveis do Kaioken e do Engo-ji, e o dano do Finger Beam e a energia do Limite Humano por nível.
 - A barra de habilidades da batalha mostra também a passiva de cada personagem, no fim, marcada como PASSIVA e explicada ao passar o mouse, no mesmo padrão das outras. A Shumi passa a ter a passiva Limite Humano explicada (com ícone novo), e a Àskara, o Fragmento d'Alma.
+- Andar 5, Forja de Pedra: a primeira luta com equipe de 3, contra o chefe Golem de Pedra (HP 4800, ATQ 450, DEF 100, VEL 82, Físico, Golpe Pesado a cada 3) e dois Elementais de Fogo (HP 1000, ATQ 360, DEF 45, VEL 118 e 124). Nível recomendado 8, limite de nível 11, 1000 de XP. Na simulação, com Shumi, Andri e Àskara: 6/16 vitórias no nível 7, 11/16 no 8 e 14/16 no 11 (andar 4 no recomendado: 10/12).
+- Ferro Negro: os inimigos do andar 5, quando o HP cai abaixo de 30%, ativam o Ferro Negro uma vez por luta. "Ferro Negro ativado" aparece no meio da tela e eles ganham um escudo de 25% do HP máximo por 3 turnos.
+- Escudos visíveis na barra de HP: quem tem escudo ganha um contorno azul na barra e uma faixa azul do tamanho do escudo, no painel do personagem da vez (com o valor, +N, ao lado do HP), nos cartões da equipe e nas barras sobre os lutadores na arena.
 
 ### Changed
 

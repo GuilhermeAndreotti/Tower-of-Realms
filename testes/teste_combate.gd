@@ -35,12 +35,14 @@ func _init() -> void:
 	_teste_shumi_bang()
 	_teste_andri_protocolo()
 	_teste_askara_ultimo_ato()
+	_teste_ultimo_recurso()
 
 
 ## Os testes com a batalha de verdade precisam da árvore de cenas.
 func _initialize() -> void:
 	await _teste_askara_na_batalha()
 	await _teste_bang_na_batalha()
+	await _teste_ferro_negro_na_batalha()
 	Progressao.apagar()
 	print("\n%s (%d falha%s)" % ["TUDO OK" if _falhas == 0 else "FALHOU", _falhas, "" if _falhas == 1 else "s"])
 	quit(1 if _falhas else 0)
@@ -812,5 +814,68 @@ func _teste_bang_na_batalha() -> void:
 			break
 		await process_frame
 	checar(s.estado("bang") != null and b.visual(s).frames() == normal, "depois do tiro, volta ao visual normal (o Bang! continua)")
+	b.queue_free()
+	await process_frame
+
+
+func _teste_ultimo_recurso() -> void:
+	print("último recurso dos inimigos (Ferro Negro)")
+	var ini := Inimigo.new("G", "", 1000, 100, 0, 100)
+	ini.ultimo_recurso = Andares.FERRO_NEGRO
+	ini.hp = 400
+	checar(ini.ativar_ultimo_recurso() == null, "acima de 30% do HP, nada")
+	ini.hp = 290
+	var e := ini.ativar_ultimo_recurso()
+	checar(e != null and e.nome == "Ferro Negro" and e.escudo == 250 and e.turnos == 3, "abaixo de 30%: escudo de 25% do HP máximo por 3 turnos")
+	ini.aplicar_estado(e)
+	checar(ini.escudo() == 250 and ini.efeitos().any(func(d: Dictionary) -> bool: return d.curto == "FN"), "o escudo aparece nos efeitos")
+	ini.hp = 100
+	checar(ini.ativar_ultimo_recurso() == null, "uma vez por luta")
+	var caido := Inimigo.new("G", "", 1000, 100, 0, 100)
+	caido.ultimo_recurso = Andares.FERRO_NEGRO
+	caido.hp = 0
+	checar(caido.ativar_ultimo_recurso() == null, "quem já caiu não ativa")
+	var comum := Inimigo.new("S", "", 1000, 100, 0, 100)
+	comum.hp = 10
+	checar(comum.ativar_ultimo_recurso() == null, "inimigo sem último recurso nunca ativa")
+
+
+func _teste_ferro_negro_na_batalha() -> void:
+	print("ferro negro na batalha")
+	Progressao.apagar()
+	for n in range(1, 5):
+		Progressao.marcar_andar_vencido(n)
+	Progressao.desbloquear("andri")
+	Progressao.desbloquear("askara")
+	Andares.escolher(5)
+	Elenco.definir_equipe(["shumi", "andri", "askara"])
+	var b: Batalha = (load("res://scenes/batalha.tscn") as PackedScene).instantiate()
+	root.add_child(b)
+	current_scene = b
+	await process_frame
+	for c in b.lutadores:
+		c.av = 1e9
+	checar(b.andar == 5 and b.equipe.size() == 3 and b.inimigos[1].nome == "Golem de Pedra", "andar 5: a equipe de três contra o Golem e os elementais")
+	var golem: Inimigo = b.inimigos[1]
+	var s := b.equipe[0]
+	golem.hp = ceili(golem.hp_max * 0.3) + 1  # qualquer golpe o deixa abaixo de 30%
+	await b.aplicar_dano(s, golem, 0.6)
+	checar(golem.vivo() and golem.escudo() == roundi(golem.hp_max * 0.25), "o golpe que deixa o Golem abaixo de 30% ativa o Ferro Negro")
+	checar(b.hud._anuncio.text == "Ferro Negro ativado", "o anúncio \"Ferro Negro ativado\" aparece na tela")
+	var escudo := golem.escudo()
+	var hp := golem.hp
+	await b.aplicar_dano(s, golem, 0.3)
+	checar(golem.hp == hp and golem.escudo() < escudo, "o escudo absorve os golpes seguintes")
+	# escudo de aliado na HUD: contorno na barra e o valor ao lado do HP
+	var esc := Estado.new("escudo", "Escudo", "E", "buff", 2)
+	esc.escudo = 150
+	s.aplicar_estado(esc)
+	b.ativo = s
+	b.atualizar()
+	checar(is_equal_approx(b.hud._barra_hp.escudo, 150.0) and b.hud._texto_escudo.visible and b.hud._texto_escudo.text == "+150",
+		"o escudo do aliado aparece na barra de HP e ao lado do valor")
+	s.remover_estado("escudo")
+	b.atualizar()
+	checar(is_zero_approx(b.hud._barra_hp.escudo) and not b.hud._texto_escudo.visible, "sem escudo, a barra volta ao normal")
 	b.queue_free()
 	await process_frame

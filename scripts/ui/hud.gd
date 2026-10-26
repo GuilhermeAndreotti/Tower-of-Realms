@@ -46,6 +46,7 @@ var _tipo: Control  ## selo do elemento ao lado do nome
 var _forma: Label
 var _barra_hp: BarraPixel
 var _texto_hp: Label
+var _texto_escudo: Label  ## "+N" ao lado do HP, quando há escudo
 var _barra_energia: BarraPixel
 var _texto_energia: Label
 var _linha_energia: Control
@@ -277,6 +278,11 @@ func _montar_personagem() -> void:
 	_barra_hp = linha_hp[1]
 	_barra_hp.cor_baixa = EstiloUI.HP_BAIXO
 	_texto_hp = linha_hp[2]
+	# o escudo aparece junto do HP, na cor do contorno da barra
+	_texto_escudo = EstiloUI.label("", 10, EstiloUI.ESCUDO.lightened(0.25), 3)
+	_texto_escudo.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	linha_hp[0].add_child(_texto_escudo)
+	linha_hp[0].move_child(_texto_escudo, 2)
 	v.add_child(linha_hp[0])
 	var linha_en := _linha_recurso("EN", EstiloUI.ENERGIA)
 	_linha_energia = linha_en[0]
@@ -385,6 +391,8 @@ func _desenhar_cartao(c: Control) -> void:
 	var frac_hp := float(a.hp) / a.hp_max
 	c.draw_rect(Rect2(x, 16, w, 5), Color.BLACK)
 	c.draw_rect(Rect2(x, 16, roundf(w * frac_hp), 5), EstiloUI.HP if frac_hp >= 0.3 else EstiloUI.HP_BAIXO)
+	if a.escudo() > 0:
+		EstiloUI.contorno_escudo(c, Rect2(x, 16, w, 5), float(a.escudo()) / a.hp_max)
 	if a.energia_max > 0:
 		c.draw_rect(Rect2(x, 23, w, 3), Color.BLACK)
 		c.draw_rect(Rect2(x, 23, roundf(w * a.energia / a.energia_max), 3), EstiloUI.ENERGIA)
@@ -624,7 +632,10 @@ func _atualizar_personagem() -> void:
 			filho.queue_free()
 		_tipo.add_child(EstiloUI.etiqueta_tipo(_ativo.tipo))
 	_barra_hp.definir(_ativo.hp, _ativo.hp_max)
+	_barra_hp.escudo = _ativo.escudo()
 	_texto_hp.text = "%d/%d" % [_ativo.hp, _ativo.hp_max]
+	_texto_escudo.visible = _ativo.escudo() > 0
+	_texto_escudo.text = "+%d" % _ativo.escudo()
 	_linha_energia.visible = _ativo.energia_max > 0
 	_barra_energia.definir(_ativo.energia, _ativo.energia_max)
 	_texto_energia.text = "%d/%d" % [_ativo.energia, _ativo.energia_max]

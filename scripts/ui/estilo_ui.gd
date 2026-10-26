@@ -21,6 +21,7 @@ const HP := Color(0.33, 0.86, 0.47)
 const HP_BAIXO := Color(0.95, 0.42, 0.3)
 const ENERGIA := Color(1.0, 0.78, 0.25)
 const PONTO := Color(0.55, 0.88, 1.0)
+const ESCUDO := Color(0.35, 0.68, 1.0)  ## contorno e faixa de escudo nas barras de HP
 const XP := Color(0.62, 0.5, 1.0)
 
 ## Cores dos números e mensagens de combate, por tipo de evento.
@@ -148,3 +149,16 @@ static func tecla(ci: CanvasItem, pos: Vector2, letra: String, ativo := true) ->
 	ci.draw_rect(r, Color(0.9, 0.88, 0.95) if ativo else Color(0.4, 0.4, 0.46))
 	ci.draw_rect(Rect2(r.position + Vector2(0, r.size.y - 2), Vector2(w, 2)), Color(0.55, 0.52, 0.65) if ativo else Color(0.28, 0.28, 0.33))
 	ci.draw_string(fonte(), pos + Vector2(0, 10), letra, HORIZONTAL_ALIGNMENT_CENTER, w, 10, Color(0.08, 0.07, 0.12))
+
+
+## Escudo numa barra de HP de retângulo `r` (borda incluída): contorno azul
+## em volta e, embaixo, uma faixa com `fracao` do comprimento (escudo / HP
+## máximo, cortada na barra cheia). Mesmo desenho na HUD e na arena.
+static func contorno_escudo(ci: CanvasItem, r: Rect2, fracao: float) -> void:
+	var dentro := r.grow(-1)
+	var altura := maxf(2.0, roundf(dentro.size.y * 0.4))
+	var faixa := Rect2(dentro.position.x, dentro.end.y - altura, roundf(dentro.size.x * clampf(fracao, 0.0, 1.0)), altura)
+	ci.draw_rect(faixa, ESCUDO)
+	ci.draw_rect(Rect2(faixa.position, Vector2(faixa.size.x, 1)), ESCUDO.lightened(0.5))
+	ci.draw_rect(r.grow(1), Color.BLACK, false, 1.0)
+	ci.draw_rect(r, ESCUDO.lightened(0.15), false, 1.0)

@@ -490,6 +490,8 @@ func aplicar_dano(atacante: Combatente, vitima: Combatente, mult: float, tipo_at
 		await _cair(vitima)
 	alvo = clampi(alvo, 0, maxi(0, inimigos_vivos().size() - 1))
 	atualizar()
+	if vitima is Inimigo:
+		await _ultimo_recurso(vitima as Inimigo)
 	if extra or not vitima.vivo():
 		return
 	for e in atacante.estados_ao_acertar():
@@ -499,6 +501,24 @@ func aplicar_dano(atacante: Combatente, vitima: Combatente, mult: float, tipo_at
 		await esperar(0.08)
 		hud.registrar("%s: dano extra de %s." % [g.fonte, HudBatalha.destaque(Tipos.nome(g.tipo), Tipos.cor(g.tipo))])
 		await aplicar_dano(atacante, vitima, g.mult, g.tipo, true)
+
+
+## Último recurso do inimigo (Inimigo.ultimo_recurso), se o golpe o deixou
+## abaixo da fração: anúncio no meio da tela e o escudo nele.
+func _ultimo_recurso(ini: Inimigo) -> void:
+	var e := ini.ativar_ultimo_recurso()
+	if e == null:
+		return
+	ini.aplicar_estado(e)
+	var vi: VisualLutador = _visuais[ini]
+	hud.anunciar("%s ativado" % e.nome, Inimigo.COR_ULTIMO_RECURSO, 34)
+	vi.piscar(Color(2.0, 2.1, 2.6))
+	EfeitosCombate.anel(mundo, vi.position + Vector2(0, -vi.altura * 0.5), Inimigo.COR_ULTIMO_RECURSO, maxf(50.0, vi.altura * 0.6))
+	EfeitosCombate.numero(mundo, vi.topo() + Vector2(0, -10), "+%d" % e.escudo, "escudo")
+	hud.registrar("%s ativou %s: escudo de %s." % [HudBatalha.nome(ini), HudBatalha.destaque(e.nome, Inimigo.COR_ULTIMO_RECURSO),
+		HudBatalha.destaque(str(e.escudo), EfeitosCombate.NUMEROS.escudo[0])])
+	atualizar()
+	await esperar(0.35)
 
 
 ## Ataque em conjunto (Combatente.atacar_junto): a ação de `ator` acertou um

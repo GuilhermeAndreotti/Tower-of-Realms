@@ -2,11 +2,17 @@ class_name BarraPixel
 extends Control
 ## Barra de recurso (HP, energia...) desenhada à mão. O valor desliza até o
 ## novo número; quando cai, um "rastro" claro fica para trás e some depois,
-## para dar para ler quanto se perdeu.
+## para dar para ler quanto se perdeu. Com `escudo`, ganha contorno azul e
+## uma faixa embaixo do tamanho do escudo (na mesma escala do máximo).
 
 var cor := EstiloUI.HP
 var cor_baixa := Color()  ## se definida, vira essa cor abaixo de 30%
 var marcas := 10  ## divisões finas na barra (0 = nenhuma)
+var escudo := 0.0:  ## escudo por cima do valor (HP), na escala de `maximo`
+	set(v):
+		if not is_equal_approx(v, escudo):
+			escudo = v
+			queue_redraw()
 
 var maximo := 1.0
 var _mostrado := 1.0  ## valor exibido (anima)
@@ -74,3 +80,5 @@ func _draw() -> void:
 		for i in range(1, marcas):
 			var x := dentro.position.x + roundf(dentro.size.x * i / marcas)
 			draw_rect(Rect2(x, dentro.position.y, 1, dentro.size.y), Color(0, 0, 0, 0.35))
+	if escudo > 0:
+		EstiloUI.contorno_escudo(self, r, escudo / maximo)

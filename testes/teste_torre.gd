@@ -82,7 +82,7 @@ func _vencer(b: Batalha) -> void:
 # ------------------------------------------------------------------ regras
 func _teste_cadastro() -> void:
 	print("cadastro dos andares")
-	checar(Andares.total() == 4, "4 andares")
+	checar(Andares.total() == 5, "5 andares")
 	var ok := true
 	for n in range(1, Andares.total() + 1):
 		var d := Andares.dados(n)
@@ -91,12 +91,18 @@ func _teste_cadastro() -> void:
 		for e: Dictionary in d.get("ao_vencer", []):
 			ok = ok and e.tipo in ["desbloquear", "conversa"]
 	checar(ok, "todo andar tem nome, de 1 a 3 inimigos e eventos válidos")
-	checar(Andares.max_equipe(1) == 1 and Andares.max_equipe(2) == 1 and Andares.max_equipe(3) == 2 and Andares.max_equipe(4) == 2,
-		"equipe: 1, 1, 2, 2")
-	var xps: Array = range(1, 5).map(func(n: int) -> int: return Progressao.xp_da_batalha(Andares.criar_inimigos(n)))
-	checar(xps == [150, 350, 600, 900], "XP por andar: 150, 350, 600, 900")
+	checar(Andares.max_equipe(1) == 1 and Andares.max_equipe(2) == 1 and Andares.max_equipe(3) == 2 and Andares.max_equipe(4) == 2
+		and Andares.max_equipe(5) == 3, "equipe: 1, 1, 2, 2, 3")
+	var xps: Array = range(1, 6).map(func(n: int) -> int: return Progressao.xp_da_batalha(Andares.criar_inimigos(n)))
+	checar(xps == [150, 350, 600, 900, 1000], "XP por andar: 150, 350, 600, 900, 1000")
 	var chefe := Andares.criar_inimigos(4)[1]
 	checar(chefe.nome == "Guardião Sombrio" and chefe.tipo == Tipos.TREVAS and chefe.golpe_pesado_a_cada == 2, "andar 4 tem o chefe de Trevas")
+	var forja := Andares.criar_inimigos(5)
+	checar(forja[1].nome == "Golem de Pedra" and forja[1].hp_max > forja[0].hp_max * 3 and forja[0].tipo == Tipos.FOGO and forja[2].tipo == Tipos.FOGO,
+		"andar 5: Golem de Pedra como chefe e dois Elementais de Fogo")
+	checar(forja.all(func(i: Inimigo) -> bool: return i.ultimo_recurso.get("nome", "") == "Ferro Negro"), "todos do andar 5 têm o Ferro Negro")
+	checar(range(1, 5).all(func(n: int) -> bool: return Andares.criar_inimigos(n).all(func(i: Inimigo) -> bool: return i.ultimo_recurso.is_empty())),
+		"os andares 1 a 4 não têm último recurso")
 	# ritmo: sem repetir nada, as primeiras vitórias levam ao recomendado do andar seguinte
 	var total := 0
 	var ritmo := true
@@ -149,9 +155,11 @@ func _teste_concluir() -> void:
 	checar(not c.primeira and c.eventos.is_empty() and Progressao.eventos_pendentes().size() == 1, "repetir o 2 não repete a história")
 	Andares.concluir(3)
 	c = Andares.concluir(4)
-	checar(c.primeira and c.liberou == 0, "o andar 4 é o último")
+	checar(c.primeira and c.liberou == 5 and c.limite_depois == 11, "vencer o 4 libera o 5 (limite 11)")
+	c = Andares.concluir(5)
+	checar(c.primeira and c.liberou == 0, "o andar 5 é o último")
 	Progressao.recarregar()
-	checar(Progressao.andares_vencidos() == [1, 2, 3, 4] and Progressao.eventos_pendentes().size() == 1, "andares e pendências voltam do arquivo")
+	checar(Progressao.andares_vencidos() == [1, 2, 3, 4, 5] and Progressao.eventos_pendentes().size() == 1, "andares e pendências voltam do arquivo")
 
 
 func _teste_eventos() -> void:

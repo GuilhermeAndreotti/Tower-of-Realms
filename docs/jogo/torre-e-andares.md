@@ -24,7 +24,7 @@ A curva de XP e a XP de cada andar foram escolhidas juntas:
 
 ## Encontros
 
-Cada andar ensina ou cobra uma coisa. Os inimigos só têm Investida e Golpe Pesado; a variedade vem de tipos, velocidade, cadência do Golpe Pesado e composição:
+Cada andar ensina ou cobra uma coisa. Os inimigos só têm Investida, Golpe Pesado e, opcionalmente, um último recurso (escudo quando estão quase caindo, ver [Combate](combate.md#inimigos)); a variedade vem de tipos, velocidade, cadência do Golpe Pesado e composição:
 
 | Andar | Equipe | O que cobra                                                                                     |
 | ----- | ------ | ----------------------------------------------------------------------------------------------- |
@@ -32,6 +32,7 @@ Cada andar ensina ou cobra uma coisa. Os inimigos só têm Investida e Golpe Pes
 | 2     | 1      | o primeiro Golpe Pesado: quando entrar no Kaioken                                               |
 | 3     | 2      | o Andri chega; as sentinelas Físicas caem com a lente Ácido, mas o Guardião de Veneno não é fraco a nenhuma lente (Análise ou Engo-ji? os pontos são do time), e a sentinela veloz age quase duas vezes por rodada |
 | 4     | 2      | chefe de Trevas (nenhuma lente é super efetiva) com Golpe Pesado a cada 2 ações; escolta de Água (2× no Andri) e de Ácido (2× na Shumi) |
+| 5     | 3      | a primeira luta a três: Golem de Pedra Físico (lente Ácido) e Elementais de Fogo (lente Água), então o Andri troca de lente conforme o alvo; o Ferro Negro dá escudo a quem cai abaixo de 30%, e acabar com alguém pede guardar dano para o fim |
 
 Ao criar inimigos, confira a tabela de tipos contra o kit de quem estará na equipe: um tipo que deixa um personagem sempre em 2× apaga a decisão do kit.
 

@@ -18,7 +18,7 @@ dano = ATQ × mult × efetividade × 100 / (100 + DEF)   × (1 − redução)   
 A redução vem dos estados do alvo (`reducao_dano`, como a resistência do Lorde da Luz), somada e limitada a 90%.
 
 - Mínimo de 1. `calcular_dano()` recebe a variação e o crítico de fora, para os testes fixarem os valores.
-- Escudos absorvem antes do HP (`absorver()`); custos próprios, como o dreno do Kaioken, tiram HP direto (`receber_dano()`).
+- Escudos absorvem antes do HP (`absorver()`); custos próprios, como o dreno do Kaioken, tiram HP direto (`receber_dano()`). Na interface, todo escudo aparece na barra de HP como contorno azul com uma faixa do tamanho dele (`EstiloUI.contorno_escudo()`), na HUD e na arena.
 - Golpes adicionais (de estados como o Braço de Thorim) entram como golpes separados e não se encadeiam.
 
 ## Tipos
@@ -73,6 +73,8 @@ A batalha não sabe que invocações existem em cada kit: tudo vem da `Invocacao
 ## Inimigos
 
 `Inimigo` sorteia o alvo entre os aliados em campo, pelo peso de cada um (`peso_alvo()`: 1 mais a provocação dos estados). Com `golpe_pesado_a_cada > 0`, a cada N ações solta um Golpe Pesado (1,8×), avisado uma ação antes. Os valores de cada inimigo vêm do andar (ver [Torre e andares](torre-e-andares.md)).
+
+**Último recurso** (`ultimo_recurso`, como o Ferro Negro do andar 5): quando um golpe deixa o inimigo de pé abaixo da fração `abaixo_de` do HP, ele ganha um escudo (um `Estado`) uma vez por luta. A regra é `Inimigo.ativar_ultimo_recurso()`; a batalha chama depois de cada golpe (`aplicar_dano()`), aplica o escudo e anuncia no meio da tela ("Ferro Negro ativado"). Golpe que mata direto não ativa.
 
 ## Fim da luta
 

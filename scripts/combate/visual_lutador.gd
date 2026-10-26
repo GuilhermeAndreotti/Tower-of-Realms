@@ -227,6 +227,8 @@ func _draw() -> void:
 		draw_rect(Rect2(-largura / 2, y, roundf(largura * frac_rastro), 6), Color(1, 0.9, 0.8, 0.85))
 		draw_rect(Rect2(-largura / 2, y, roundf(largura * frac), 6), Color(0.86, 0.22, 0.25))
 		draw_rect(Rect2(-largura / 2, y, roundf(largura * frac), 2), Color(1, 0.5, 0.5))
+		if combatente.escudo() > 0:
+			EstiloUI.contorno_escudo(self, Rect2(-largura / 2 - 1, y - 1, largura + 2, 8), float(combatente.escudo()) / combatente.hp_max)
 		var cor_nome := EstiloUI.OURO if marcado else EstiloUI.TEXTO
 		EstiloUI.texto(self, Vector2(-largura, y - 5), combatente.nome, 12, cor_nome, largura * 2, HORIZONTAL_ALIGNMENT_CENTER)
 		# elemento à esquerda da barra (os efeitos ficam à direita)

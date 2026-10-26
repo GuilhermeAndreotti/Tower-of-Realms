@@ -8,7 +8,7 @@
 
 ![Shumi disparando o Engo-ji Beam](docs/capturas/engo-ji-beam.png)
 
-> ⚠️ **Protótipo.** Por enquanto existem quatro andares e três personagens jogáveis. Os inimigos, o cenário e alguns efeitos usam arte provisória.
+> ⚠️ **Protótipo.** Por enquanto existem cinco andares e três personagens jogáveis. Os inimigos, o cenário e alguns efeitos usam arte provisória.
 
 ---
 
@@ -94,7 +94,7 @@ Cada personagem mostra na barra, sempre nesta ordem, o básico (Q), a skill (E),
 As duas skills custam 1 ponto de skill cada. A do W tem também **recarga**: depois de usada, só volta alguns turnos depois (3 no Andri, 4 na Shumi), e a barra mostra no ícone quantos turnos faltam.
 
 ### Estados
-Buffs e debuffs (escudo, fraqueza, lentidão etc.) aparecem como ícones com a contagem de turnos acima de cada lutador.
+Buffs e debuffs (escudo, fraqueza, lentidão etc.) aparecem como ícones com a contagem de turnos acima de cada lutador. Quem tem escudo ganha um **contorno azul na barra de HP**, com uma faixa azul do tamanho do escudo; no painel do personagem da vez, o valor do escudo aparece ao lado do HP (+N).
 
 ### Invocações
 Algumas habilidades chamam criaturas para o lado da equipe. Elas têm vez própria na fila, HP e barra, e os inimigos podem atacá-las. Mas não fazem parte da equipe: agem sozinhas no inimigo marcado, não ganham XP, vão embora depois de algumas vezes e não seguram a luta (se a equipe cair, a luta acaba). O Andri pode entregar artefatos a elas. Ao ir embora por tempo ou ao cair, cada demônio da Àskara faz um **último ato**.
@@ -111,6 +111,7 @@ Cada ida à dungeon é um andar. Você vence e volta ao saguão. Vencer o andar 
 | 2. Salão do Guardião | 1 | 2 | 5 | Sentinela e Guardião (Golpe Pesado a cada 3). Na história, **o Andri chega** na primeira vitória (por enquanto, todos já começam liberados) | 350 |
 | 3. Guarnição | 2 | 4 | 7 | Sentinela, Sentinela Veloz e Guardião de **Veneno** | 600 |
 | 4. Trono Sombrio | 2 | 6 | 9 | Guardião Sombrio de **Trevas** (Golpe Pesado a cada 2) e Sentinelas de **Água** e de **Ácido** | 900 |
+| 5. Forja de Pedra | 3 | 8 | 11 | Golem de Pedra (chefe, Golpe Pesado a cada 3) e 2 Elementais de **Fogo**, todos com o **Ferro Negro** | 1000 |
 
 - **Nível recomendado:** é o nível de quem chega sem repetir nenhum andar.
 - **Limite de nível:** é o do andar mais alto liberado. Ele deixa treinar até mais ou menos um nível acima do recomendado para o andar seguinte.
@@ -134,7 +135,7 @@ Cada personagem tem nível e XP próprios. As regras ficam em `scripts/personage
   - **Bloqueados:** quem ainda não chegou à Torre não ganha nada.
   - **Derrota:** ninguém ganha XP.
 - **Curva:** para ir do nível *n* ao *n+1* são necessários `100 + 50 × (n − 1)` de XP: 100, 150, 200, 250, 300… Do 1 ao 9 são 2.200 de XP.
-- **Limite da Torre:** o limite de nível é o do andar mais alto liberado: 3, 5, 7 e 9. No limite, a XP fica em 0 e o excedente se perde, então liberar um andar não dá vários níveis de uma vez. Personagens acima do limite, por causa de um save antigo, não perdem nível. O nível máximo do jogo continua sendo 20.
+- **Limite da Torre:** o limite de nível é o do andar mais alto liberado: 3, 5, 7, 9 e 11. No limite, a XP fica em 0 e o excedente se perde, então liberar um andar não dá vários níveis de uma vez. Personagens acima do limite, por causa de um save antigo, não perdem nível. O nível máximo do jogo continua sendo 20.
 - **Crescimento:** os atributos do kit valem para o nível 1. Cada nível soma o `crescimento` do personagem, definido em `Elenco.dados()`:
 
 | Por nível | HP | ATQ | DEF | VEL |
@@ -166,7 +167,11 @@ Cada personagem tem uma página própria com atributos e habilidades. Lá, o tex
 |---|---|
 | **Sentinela** | Investida em um aliado aleatório |
 | **Guardião** | A cada 3 ações solta um **Golpe Pesado** (1,8×). O ícone **!** avisa quando ele vai vir |
-| **Guardião Ancestral** | Chefe de Gelo do andar 4, com Golpe Pesado a cada 2 ações |
+| **Guardião Sombrio** | Chefe de Trevas do andar 4, com Golpe Pesado a cada 2 ações |
+| **Golem de Pedra** | Chefe Físico do andar 5, lento e muito resistente, com Golpe Pesado a cada 3 ações |
+| **Elemental de Fogo** | Rápido e de Fogo (a lente Água do Andri dobra o dano nele) |
+
+**Ferro Negro:** os inimigos do andar 5, quando o HP cai abaixo de 30%, ativam o Ferro Negro uma vez por luta: "Ferro Negro ativado" aparece na tela e eles ganham um escudo de 25% do HP máximo por 3 turnos.
 
 Os status de cada um mudam por andar (ver `Andares.LISTA`). A arte ainda é provisória.
 

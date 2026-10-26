@@ -18,12 +18,13 @@ extends RefCounted
 ##     "fundo": cenário da batalha,
 ##     "inimigos": [{"nome", "textura", "hp", "atq", "def", "vel",
 ##                   "pesado_a_cada"?, "tipo"? (Tipos), "xp"? (sem ela, a regra
-##                   da Progressao pelo HP)}],
+##                   da Progressao pelo HP), "ultimo_recurso"? (escudo quando
+##                   está quase caindo; formato em Inimigo.ultimo_recurso)}],
 ##     "ao_vencer"?: eventos da primeira vitória (formato em Eventos),
 ## }
 ##
 ## Ritmo planejado (curva em Progressao): a XP de cada andar leva quem não
-## repete nada ao nível recomendado do seguinte (1 -> 2 -> 4 -> 6 -> 8), e o
+## repete nada ao nível recomendado do seguinte (1 -> 2 -> 4 -> 6 -> 8 -> 10), e o
 ## limite deixa treinar só até 1 nível acima disso (uma repetição, mais ou
 ## menos). Os tipos dos inimigos fazem a lente e a Análise do Andri serem
 ## escolhas, e não um x2 automático.
@@ -31,6 +32,11 @@ extends RefCounted
 const FUNDO_PADRAO := "res://cenarios/torre_andar.png"
 const SENTINELA := "res://inimigos/sentinela.png"
 const GUARDIAO := "res://inimigos/guardiao.png"
+const GOLEM := "res://inimigos/golem_pedra.png"
+const ELEMENTAL_FOGO := "res://inimigos/elemental_fogo.png"
+## Ferro Negro: abaixo de 30% do HP, um escudo de 25% do HP máximo por 3
+## turnos, uma vez por luta (andar 5).
+const FERRO_NEGRO := {"nome": "Ferro Negro", "curto": "FN", "abaixo_de": 0.3, "escudo": 0.25, "turnos": 3}
 
 const LISTA := [
 	{
@@ -97,6 +103,26 @@ const LISTA := [
 				"tipo": Tipos.ACIDO, "xp": 175},
 		],
 	},
+	{
+		# a primeira luta a três: o Golem é Físico (a lente Ácido dobra nele)
+		# e os elementais são de Fogo (a Água dobra neles), então o Andri
+		# troca de lente conforme o alvo; o Ferro Negro dá escudo a quem
+		# cai abaixo de 30%, e acabar com alguém pede guardar dano para depois
+		"nome": "Forja de Pedra",
+		"descricao": "Um Golem de Pedra e dois Elementais de Fogo. Quase caindo, o Ferro Negro os cobre com um escudo.",
+		"nivel_recomendado": 8,
+		"limite_nivel": 11,
+		"max_equipe": 3,
+		"fundo": FUNDO_PADRAO,
+		"inimigos": [
+			{"nome": "Elemental de Fogo", "textura": ELEMENTAL_FOGO, "hp": 1000, "atq": 360.0, "def": 45.0, "vel": 118.0,
+				"tipo": Tipos.FOGO, "xp": 175, "ultimo_recurso": FERRO_NEGRO},
+			{"nome": "Golem de Pedra", "textura": GOLEM, "hp": 4800, "atq": 450.0, "def": 100.0, "vel": 82.0,
+				"pesado_a_cada": 3, "xp": 650, "ultimo_recurso": FERRO_NEGRO},
+			{"nome": "Elemental de Fogo", "textura": ELEMENTAL_FOGO, "hp": 1000, "atq": 360.0, "def": 45.0, "vel": 124.0,
+				"tipo": Tipos.FOGO, "xp": 175, "ultimo_recurso": FERRO_NEGRO},
+		],
+	},
 ]
 
 
@@ -121,6 +147,7 @@ static func criar_inimigos(numero: int) -> Array[Inimigo]:
 	for d: Dictionary in dados(numero).inimigos:
 		var ini := Inimigo.new(d.nome, d.textura, d.hp, d.atq, d.def, d.vel, d.get("pesado_a_cada", 0), d.get("tipo", Tipos.FISICO))
 		ini.xp = d.get("xp", -1)
+		ini.ultimo_recurso = d.get("ultimo_recurso", {})
 		lista.append(ini)
 	return lista
 

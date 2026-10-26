@@ -12,7 +12,7 @@ Cada arquivo é um `SceneTree` que roda, imprime `ok` ou `FALHOU` por verificaç
 
 | Arquivo                     | Cobre                                                                                   |
 | --------------------------- | --------------------------------------------------------------------------------------- |
-| `testes/teste_combate.gd`   | fila, dano, tipos, estados, kits da Shumi, do Andri e da Àskara (com as skills 2, a recarga e o ataque em conjunto), invocações e últimos atos (também numa batalha de verdade), descrição para a HUD, equipe, READMEs dos personagens em dia |
+| `testes/teste_combate.gd`   | fila, dano, tipos, estados, kits da Shumi, do Andri e da Àskara (com as skills 2, a recarga e o ataque em conjunto), invocações e últimos atos (também numa batalha de verdade), último recurso dos inimigos e escudo na barra de HP (Ferro Negro no andar 5), descrição para a HUD, equipe, READMEs dos personagens em dia |
 | `testes/teste_progressao.gd`| curva, limite da Torre, atributos por nível, desbloqueio, save, recompensa na batalha real |
 | `testes/teste_torre.gd`     | andares, ritmo de XP, liberação, eventos, telas de andar e equipe, apresentação no saguão |
 | `testes/teste_lobby.gd`     | saguão montado de verdade: colisão, caminhos, foco, diálogo, porta                      |
@@ -55,7 +55,7 @@ Sem cenários, roda cada andar um nível abaixo do recomendado, no recomendado e
 | `ferramentas/icone_pixel.py`      | padrão dos ícones de habilidade (15x15, desenho 11x11 centrado, sem moldura), usado pelos geradores |
 | `ferramentas/gerar_askara.py`     | gera a spritesheet e os ícones da Àskara e reduz as invocações (originais em `personagens/askara/originais/`) |
 | `ferramentas/gerar_logo.py`       | gera a logo do jogo (`logo.png`), usada no menu inicial e no README               |
-| `ferramentas/gerar_assets_teste.py` | gera a arte provisória (inimigos, cenário, onda do Engo-ji) e os ícones da passiva e do Bang! da Shumi |
+| `ferramentas/gerar_assets_teste.py` | gera a arte provisória (inimigos, inclusive o Golem de Pedra e o Elemental de Fogo, cenário, onda do Engo-ji) e os ícones da passiva e do Bang! da Shumi |
 | `../Shumi/gerar_spritesheet.py`   | fora do projeto: gera a spritesheet da Shumi a partir de `Shumi.png` e, com `kokoro.png shumi_kokoro`, a do visual Kokoro (usado no Bang!); copie o PNG e o JSON de `spritesheet/` para `personagens/shumi/` |
 
 Os geradores usam Python 3 com Pillow e rodam a partir da pasta do projeto (`python3 ferramentas/<nome>.py`). Arte gerada é editada no gerador, não no PNG: senão a próxima geração apaga a mudança.

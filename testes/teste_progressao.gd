@@ -175,7 +175,7 @@ func _teste_limite_da_torre() -> void:
 	print("limite da Torre")
 	_limpar()
 	var limites: Array = range(1, Andares.total() + 1).map(func(n: int) -> int: return Andares.limite_do_andar(n))
-	checar(limites == [3, 5, 7, 9], "limites por andar mais alto liberado: 3, 5, 7, 9")
+	checar(limites == [3, 5, 7, 9, 11], "limites por andar mais alto liberado: 3, 5, 7, 9, 11")
 	checar(Andares.limite_nivel() == 3, "jogo novo: limite 3")
 	var r := Progressao.conceder_xp("shumi", 999)
 	checar(r.nivel == 3 and r.xp_atual == 0 and r.no_limite and r.xp_aproveitada == 250, "muita XP: para no 3, XP 0, só 250 contam")
