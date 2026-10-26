@@ -12,7 +12,7 @@ Cada arquivo é um `SceneTree` que roda, imprime `ok` ou `FALHOU` por verificaç
 
 | Arquivo                     | Cobre                                                                                   |
 | --------------------------- | --------------------------------------------------------------------------------------- |
-| `tests/test_combat.gd`   | fila, dano, tipos, estados, kits da Shumi, do Andri e da Àskara (com as skills 2, a recarga e o ataque em conjunto), invocações e últimos atos (também numa batalha de verdade), último recurso dos inimigos e escudo na barra de HP (Ferro Negro no andar 5), descrição para a HUD, equipe, READMEs dos personagens em dia |
+| `tests/test_combat.gd`   | fila, dano, tipos, estados, componentes do lutador (`Health`, `StatusEffects`, `Cooldowns`, `FighterBar`), kits da Shumi, do Andri e da Àskara (com as skills 2, a recarga e o ataque em conjunto), invocações e últimos atos (também numa batalha de verdade), último recurso dos inimigos e escudo na barra de HP (Ferro Negro no andar 5), descrição para a HUD, equipe, READMEs dos personagens em dia |
 | `tests/test_progression.gd`| curva, limite da Torre, atributos por nível, desbloqueio, save, recompensa na batalha real |
 | `tests/test_tower.gd`     | andares, ritmo de XP, liberação, eventos, telas de andar e equipe, apresentação no saguão |
 | `tests/test_lobby.gd`     | saguão montado de verdade: colisão, caminhos, foco, diálogo, porta                      |

@@ -135,7 +135,7 @@ func _pilot() -> void:
 			b.request_action("ult")
 			return
 		_turns += 1
-		if s.can_use("skill2", b.points) and b.points >= 2 and s.state("bang") == null and b.allies_on_field().size() > 1:
+		if s.can_use("skill2", b.points) and b.points >= 2 and s.status("bang") == null and b.allies_on_field().size() > 1:
 			b.request_action("skill2")
 		elif b.points >= 1 and (alive.size() >= 2 or s.in_kaioken()):
 			b.request_action("skill")
@@ -152,7 +152,7 @@ func _pilot() -> void:
 			return
 		if _use_protocol(an):
 			return
-		var effective := target.effectiveness_against(_best_lens(target)) >= Types.SUPER or target.state("weakness") != null
+		var effective := target.effectiveness_against(_best_lens(target)) >= Types.SUPER or target.status("weakness") != null
 		if not effective and b.points >= 1 and target.hp > target.max_hp * 0.4 and an.invalid_reason("skill", Types.FIRE, target) == "":
 			b.request_action("skill")
 			b.select_option(an.analysis_elements().find(Types.FIRE))

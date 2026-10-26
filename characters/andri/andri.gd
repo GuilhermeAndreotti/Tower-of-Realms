@@ -177,7 +177,7 @@ static func artifact_status(id: String, target: Combatant, element: String) -> S
 		"archaedas":
 			e.short = "ARC"
 			# sobre o HP máximo sem um Cinturão anterior (que este substitui)
-			var previous := target.state(e.id)
+			var previous := target.status(e.id)
 			var base := target.max_hp - (previous.extra_life if previous else 0)
 			e.extra_life = roundi(base * ARCHAEDAS_LIFE)
 			e.detail = "HP máx. +%d" % e.extra_life

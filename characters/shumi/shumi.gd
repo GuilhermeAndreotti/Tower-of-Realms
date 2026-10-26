@@ -187,7 +187,7 @@ static func bang_status() -> StatusEffect:
 
 
 func follow_up(attacker: Combatant, _target: Combatant) -> Dictionary:
-	if attacker == self or state("bang") == null:
+	if attacker == self or status("bang") == null:
 		return {}
 	gain_energy(FOLLOW_UP_ENERGY)
 	return {"name": "Finger Beam", "mult": mult_finger_beam(), "type": type}

@@ -13,8 +13,14 @@ var ally: bool
 var character_level := 1
 ## HP máximo e atributos no nível atual, sem modificadores temporários (que
 ## entram em bonus() e nos estados). Quem muda o nível é apply_level().
-var max_hp: int
-var hp: int
+## Atual e máximo moram no componente Health; max_hp e hp são atalhos.
+var health: Health
+var max_hp: int:
+	get: return health.maximum
+	set(v): health.maximum = v
+var hp: int:
+	get: return health.current
+	set(v): health.current = v
 var base_atk: float
 var base_def: float
 var base_spd: float
@@ -34,12 +40,14 @@ var av: float
 ## Personagens com mecânicas próprias (como o Kaioken) sobrescrevem bonus().
 var _bonus_extra := {}
 
-## Efeitos aplicados por habilidades (ver StatusEffect). Um por id.
-var status_effects: Array[StatusEffect] = []
+## Efeitos aplicados por habilidades (ver StatusEffect), um por id, no
+## componente StatusEffects; status_effects é a lista dele, para leitura.
+var statuses := StatusEffects.new()
+var status_effects: Array[StatusEffect]:
+	get: return statuses.list
 
-## Turnos que faltam para cada ação com "cooldown" poder ser usada de novo
-## (acao -> turnos do portador; sem a chave = pronta).
-var cooldowns := {}
+## Recargas das ações com "cooldown" (ver Cooldowns).
+var cooldowns := Cooldowns.new()
 
 ## Devolve os aliados de pé deste lutador (Array[Combatant]); a batalha
 ## preenche. Um Callable, e não a lista, para não criar ciclo de referência.
@@ -52,8 +60,7 @@ func _init(p_name: String, p_ally: bool, p_hp: int, p_atk: float, p_def: float, 
 	name = p_name
 	type = p_type
 	ally = p_ally
-	max_hp = p_hp
-	hp = p_hp
+	health = Health.new(p_hp)
 	base_atk = p_atk
 	base_def = p_def
 	base_spd = p_spd
@@ -71,9 +78,7 @@ func level_1_stats() -> Dictionary:
 func apply_level(p_level: int, stats: Dictionary) -> void:
 	var spd_before := spd()
 	var max_hp_before := max_hp
-	var extra_life := 0
-	for e in status_effects:
-		extra_life += e.extra_life
+	var extra_life := statuses.extra_life()
 	character_level = p_level
 	max_hp = int(stats.hp) + extra_life
 	if hp > 0:
@@ -89,10 +94,7 @@ func is_alive() -> bool:
 
 
 func bonus(stat: String) -> float:
-	var total: float = _bonus_extra.get(stat, 0.0)
-	for e in status_effects:
-		total += e.mods.get(stat, 0.0)
-	return total
+	return _bonus_extra.get(stat, 0.0) + statuses.bonus(stat)
 
 
 func atk() -> float:
@@ -137,23 +139,18 @@ static func calculate_damage(attacker: Combatant, target: Combatant, mult: float
 ## Tira HP direto, sem passar pelo escudo (custos próprios, como o Kaioken).
 ## Golpes passam antes por absorb().
 func take_damage(amount: int) -> int:
-	var real := mini(amount, hp)
-	hp -= real
-	return real
+	return health.take(amount)
 
 
 func heal(amount: int) -> int:
-	var real := mini(amount, max_hp - hp)
-	hp += real
-	return real
+	return health.heal(amount)
 
 
 ## Multiplicador de um golpe do tipo `strike_type` neste lutador: a tabela de
 ## Types, a não ser que um estado tenha criado fraqueza a esse tipo.
 func effectiveness_against(strike_type: String) -> float:
-	for e in status_effects:
-		if e.weakness == strike_type:
-			return Types.SUPER
+	if statuses.weak_to(strike_type):
+		return Types.SUPER
 	return Types.effectiveness(strike_type, type)
 
 
@@ -163,18 +160,12 @@ func crit_chance() -> float:
 
 ## Fração cortada de todo golpe recebido (resistências dos estados).
 func damage_reduction() -> float:
-	var total := 0.0
-	for e in status_effects:
-		total += e.damage_reduction
-	return clampf(total, 0.0, 0.9)
+	return statuses.damage_reduction()
 
 
 ## Peso deste lutador no sorteio de alvo dos inimigos (1 + provocações).
 func target_weight() -> float:
-	var total := 1.0
-	for e in status_effects:
-		total += e.taunt
-	return total
+	return 1.0 + statuses.taunt()
 
 
 ## Outro aliado (`attacker`, da equipe ou invocação) acabou de acertar o
@@ -193,20 +184,17 @@ func on_enemy_fallen() -> String:
 
 
 # --------------------------------------------------------------- estados
-func state(id: String) -> StatusEffect:
-	for e in status_effects:
-		if e.id == id:
-			return e
-	return null
+func status(id: String) -> StatusEffect:
+	return statuses.find(id)
 
 
 ## Aplica `e` (substitui o de mesmo id, renovando).
 func apply_status(e: StatusEffect) -> void:
 	var spd_before := spd()
 	var hp_before := hp
-	var old := state(e.id)
+	var old := status(e.id)
 	remove_status(e.id)
-	status_effects.append(e)
+	statuses.add(e)
 	# vida extra: o HP atual sobe só o que o máximo ganhou de novo (renovar
 	# não cura)
 	max_hp += e.extra_life
@@ -219,27 +207,17 @@ func apply_status(e: StatusEffect) -> void:
 ## Tira o estado `id`, desfazendo o que ele mudou (VEL, HP máximo).
 func remove_status(id: String) -> void:
 	var spd_before := spd()
-	for i in range(status_effects.size() - 1, -1, -1):
-		if status_effects[i].id == id:
-			max_hp -= status_effects[i].extra_life
-			hp = mini(hp, max_hp)
-			status_effects.remove_at(i)
+	var e := statuses.take_out(id)
+	if e:
+		max_hp -= e.extra_life  # o HP atual desce junto, se passar do máximo
 	adjust_av(spd_before)
 
 
 ## Fim de um turno do portador: desconta a duração dos estados e as
 ## recargas. Devolve os estados que acabaram.
 func pass_turn() -> Array[StatusEffect]:
-	for action: String in cooldowns.keys():
-		cooldowns[action] -= 1
-		if cooldowns[action] <= 0:
-			cooldowns.erase(action)
-	var ended: Array[StatusEffect] = []
-	for e in status_effects:
-		if e.turns > 0:
-			e.turns -= 1
-			if e.turns == 0:
-				ended.append(e)
+	cooldowns.tick()
+	var ended := statuses.tick()
 	for e in ended:
 		remove_status(e.id)
 	return ended
@@ -248,38 +226,26 @@ func pass_turn() -> Array[StatusEffect]:
 ## Remove os debuffs (os estados genéricos; custos de kit, como a exaustão
 ## do Kaioken, não são estados e ficam). Devolve quantos saíram.
 func clear_debuffs() -> int:
-	var before := status_effects.size()
-	for e in status_effects.duplicate():
-		if e.type == "debuff":
-			remove_status(e.id)
-	return before - status_effects.size()
+	var ids := statuses.ids_of_type("debuff")
+	for id in ids:
+		remove_status(id)
+	return ids.size()
 
 
 func has_debuff() -> bool:
-	for e in status_effects:
-		if e.type == "debuff":
-			return true
-	return false
+	return not statuses.ids_of_type("debuff").is_empty()
 
 
 func shield() -> int:
-	var total := 0
-	for e in status_effects:
-		total += e.shield
-	return total
+	return statuses.shield()
 
 
 ## Escudos absorvem o golpe primeiro. Devolve quanto foi absorvido.
 func absorb(damage: int) -> int:
-	var absorbed := 0
-	for e in status_effects.duplicate():
-		if e.shield <= 0 or absorbed >= damage:
-			continue
-		var part := mini(e.shield, damage - absorbed)
-		e.shield -= part
-		absorbed += part
-		if e.shield == 0:
-			remove_status(e.id)
+	var emptied: Array[String] = []
+	var absorbed := statuses.absorb(damage, emptied)
+	for id in emptied:
+		remove_status(id)
 	return absorbed
 
 
@@ -314,24 +280,23 @@ func on_hit_statuses() -> Array[StatusEffect]:
 # --------------------------------------------------------------- recarga
 ## Turnos que faltam para `action` poder ser usada de novo (0 = pronta).
 func cooldown(action: String) -> int:
-	return cooldowns.get(action, 0)
+	return cooldowns.remaining(action)
 
 
 ## `action` foi usada: só volta depois de `turns` turnos do portador, contando
 ## o turno em que foi usada (recarga 3 = uma vez a cada 3 turnos).
 func start_cooldown(action: String, turns: int) -> void:
-	if turns > 0:
-		cooldowns[action] = turns
+	cooldowns.start(action, turns)
 
 
 ## Completa a descrição `h` de uma ação com "cooldown": em recarga, ela fica
 ## no estado "cooldown" com os turnos que faltam ("cooldown_remaining").
 func with_cooldown(h: Dictionary) -> Dictionary:
-	var missing_reason := cooldown(h.action)
-	h.cooldown_remaining = missing_reason
-	if missing_reason > 0:
+	var remaining := cooldown(h.action)
+	h.cooldown_remaining = remaining
+	if remaining > 0:
 		h.state = "cooldown"
-		h.missing_reason = "Recarga: mais %d turno%s." % [missing_reason, "" if missing_reason == 1 else "s"]
+		h.missing_reason = "Recarga: mais %d turno%s." % [remaining, "" if remaining == 1 else "s"]
 	return h
 
 

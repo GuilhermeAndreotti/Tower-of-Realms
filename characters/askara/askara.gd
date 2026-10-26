@@ -143,9 +143,7 @@ static func charm() -> StatusEffect:
 ## Monta a invocação `id` com os dados `d`, a partir dos atributos de nível
 ## da Askara (sem os temporários, como a vida extra de um artefato).
 func _create(id: String, d: Dictionary) -> Summon:
-	var hp_base := max_hp
-	for e in status_effects:
-		hp_base -= e.extra_life
+	var hp_base := max_hp - statuses.extra_life()
 	var inv := Summon.new(id, d.name, self, maxi(1, roundi(hp_base * d.hp)), base_atk * d.atk,
 		base_def * d.def, base_spd * d.spd, d.get("type", type), d.turns)
 	inv.texture = FOLDER + id + ".png"

@@ -22,6 +22,7 @@ func _init() -> void:
 	_test_damage()
 	_test_types()
 	_test_status_effects()
+	_test_components()
 	_test_andri_lens_and_shot()
 	_test_andri_analysis()
 	_test_andri_arsenal()
@@ -268,9 +269,60 @@ func _test_status_effects() -> void:
 	esc.shield = 100
 	c.apply_status(esc)
 	check(c.absorb(60) == 60 and c.shield() == 40, "o escudo absorve o golpe primeiro")
-	check(c.absorb(70) == 40 and c.state("shield") == null, "o escudo quebra e o resto passa")
+	check(c.absorb(70) == 40 and c.status("shield") == null, "o escudo quebra e o resto passa")
 	var target := Combatant.new("A", false, 1000, 100, 0, 100)
 	check(Combatant.calculate_damage(c, target, 1.0, 0.5, "", true) == 150, "crítico causa x1,5")
+
+
+func _test_components() -> void:
+	print("componentes (Health, StatusEffects, Cooldowns, FighterBar)")
+	var c := Combatant.new("C", true, 1000, 100, 0, 100)
+	var seen: Array = []
+	c.health.changed.connect(func(current: int, maximum: int) -> void: seen.append([current, maximum]))
+	var depleted := [0]
+	c.health.depleted.connect(func() -> void: depleted[0] += 1)
+	check(c.take_damage(300) == 300 and c.hp == 700 and seen.back() == [700, 1000], "dano passa pelo Health e avisa a mudança")
+	check(c.heal(500) == 300 and c.hp == 1000, "cura não passa do máximo")
+	var life := StatusEffect.new("life", "Vida", "V", "buff", 1)
+	life.extra_life = 200
+	c.apply_status(life)
+	check(c.max_hp == 1200 and c.hp == 1200 and c.statuses.extra_life() == 200, "vida extra sobe o máximo pelo componente")
+	c.pass_turn()
+	check(c.max_hp == 1000 and c.hp == 1000, "ao sair, o máximo baixa e puxa o HP junto")
+	check(c.take_damage(5000) == 1000 and not c.is_alive() and depleted[0] == 1, "zerar o HP avisa uma vez (depleted)")
+	c.take_damage(10)
+	check(depleted[0] == 1, "dano em quem já caiu não avisa de novo")
+
+	var list := StatusEffects.new()
+	var weak := StatusEffect.new("w", "Fraqueza", "F", "debuff", 2)
+	weak.weakness = Types.ICE
+	weak.taunt = 1.0
+	weak.damage_reduction = 0.6
+	var guard := StatusEffect.new("g", "Guarda", "G", "buff", 1)
+	guard.damage_reduction = 0.6
+	list.add(weak)
+	list.add(guard)
+	check(list.weak_to(Types.ICE) and not list.weak_to(Types.FIRE) and list.taunt() == 1.0, "StatusEffects soma fraqueza e provocação")
+	check(is_equal_approx(list.damage_reduction(), 0.9) and list.ids_of_type("debuff") == ["w"], "a redução para em 90%")
+	check(list.tick() == [guard] and list.find("g") == guard and list.take_out("g") == guard and list.find("g") == null,
+		"tick devolve quem acabou, e quem tira é o dono")
+
+	var cd := Cooldowns.new()
+	cd.start("skill2", 2)
+	cd.start("ult", 0)
+	check(cd.remaining("skill2") == 2 and cd.remaining("ult") == 0, "Cooldowns guarda só recargas de verdade")
+	cd.tick()
+	cd.tick()
+	check(cd.remaining("skill2") == 0, "a recarga acaba com os turnos do dono")
+
+	var enemy := Enemy.new("E", "res://enemies/sentinel.png", 1000, 50.0, 10.0, 100.0)
+	var bar := FighterBar.new(enemy)
+	enemy.take_damage(400)
+	bar._process(10.0)
+	check(is_equal_approx(bar._shown_hp, 600.0) and is_equal_approx(bar._trail_hp, 600.0), "a barra desce até o HP")
+	enemy.heal(300)
+	check(is_equal_approx(bar._trail_hp, 900.0), "uma cura puxa o rastro na hora, pelo sinal do Health")
+	bar.free()
 
 
 func _test_andri_lens_and_shot() -> void:
@@ -647,7 +699,7 @@ func _test_askara_in_battle() -> void:
 	emi.hp = 1
 	await b.apply_damage(ini, emi, 5.0)
 	check(not emi.on_field and emi not in b.fighters and b.summons.is_empty() and not b.over, "invocação que cai sai de campo; a luta segue")
-	check(a.state("shield_emissary") != null and a.shield() == roundi(emi.max_hp * 0.08),
+	check(a.status("shield_emissary") != null and a.shield() == roundi(emi.max_hp * 0.08),
 		"ao cair, o Emissário deixa a Muralha do Caos em quem tem menos HP")
 	var day: Summon = a.summon("imp").summon
 	await b.add_summon(day)
@@ -724,7 +776,7 @@ func _test_shumi_bang() -> void:
 	s.start_cooldown("skill2", Shumi.BANG_COOLDOWN)
 	for i in Shumi.BANG_DURATION:
 		s.pass_turn()
-	check(s.state("bang") == null and s.follow_up(andri, ini).is_empty(), "o Bang! acaba depois da duração")
+	check(s.status("bang") == null and s.follow_up(andri, ini).is_empty(), "o Bang! acaba depois da duração")
 	check(not s.can_use("skill2", 1), "quando o Bang! acaba, a recarga ainda segura um turno sem ele")
 	s.pass_turn()
 	check(s.can_use("skill2", 1), "e no turno seguinte ele volta")
@@ -810,10 +862,10 @@ func _test_bang_in_battle() -> void:
 	await process_frame
 	check(b.visual(s).frames() != normal, "o Finger Beam do Bang! sai no visual Kokoro")
 	for i in 600:
-		if s.state("bang"):
+		if s.status("bang"):
 			break
 		await process_frame
-	check(s.state("bang") != null and b.visual(s).frames() == normal, "depois do tiro, volta ao visual normal (o Bang! continua)")
+	check(s.status("bang") != null and b.visual(s).frames() == normal, "depois do tiro, volta ao visual normal (o Bang! continua)")
 	b.queue_free()
 	await process_frame
 

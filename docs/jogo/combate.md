@@ -2,6 +2,18 @@
 
 Combate por turnos com fila por velocidade (no estilo de *Honkai: Star Rail*) e efetividade por tipo (no estilo de *Pokémon*). A coordenação está em `combat/battle.gd`; as regras, em `Combatant` e nas classes dos personagens.
 
+## Composição do lutador
+
+`Combatant` é montado com componentes (em [`combat/components/`](../../combat/components)), e cada um cuida de uma coisa só:
+
+| Componente      | Guarda                                    | Avisa                                         |
+| --------------- | ----------------------------------------- | --------------------------------------------- |
+| `Health`        | HP atual e máximo                         | `changed` a cada mudança, `depleted` ao zerar |
+| `StatusEffects` | os estados e o que eles somam (bônus, escudo, fraqueza, provocação, redução) | — |
+| `Cooldowns`     | turnos de recarga de cada ação            | —                                             |
+
+`hp`, `max_hp` e `status_effects` continuam no `Combatant` como atalhos. O que um estado muda no dono ao entrar ou sair (HP máximo, a vez) é o `Combatant` que aplica, porque depende do resto dele; os componentes só guardam e somam. Na arena, a barra sobre inimigos e invocações é o nó `FighterBar`, filho do `FighterVisual`, que escuta o `Health` do lutador.
+
 ## Fila de turnos
 
 Cada lutador precisa percorrer `Combatant.TURN_DISTANCE`; o que falta é o `av` ("action value"). Quem tem menor `av / speed` age primeiro (`TurnQueue`). Depois de agir, o `av` volta ao total.
