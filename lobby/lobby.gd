@@ -74,6 +74,7 @@ const SPOTS := {
 	"andri": [Vector2(104, 142), true],
 	"shumi": [Vector2(428, 130), true],
 	"askara": [Vector2(505, 168), true],
+	"clairin": [Vector2(562, 128), true],
 }
 const FREE_SPOTS := [Vector2(252, 160), Vector2(150, 168), Vector2(505, 168)]
 ## Onde a Caoimhe aparece: no começo, no centro do tapete, de frente para

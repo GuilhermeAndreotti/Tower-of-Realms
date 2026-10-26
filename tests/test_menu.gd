@@ -71,7 +71,7 @@ func _test_slots() -> void:
 	Progression.mark_floor_cleared(1)
 	Progression.unlock("andri")
 	r = Progression.slot_summary(2)
-	check(r.exists and r.floors == 1 and r.level == 3 and r.characters == 3, "resumo: andares, maior nível e personagens")
+	check(r.exists and r.floors == 1 and r.level == 3 and r.characters == Roster.IDS.size(), "resumo: andares, maior nível e personagens (todos, com o Andri liberado)")
 	check(r.saved_at > 0, "resumo traz quando foi salvo")
 	check(MainMenu.describe_slot(2).contains("Nv 3"), "texto do slot mostra o nível")
 

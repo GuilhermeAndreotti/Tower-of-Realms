@@ -17,7 +17,10 @@ extends SceneTree
 ##    alvo ainda tem muito HP; Sobrecarga com 2+ pontos; Arsenal: Freya em
 ##    quem estiver abaixo de 50%, se não Lança de Rá em quem bate mais;
 ##  - Askara: Lorde assim que der; se não, com ponto e vaga, Shivara (3
-##    fragmentos) ou, sem nada em campo, Emissário (2); se não, Seta Vil.
+##    fragmentos) ou, sem nada em campo, Emissário (2); se não, Seta Vil;
+##  - Clairin: Cabeça Flamejante com a barra até 40; Descarga com 70+ (na
+##    Cabeça Flamejante e com HP acima de 50%, deixa estourar nos inimigos);
+##    Onda Frenética com ponto e 2+ inimigos; se não, Bola de Fogo.
 
 const SPEED := 40.0  ## Engine.time_scale durante a simulação
 const TIME_LIMIT := 600.0  ## segundos de jogo por batalha (com a escala)
@@ -144,6 +147,8 @@ func _pilot() -> void:
 	elif a is Askara:
 		_turns += 1
 		_pilot_askara(a as Askara, alive.size())
+	elif a is Clairin:
+		_pilot_clairin(a as Clairin, alive.size())
 	elif a is Andri:
 		var an := a as Andri
 		_turns += 1
@@ -192,6 +197,21 @@ func _pilot_askara(k: Askara, enemies: int) -> void:
 	b.select_option(ids.find(id))
 	if not b.confirm_choice():
 		b.cancel_choice()
+		b.request_action("basic")
+
+
+func _pilot_clairin(c: Clairin, enemies: int) -> void:
+	var b := _battle
+	if c.can_use("ult", b.points) and c.frenzy <= 40:
+		b.request_action("ult")  # não gasta o turno
+		return
+	_turns += 1
+	var let_it_burst := c.in_flaming_head() and c.hp > c.max_hp * 0.5
+	if c.frenzy >= 70 and not let_it_burst and c.can_use("skill2", b.points):
+		b.request_action("skill2")
+	elif b.points >= 1 and enemies >= 2:
+		b.request_action("skill")
+	else:
 		b.request_action("basic")
 
 

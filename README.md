@@ -18,7 +18,7 @@
 - [Sistema de combate](#️-sistema-de-combate)
 - [A Torre](#-a-torre)
 - [Níveis e experiência](#-níveis-e-experiência)
-- [Personagens](#-personagens): [Shumi](characters/shumi/README.md) · [Andri](characters/andri/README.md) · [Àskara](characters/askara/README.md)
+- [Personagens](#-personagens): [Shumi](characters/shumi/README.md) · [Andri](characters/andri/README.md) · [Àskara](characters/askara/README.md) · [Clairin](characters/clairin/README.md)
 - [Inimigos](#-inimigos)
 - [Rodando o projeto](#-rodando-o-projeto)
 - [Estrutura do projeto](#-estrutura-do-projeto)
@@ -63,6 +63,7 @@ Cada lutador tem um *action value* (AV), que é quanto falta para ele agir. Quem
 - **Pontos de skill** são compartilhados pela equipe. O time começa com 3 e o máximo é 5. O ataque básico **gera** 1 ponto, e a skill **gasta** 1. Revezar entre básicos e skills faz parte da estratégia.
 - **Energia** é individual. Ela enche ao atacar e ao receber golpes e paga a ultimate.
 - **Fragmentos d'Alma** são só da Àskara, que não usa energia: pagam as invocações e o Lorde Demônio.
+- **Chama Frenética** é só do Clairin: uma barra embaixo da energia que aumenta o dano dele e estoura nele se encher.
 
 ### Dano
 ```
@@ -143,6 +144,7 @@ Cada personagem tem nível e XP próprios. As regras ficam em `progression/progr
 | Shumi (ofensiva) | +60 | +8 | +2 | +0,5 |
 | Andri (suporte) | +50 | +5,5 | +3 | +1 |
 | Àskara (invocadora) | +45 | +6 | +2 | +1 |
+| Clairin (área) | +55 | +7,5 | +2,5 | +0,5 |
 
 - **Personagem novo:** quem é desbloqueado entra na média de nível da equipe principal, arredondada e limitada ao limite da Torre, com 0 de XP e os atributos dele mesmo nesse nível. A equipe principal é a última montada na seleção. Se ainda não houver uma, conta a média de todos os personagens liberados.
 - **Save:** o nível, a XP, a equipe e os andares vencidos ficam no arquivo do slot (`user://progresso.cfg` no slot 1, `progresso_2.cfg` e `progresso_3.cfg` nos outros). O limite de nível é calculado a partir dos andares vencidos.
@@ -158,6 +160,7 @@ Cada personagem tem uma página própria com atributos e habilidades. Lá, o tex
 | 🔴 | [**Shumi**, espadachim do Kaioken](characters/shumi/README.md) | Dragon Ball New Age | Físico | Risco e recompensa: o Kaioken aumenta o poder a cada nível, mas drena o HP dela. |
 | 🟡 | [**Andri Findavil**, inventor e artífice](characters/andri/README.md) | Tales of Azeroth | Fogo | Suporte tático: troca de elemento, cria fraquezas e entrega artefatos, ao lado do robô MOMC. |
 | 🟣 | [**Àskara**, invocadora do abismo](characters/askara/README.md) | Nariagari | Trevas | Invocadora: junta Fragmentos d'Alma e os gasta em demônios ou no Lorde Demônio. |
+| 🟠 | [**Clairin**, portador da Chama Frenética](characters/clairin/README.md) | Tales of Azeroth | Fogo | Dano em área: a Chama Frenética fortalece tudo, mas estoura nele se a barra encher. |
 
 ---
 
@@ -205,6 +208,7 @@ godot --headless --path . -s tests/test_menu.gd         # menu inicial e slots d
 | `tools/generate_character_readmes.gd` | Atualiza os atributos e as habilidades no README de cada personagem, com o texto do jogo: `godot --headless --path . -s tools/generate_character_readmes.gd` |
 | `tools/generate_andri.py` | Gera a spritesheet, o MOMC e os ícones do Andri a partir do sprite original (precisa do Pillow) |
 | `tools/generate_askara.py` | Gera a spritesheet e os ícones da Àskara e reduz a arte das invocações para a arena (precisa do Pillow) |
+| `tools/generate_clairin.py` | Gera as duas spritesheets do Clairin (normal e com a cabeça em chamas) e os ícones dele, a partir da folha original (precisa do Pillow) |
 | `tools/generate_placeholder_art.py` | Gera a arte provisória (inimigos, cenário, onda do Engo-ji) e o ícone da passiva da Shumi |
 
 ---

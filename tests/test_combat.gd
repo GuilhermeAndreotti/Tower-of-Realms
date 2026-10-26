@@ -37,6 +37,7 @@ func _init() -> void:
 	_test_andri_protocol()
 	_test_askara_last_act()
 	_test_last_resort()
+	_test_clairin_frenzy()
 
 
 ## Os testes com a batalha de verdade precisam da árvore de cenas.
@@ -45,6 +46,7 @@ func _initialize() -> void:
 	await _test_bang_in_battle()
 	await _test_black_iron_in_battle()
 	await _test_battle_phases()
+	await _test_clairin_in_battle()
 	Progression.delete()
 	print("\n%s (%d falha%s)" % ["TUDO OK" if _failures == 0 else "FALHOU", _failures, "" if _failures == 1 else "s"])
 	quit(1 if _failures else 0)
@@ -554,7 +556,7 @@ func _test_team() -> void:
 	var generator: GDScript = load("res://tools/generate_character_readmes.gd")
 	for id in Roster.IDS:
 		var readme := FileAccess.get_file_as_string(generator.file(id))
-		check(readme == generator.with_snippet(readme, generator.leg(id)),
+		check(readme != "" and readme == generator.with_snippet(readme, generator.leg(id)),
 			"README de %s em dia com o kit (rode tools/generate_character_readmes.gd)" % id)
 	check(Roster.data("shumi").universe == "Dragon Ball New Age" and Roster.data("andri").universe == "Tales of Azeroth",
 		"cada personagem diz de onde vem")
@@ -971,4 +973,89 @@ func _test_battle_phases() -> void:
 	check(b.phase == Battle.Phase.OVER and b.over, "inimigos no chão: OVER")
 	b.queue_free()
 	await process_frame
+
+
+func _test_clairin_frenzy() -> void:
+	print("clairin: chama frenética, descarga e cabeça flamejante")
+	var c := Clairin.new()
+	check(c.type == Types.FIRE and c.frenzy == 0 and is_equal_approx(c.atk(), 140.0), "Clairin é Fogo e começa com a barra vazia")
+	c.gain_frenzy(50)
+	check(is_equal_approx(c.atk(), 140.0 * 1.3), "metade da barra: ATQ +30%")
+	check(c.kit_bar().value == 50 and c.kit_bar().max == Clairin.FRENZY_MAX, "a barra do kit vai para a HUD")
+	check(c.overflow().is_empty() and c.frenzy == 50, "sem encher, não estoura")
+	c.gain_frenzy(60)
+	check(c.frenzy == Clairin.FRENZY_MAX, "a barra para no máximo")
+	var r := c.overflow()
+	check(r.damage == ceili(c.max_hp * Clairin.OVERFLOW_DAMAGE) and c.hp == c.max_hp - r.damage and c.frenzy == 0 and not r.burst,
+		"cheia, estoura: 20% do HP máximo nele e a barra zera")
+	c.hp = 50
+	c.gain_frenzy(100)
+	check(c.overflow().damage == 49 and c.hp == 1 and c.is_alive(), "o estouro nunca derruba: fica com 1 de HP")
+	c.hp = c.max_hp
+	check(is_equal_approx(c.discharge_mult(), Clairin.DISCHARGE_MIN), "Descarga com a barra vazia: 0,5x")
+	c.gain_frenzy(100)
+	check(is_equal_approx(c.discharge(), Clairin.DISCHARGE_MAX) and c.frenzy == 0, "Descarga com a barra cheia: 2x, e zera sem estourar")
+	check(c.can_use("skill2", 1) and not c.can_use("skill2", 0), "a Descarga custa ponto")
+	c.start_cooldown("skill2", Clairin.DISCHARGE_COOLDOWN)
+	check(not c.can_use("skill2", 1), "e tem recarga")
+	c.energy = c.max_energy
+	check(c.can_use("ult", 0) and _skill_data(c, "basic", 1).target == "single", "fora da ult, a Bola de Fogo é num alvo só")
+	c.use_ult()
+	check(c.in_flaming_head() and c.frenzy == Clairin.FRENZY_HEAD and c.energy == 0.0 and not c.can_use("ult", 0),
+		"Cabeça Flamejante: entra com +30 de Frenesi")
+	check(_skill_data(c, "basic", 1).target == "all" and _skill_data(c, "ult", 1).get("free", false),
+		"na Cabeça Flamejante, a Bola de Fogo atinge todos; a ult não gasta o turno")
+	c.gain_frenzy(100)
+	check(c.overflow().burst, "na Cabeça Flamejante, o estouro queima também os inimigos")
+	check(not c.end_turn() and not c.end_turn() and c.end_turn() and not c.in_flaming_head(), "dura 3 turnos dele")
+	check(c.effects()[0].id == "frenzy", "o Frenesi aparece nos efeitos")
+
+
+func _test_clairin_in_battle() -> void:
+	print("clairin na batalha")
+	Progression.delete()
+	for n in range(1, 5):
+		Progression.mark_floor_cleared(n)
+	Floors.choose(5)
+	Roster.set_team(["clairin"])
+	var b: Battle = (load("res://combat/battle.tscn") as PackedScene).instantiate()
+	root.add_child(b)
+	current_scene = b
+	await process_frame
+	for foe in b.enemies:
+		foe.av = 1e9
+	var c := b.team[0] as Clairin
+	var normal := b.visual(c).frames()
+	await _until(func() -> bool: return b.waiting_for_player)
+	var hps: Array = b.enemies.map(func(e: Enemy) -> int: return e.hp)
+	b.request_action("skill")
+	await _until(func() -> bool: return b.waiting_for_player)
+	check(range(3).all(func(i: int) -> bool: return b.enemies[i].hp < hps[i]) and c.frenzy == Clairin.FRENZY_WAVE,
+		"a Onda Frenética atinge os três inimigos e enche a barra")
+	c.frenzy = 90
+	var hp_before := c.hp
+	b.request_action("basic")
+	await _until(func() -> bool: return b.waiting_for_player)
+	check(c.frenzy == 0 and c.hp < hp_before, "a Bola de Fogo enche a barra, que estoura nele")
+	c.energy = c.max_energy
+	b.request_action("ult")
+	await _until(func() -> bool: return b.waiting_for_player)
+	check(c.in_flaming_head() and b.visual(c).frames() != normal, "a ult acende a cabeça (troca para a folha em chamas) e a vez continua")
+	c.frenzy = 90
+	hps = b.enemies.map(func(e: Enemy) -> int: return e.hp)
+	b.request_action("basic")
+	await _until(func() -> bool: return b.waiting_for_player or b.over)
+	check(range(3).all(func(i: int) -> bool: return b.enemies[i].hp < hps[i] or not b.enemies[i].is_alive())
+		and b.hud._log_lines.any(func(l: String) -> bool: return "alcança os inimigos" in l),
+		"na Cabeça Flamejante, a Bola de Fogo pega todos e o estouro queima os inimigos")
+	b.queue_free()
+	await process_frame
+
+
+## Espera `condition` ficar verdadeira (até 20 s de jogo).
+func _until(condition: Callable) -> void:
+	var t := 0.0
+	while not condition.call() and t < 20.0:
+		await process_frame
+		t += 1.0 / 60.0
 

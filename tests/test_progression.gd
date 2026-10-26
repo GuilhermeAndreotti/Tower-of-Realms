@@ -216,8 +216,9 @@ func _test_unlock() -> void:
 	_clear()
 	Progression.grant_xp("shumi", 250)
 	Progression.grant_xp("askara", 250)
+	Progression.grant_xp("clairin", 250)
 	check(Progression.saved_team().is_empty() and Progression.unlock("andri").level == 3,
-		"sem equipe salva: média dos liberados (Shumi e Askara no 3)")
+		"sem equipe salva: média dos liberados (Shumi, Askara e Clairin no 3)")
 	_clear()
 	Progression._store("shumi", {"level": 8, "xp": 0})
 	Roster.set_team(["shumi"])
@@ -328,8 +329,9 @@ func _test_shared_xp() -> void:
 	var by_id := {}
 	for r in b.rewards:
 		by_id[r.id] = r
-	check(by_id.size() == 3 and by_id.shumi.took_part and not by_id.andri.took_part and not by_id.askara.took_part,
-		"o Andri e a Askara, na reserva, entram na recompensa")
+	check(by_id.size() == Roster.IDS.size() and by_id.shumi.took_part
+		and Roster.IDS.all(func(id: String) -> bool: return id == "shumi" or not by_id[id].took_part),
+		"quem ficou na reserva (Andri, Askara, Clairin) entra na recompensa")
 	check(by_id.andri.xp == by_id.shumi.xp and Progression.progress("andri") == Progression.progress("shumi"),
 		"e ganha a mesma XP de quem lutou")
 	await _close(b)

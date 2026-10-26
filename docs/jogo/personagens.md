@@ -45,8 +45,9 @@ O crescimento tem que refletir o papel do personagem, e não ser igual para todo
 - **Shumi** (Físico, ofensiva): o ATQ é o que mais cresce; HP alto para aguentar o dreno do Kaioken; quase não ganha VEL, porque o Kaioken já acelera.
 - **Andri** (Fogo, suporte): ATQ cresce menos; ganha VEL e DEF para agir cedo e sobreviver para entregar os artefatos.
 - **Àskara** (Trevas, invocadora, de Nariagari): frágil, com HP e DEF baixos; as invocações copiam uma fração dos atributos dela na hora em que são chamadas, então o crescimento dela é também o delas. Não usa energia: a ult é paga em Fragmentos d'Alma (ver [Combate](combate.md#invocações)).
+- **Clairin** (Fogo, área, de Tales of Azeroth): o ATQ é o que mais cresce, e a Chama Frenética soma até +60% em cima. HP e DEF ficam perto dos do Andri: com menos, ele caía antes de a barra render (a simulação mostrou isso com 950 de HP e 40 de DEF). A barra é um recurso de kit mostrado pela HUD com `kit_bar()` (ver [Combate](combate.md#recursos)).
 
-As skills 2 seguem o papel de cada um: a Shumi ataca junto com a equipe, mais forte a cada nível do Kaioken (Bang!, com o visual Kokoro em cada Finger Beam), o Andri usa o MOMC para proteger ou bater (Protocolo MOMC) e a Àskara tem uma passiva, o Último Ato dos demônios.
+As skills 2 seguem o papel de cada um: a Shumi ataca junto com a equipe, mais forte a cada nível do Kaioken (Bang!, com o visual Kokoro em cada Finger Beam), o Andri usa o MOMC para proteger ou bater (Protocolo MOMC), a Àskara tem uma passiva, o Último Ato dos demônios, e o Clairin descarrega a Chama Frenética antes de ela estourar (Descarga). Na ult do Clairin (Cabeça Flamejante), a ação troca para uma segunda folha, com a cabeça em chamas, como o visual Kokoro da Shumi.
 
 ## Liberação temporária
 

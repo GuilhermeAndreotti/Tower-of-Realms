@@ -50,6 +50,10 @@ var _shield_text: Label  ## "+N" ao lado do HP, quando há escudo
 var _energy_bar: PixelBar
 var _energy_text: Label
 var _energy_row: Control
+var _kit_row: Control  ## barra própria do kit (Combatant.kit_bar()), quando tem
+var _kit_label: Label
+var _kit_bar: PixelBar
+var _kit_text: Label
 var _points_drawing: Control
 var _chips: HBoxContainer
 var _character_panel: PanelContainer
@@ -290,6 +294,12 @@ func _build_character() -> void:
 	_energy_bar.marks = 6
 	_energy_text = en_row[2]
 	v.add_child(_energy_row)
+	var kit_row := _resource_row("", UIStyle.ENERGY)
+	_kit_row = kit_row[0]
+	_kit_label = _kit_row.get_child(0)
+	_kit_bar = kit_row[1]
+	_kit_text = kit_row[2]
+	v.add_child(_kit_row)
 
 	var base := _hbox(6)
 	_points_drawing = _drawing(Vector2(0, 12), _draw_points)
@@ -639,6 +649,15 @@ func _refresh_character() -> void:
 	_energy_row.visible = _active.max_energy > 0
 	_energy_bar.set_values(_active.energy, _active.max_energy)
 	_energy_text.text = "%d/%d" % [_active.energy, _active.max_energy]
+	var kit := _active.kit_bar()
+	_kit_row.visible = not kit.is_empty()
+	if not kit.is_empty():
+		_kit_label.text = kit.label
+		_kit_label.label_settings.font_color = kit.color
+		_kit_bar.color = kit.color
+		_kit_bar.marks = kit.get("marks", 0)
+		_kit_bar.set_values(kit.value, kit.max)
+		_kit_text.text = "%d/%d" % [kit.value, kit.max]
 	_panel_portrait.queue_redraw()
 	_points_drawing.queue_redraw()
 

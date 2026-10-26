@@ -337,6 +337,12 @@ func skills(_points: int) -> Array[Dictionary]:
 	return []
 
 
+## Barra própria do kit, que a HUD mostra embaixo da energia: {"label" (2-3
+## letras), "value", "max", "color", "marks"? (divisões)}. {} = nenhuma.
+func kit_bar() -> Dictionary:
+	return {}
+
+
 ## Inimigos que `action` atingiria, quando a regra é do próprio kit (alvos que
 ## mudam com uma forma, por exemplo). Vazio = a batalha usa o "target" da ação.
 func predicted_targets(_action: String, _enemies: Array, _target: int) -> Array:

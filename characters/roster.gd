@@ -7,7 +7,7 @@ extends RefCounted
 ## Nem a batalha, nem a HUD, nem a Progression precisam mudar.
 
 const MAX_TEAM := 3
-const IDS: Array[String] = ["shumi", "andri", "askara"]
+const IDS: Array[String] = ["shumi", "andri", "askara", "clairin"]
 
 ## Por enquanto, todos começam liberados, mesmo quem tem "starts_unlocked": false
 ## (que continua no cadastro para a história voltar a valer). Os testes da
@@ -74,6 +74,24 @@ static func data(id: String) -> Dictionary:
 					"json": "res://characters/askara/askara_spritesheet.json",
 					"foot": Vector2(16, 38),
 					"height": 34.0,
+					"face": Rect2(8, 5, 16, 16),
+				},
+			}
+		"clairin":
+			return {
+				"name": "Clairin",
+				"origin": "Portador da Chama Frenética",
+				"universe": "Tales of Azeroth",
+				"rules": Clairin,
+				"actions": ClairinActions,
+				# área e risco: frágil como a Àskara, porque o dano vem da barra;
+				# o ATQ é o que mais cresce, como na Shumi
+				"growth": {"hp": 55, "atk": 7.5, "def": 2.5, "spd": 0.5},
+				"sprite": {
+					"png": "res://characters/clairin/clairin_spritesheet.png",
+					"json": "res://characters/clairin/clairin_spritesheet.json",
+					"foot": Vector2(16, 38),
+					"height": 32.0,
 					"face": Rect2(8, 5, 16, 16),
 				},
 			}
