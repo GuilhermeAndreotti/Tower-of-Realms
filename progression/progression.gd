@@ -1,377 +1,389 @@
-class_name Progressao
+class_name Progression
 extends RefCounted
 ## Níveis e experiência dos personagens jogáveis: as regras (curva de XP,
 ## crescimento de atributos, XP das batalhas, nível de entrada de quem é
 ## desbloqueado) e o progresso salvo. Todas as fórmulas moram aqui; o
-## crescimento de cada um fica no Elenco ("crescimento" em dados()).
+## crescimento de cada um fica no Roster ("growth" em data()).
 ## O save também guarda a equipe e a subida da Torre (andares vencidos,
 ## andar escolhido, eventos de história ainda não apresentados).
 ##
-## O XP guardado é o acumulado dentro do nível atual (0 até xp_para_subir()).
+## O XP guardado é o acumulado dentro do nível atual (0 até xp_to_next()).
 ##
 ## Dois tetos, que não se confundem:
-##  - NIVEL_MAX, o máximo do jogo;
-##  - o limite da Torre (Andares.limite_nivel()), que sobe com os andares
+##  - MAX_LEVEL, o máximo do jogo;
+##  - o limite da Torre (Floors.level_limit()), que sobe com os andares
 ##    liberados e impede repetir um andar até trivializar os seguintes.
 ## No teto que valer, o XP fica em 0 e o que sobra se perde: ao subir o
 ## limite, ninguém ganha vários níveis de uma vez com XP guardado.
 ## Quem já está acima do limite (save antigo) não perde nível; só não ganha XP.
 
-const NIVEL_MAX := 20
+const MAX_LEVEL := 20
 
-## Curva: subir do nível n para o n+1 custa XP_BASE + XP_POR_NIVEL * (n - 1)
+## Curva: subir do nível n para o n+1 custa XP_BASE + XP_PER_LEVEL * (n - 1)
 ## (100, 150, 200, 250... 1000 no 19 -> 20). Do 1 ao 9 são 2.200; as
-## primeiras vitórias dos andares levam do 1 ao 2, 4, 6 e 8 (ver Andares).
+## primeiras vitórias dos andares levam do 1 ao 2, 4, 6 e 8 (ver Floors).
 const XP_BASE := 100
-const XP_POR_NIVEL := 50
+const XP_PER_LEVEL := 50
 
-## XP de um inimigo sem valor próprio (Inimigo.xp < 0): proporcional ao HP
+## XP de um inimigo sem valor próprio (Enemy.xp < 0): proporcional ao HP
 ## dele. Sentinela (550) = 66, Guardião (1400) = 168: o andar 1 dá 300.
-const XP_POR_HP_INIMIGO := 0.12
+const XP_PER_ENEMY_HP := 0.12
 
-## Atributos que crescem com o nível (os de Combatente.atributos_nv1()).
-const ATRIBUTOS: Array[String] = ["hp", "atq", "def", "vel"]
-const NOMES_ATRIBUTOS := {"hp": "HP", "atq": "ATQ", "def": "DEF", "vel": "VEL"}
+## Atributos que crescem com o nível (os de Combatant.level_1_stats()).
+const STATS: Array[String] = ["hp", "atk", "def", "spd"]
+const STAT_NAMES := {"hp": "HP", "atk": "ATQ", "def": "DEF", "spd": "VEL"}
 
-const VERSAO_SAVE := 1
+const SAVE_VERSION := 1
 
-## Espaços de save do menu inicial. O 1 é o `progresso.cfg` de sempre, então
+## Espaços de save do menu inicial. O 1 é o `progress.cfg` de sempre, então
 ## o save de antes do menu aparece nele sem conversão.
 const SLOTS := 3
 
 ## Trocável nos testes e nas ferramentas, para não mexer no save do jogador.
-static var arquivo := "user://progresso.cfg"
+static var file := "user://progresso.cfg"
 ## Começo do nome dos arquivos dos slots (também trocável nos testes).
-static var prefixo_slots := "user://progresso"
+static var slots_prefix := "user://progresso"
 static var _save: ConfigFile
 
 
 # ------------------------------------------------------------------ regras
-## XP para sair de `nivel` e ir ao próximo (0 no nível máximo).
-static func xp_para_subir(nivel: int) -> int:
-	if nivel >= NIVEL_MAX:
+## XP para sair de `level` e ir ao próximo (0 no nível máximo).
+static func xp_to_next(level: int) -> int:
+	if level >= MAX_LEVEL:
 		return 0
-	return XP_BASE + XP_POR_NIVEL * (maxi(1, nivel) - 1)
+	return XP_BASE + XP_PER_LEVEL * (maxi(1, level) - 1)
 
 
-## Soma `ganho` ao progresso {"nivel", "xp"} e sobe quantos níveis couberem
-## até `limite` (o da Torre; nunca acima de NIVEL_MAX). No teto, XP 0.
-## Devolve o novo {"nivel", "xp"}.
-static func somar_xp(nivel: int, xp: int, ganho: int, limite := NIVEL_MAX) -> Dictionary:
-	var teto := clampi(limite, 1, NIVEL_MAX)
-	nivel = clampi(nivel, 1, NIVEL_MAX)
-	if nivel >= teto:
-		return {"nivel": nivel, "xp": 0}
-	xp += maxi(0, ganho)
-	while nivel < teto and xp >= xp_para_subir(nivel):
-		xp -= xp_para_subir(nivel)
-		nivel += 1
-	if nivel >= teto:
+## Soma `gain` ao progresso {"level", "xp"} e sobe quantos níveis couberem
+## até `limit` (o da Torre; nunca acima de MAX_LEVEL). No teto, XP 0.
+## Devolve o novo {"level", "xp"}.
+static func add_xp(level: int, xp: int, gain: int, limit := MAX_LEVEL) -> Dictionary:
+	var cap := clampi(limit, 1, MAX_LEVEL)
+	level = clampi(level, 1, MAX_LEVEL)
+	if level >= cap:
+		return {"level": level, "xp": 0}
+	xp += maxi(0, gain)
+	while level < cap and xp >= xp_to_next(level):
+		xp -= xp_to_next(level)
+		level += 1
+	if level >= cap:
 		xp = 0
-	return {"nivel": nivel, "xp": xp}
+	return {"level": level, "xp": xp}
 
 
-## XP total de quem está em `nivel` com `xp` (desde o nível 1).
-static func xp_acumulada(nivel: int, xp: int) -> int:
+## XP total de quem está em `level` com `xp` (desde o nível 1).
+static func total_xp(level: int, xp: int) -> int:
 	var total := xp
-	for n in range(1, clampi(nivel, 1, NIVEL_MAX)):
-		total += xp_para_subir(n)
+	for n in range(1, clampi(level, 1, MAX_LEVEL)):
+		total += xp_to_next(n)
 	return total
 
 
-## Atributos no `nivel`: os de nível 1 mais o crescimento por nível. Sempre
+## Atributos no `level`: os de nível 1 mais o crescimento por nível. Sempre
 ## a partir do nível 1, então recalcular não acumula bônus.
-static func atributos(nv1: Dictionary, crescimento: Dictionary, nivel: int) -> Dictionary:
-	var niveis_ganhos := clampi(nivel, 1, NIVEL_MAX) - 1
+static func stats(base_stats: Dictionary, growth: Dictionary, level: int) -> Dictionary:
+	var levels_gained := clampi(level, 1, MAX_LEVEL) - 1
 	var r := {}
-	for a in ATRIBUTOS:
-		r[a] = float(nv1[a]) + float(crescimento.get(a, 0.0)) * niveis_ganhos
+	for a in STATS:
+		r[a] = float(base_stats[a]) + float(growth.get(a, 0.0)) * levels_gained
 	r.hp = roundi(r.hp)
 	return r
 
 
-## Nível de quem entra na equipe: a média dos `niveis` arredondada (x,5
-## para cima), entre 1 e `limite` (o da Torre, até NIVEL_MAX). Sem ninguém, 1.
-static func nivel_de_entrada(niveis: Array[int], limite := NIVEL_MAX) -> int:
-	if niveis.is_empty():
+## Nível de quem entra na equipe: a média dos `levels` arredondada (x,5
+## para cima), entre 1 e `limit` (o da Torre, até MAX_LEVEL). Sem ninguém, 1.
+static func entry_level(levels: Array[int], limit := MAX_LEVEL) -> int:
+	if levels.is_empty():
 		return 1
-	var soma := 0
-	for n in niveis:
-		soma += n
-	return clampi(roundi(float(soma) / niveis.size()), 1, clampi(limite, 1, NIVEL_MAX))
+	var sum := 0
+	for n in levels:
+		sum += n
+	return clampi(roundi(float(sum) / levels.size()), 1, clampi(limit, 1, MAX_LEVEL))
 
 
-static func xp_inimigo(ini: Inimigo) -> int:
+static func enemy_xp(ini: Enemy) -> int:
 	if ini.xp >= 0:
 		return ini.xp
-	return roundi(ini.atributos_nv1().hp * XP_POR_HP_INIMIGO)
+	return roundi(ini.level_1_stats().hp * XP_PER_ENEMY_HP)
 
 
 ## XP que cada participante ganha ao vencer: a soma da dos inimigos.
-static func xp_da_batalha(inimigos: Array[Inimigo]) -> int:
+static func battle_xp(enemies: Array[Enemy]) -> int:
 	var total := 0
-	for ini in inimigos:
-		total += xp_inimigo(ini)
+	for ini in enemies:
+		total += enemy_xp(ini)
 	return total
 
 
 # ------------------------------------------------------- progresso salvo
-static func _dados() -> ConfigFile:
+static func _data() -> ConfigFile:
 	if _save == null:
 		_save = ConfigFile.new()
-		_save.load(arquivo)  # sem arquivo (primeira vez): tudo no padrão
+		_save.load(file)  # sem arquivo (primeira vez): tudo no padrão
 	return _save
 
 
-static func salvar() -> void:
-	var cfg := _dados()
-	cfg.set_value("jogo", "versao", VERSAO_SAVE)
+static func save() -> void:
+	var cfg := _data()
+	cfg.set_value("jogo", "versao", SAVE_VERSION)
 	cfg.set_value("jogo", "salvo_em", int(Time.get_unix_time_from_system()))
-	var erro := cfg.save(arquivo)
-	if erro != OK:
-		push_error("não deu para salvar o progresso em %s (erro %d)" % [arquivo, erro])
+	var error := cfg.save(file)
+	if error != OK:
+		push_error("não deu para salvar o progresso em %s (erro %d)" % [file, error])
 
 
 ## Esquece o que está em memória: a próxima leitura vem do arquivo (como ao
 ## abrir o jogo de novo).
-static func recarregar() -> void:
+static func reload_save() -> void:
 	_save = null
 
 
 ## Apaga o progresso (testes).
-static func apagar() -> void:
+static func delete() -> void:
 	_save = null
-	if FileAccess.file_exists(arquivo):
-		DirAccess.remove_absolute(arquivo)
+	if FileAccess.file_exists(file):
+		DirAccess.remove_absolute(file)
 
 
 # ------------------------------------------------------------------ slots
-static func arquivo_do_slot(n: int) -> String:
-	return prefixo_slots + (".cfg" if n == 1 else "_%d.cfg" % n)
+static func slot_file(n: int) -> String:
+	return slots_prefix + (".cfg" if n == 1 else "_%d.cfg" % n)
 
 
-static func slot_existe(n: int) -> bool:
-	return FileAccess.file_exists(arquivo_do_slot(n))
+static func slot_exists(n: int) -> bool:
+	return FileAccess.file_exists(slot_file(n))
 
 
-static func algum_slot() -> bool:
+static func any_slot() -> bool:
 	for n in range(1, SLOTS + 1):
-		if slot_existe(n):
+		if slot_exists(n):
 			return true
 	return false
 
 
 ## Passa a ler e salvar no slot `n` (o progresso em memória é descartado).
-static func usar_slot(n: int) -> void:
-	arquivo = arquivo_do_slot(n)
+static func use_slot(n: int) -> void:
+	file = slot_file(n)
 	_save = null
 
 
 ## Jogo novo no slot `n`: apaga o que houver lá e já cria o arquivo, para o
 ## slot aparecer ocupado mesmo antes da primeira vitória.
-static func novo_jogo(n: int) -> void:
-	usar_slot(n)
-	apagar()
-	salvar()
+static func new_game(n: int) -> void:
+	use_slot(n)
+	delete()
+	save()
 
 
-static func apagar_slot(n: int) -> void:
-	var caminho := arquivo_do_slot(n)
-	if caminho == arquivo:
+static func delete_slot(n: int) -> void:
+	var path := slot_file(n)
+	if path == file:
 		_save = null
-	if FileAccess.file_exists(caminho):
-		DirAccess.remove_absolute(caminho)
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
 
 
 ## O que o menu mostra de um slot, lido à parte (não mexe no save em uso):
-## {"existe", "andares" (vencidos), "nivel" (o mais alto), "personagens"
+## {"exists", "floors" (vencidos), "level" (o mais alto), "characters"
 ## (liberados), "salvo_em" (unix, 0 se não souber)}.
-static func resumo_slot(n: int) -> Dictionary:
-	var r := {"existe": slot_existe(n), "andares": 0, "nivel": 1, "personagens": 0, "salvo_em": 0}
-	if not r.existe:
+static func slot_summary(n: int) -> Dictionary:
+	var r := {"exists": slot_exists(n), "floors": 0, "level": 1, "characters": 0, "salvo_em": 0}
+	if not r.exists:
 		return r
 	var cfg := ConfigFile.new()
-	cfg.load(arquivo_do_slot(n))
-	var vencidos: Variant = cfg.get_value("torre", "vencidos", [])
-	r.andares = vencidos.size() if vencidos is Array else 0
-	for id in Elenco.IDS:
-		if cfg.has_section(_secao(id)) or Elenco.inicial(id):
-			r.personagens += 1
-			r.nivel = maxi(r.nivel, clampi(int(cfg.get_value(_secao(id), "nivel", 1)), 1, NIVEL_MAX))
-	r.salvo_em = int(cfg.get_value("jogo", "salvo_em", 0))
+	cfg.load(slot_file(n))
+	var cleared: Variant = cfg.get_value("torre", "vencidos", [])
+	r.floors = cleared.size() if cleared is Array else 0
+	for id in Roster.IDS:
+		if cfg.has_section(_section(id)) or Roster.starts_unlocked(id):
+			r.characters += 1
+			r.level = maxi(r.level, clampi(int(cfg.get_value(_section(id), "nivel", 1)), 1, MAX_LEVEL))
+	r.saved_at = int(cfg.get_value("jogo", "salvo_em", 0))
 	return r
 
 
-static func _secao(id: String) -> String:
+static func _section(id: String) -> String:
 	return "personagem_" + id
 
 
 ## Quem está liberado: os do elenco inicial e os já desbloqueados.
-static func desbloqueado(id: String) -> bool:
-	return _dados().has_section(_secao(id)) or Elenco.inicial(id)
+static func is_unlocked(id: String) -> bool:
+	return _data().has_section(_section(id)) or Roster.starts_unlocked(id)
 
 
-## {"nivel", "xp"} salvos de `id`. Quem ainda não tem registro (save antigo,
+## {"level", "xp"} salvos de `id`. Quem ainda não tem registro (save antigo,
 ## personagem do elenco inicial) está no nível 1. Valores fora da regra são
 ## corrigidos.
-static func progresso(id: String) -> Dictionary:
-	var cfg := _dados()
-	var nivel := clampi(int(cfg.get_value(_secao(id), "nivel", 1)), 1, NIVEL_MAX)
-	var xp := clampi(int(cfg.get_value(_secao(id), "xp", 0)), 0, maxi(0, xp_para_subir(nivel) - 1))
-	return {"nivel": nivel, "xp": xp}
+static func progress(id: String) -> Dictionary:
+	var cfg := _data()
+	var level := clampi(int(cfg.get_value(_section(id), "nivel", 1)), 1, MAX_LEVEL)
+	var xp := clampi(int(cfg.get_value(_section(id), "xp", 0)), 0, maxi(0, xp_to_next(level) - 1))
+	return {"level": level, "xp": xp}
 
 
-static func nivel(id: String) -> int:
-	return progresso(id).nivel
+static func level(id: String) -> int:
+	return progress(id).level
 
 
-static func _guardar(id: String, p: Dictionary) -> void:
-	_dados().set_value(_secao(id), "nivel", p.nivel)
-	_dados().set_value(_secao(id), "xp", p.xp)
+static func _store(id: String, p: Dictionary) -> void:
+	_data().set_value(_section(id), "nivel", p.level)
+	_data().set_value(_section(id), "xp", p.xp)
 
 
 ## A última equipe montada no seletor (só ids conhecidos e liberados).
-static func equipe_salva() -> Array[String]:
+static func saved_team() -> Array[String]:
 	var ids: Array[String] = []
-	for id: String in _dados().get_value("jogador", "equipe", []):
-		if id in Elenco.IDS and desbloqueado(id) and id not in ids:
+	for id: String in _data().get_value("jogador", "equipe", []):
+		if id in Roster.IDS and is_unlocked(id) and id not in ids:
 			ids.append(id)
 	return ids
 
 
-static func salvar_equipe(ids: Array[String]) -> void:
-	_dados().set_value("jogador", "equipe", ids)
-	salvar()
+static func save_team(ids: Array[String]) -> void:
+	_data().set_value("jogador", "equipe", ids)
+	save()
 
 
 ## A equipe principal, que serve de referência para quem chega: a salva;
 ## sem uma (jogo novo), todos os liberados.
-static func equipe_principal() -> Array[String]:
-	var ids := equipe_salva()
-	return ids if not ids.is_empty() else Elenco.disponiveis()
+static func main_team() -> Array[String]:
+	var ids := saved_team()
+	return ids if not ids.is_empty() else Roster.available()
 
 
 ## Libera `id` no nível médio da equipe principal (sem contar ele mesmo),
 ## limitado ao limite atual da Torre, com 0 de XP. Os atributos saem do próprio personagem nesse nível (ver
-## Elenco.criar). Quem já está liberado fica como está. Devolve o progresso.
-static func desbloquear(id: String) -> Dictionary:
-	if _dados().has_section(_secao(id)):
-		return progresso(id)
-	var niveis: Array[int] = []
-	for outro in equipe_principal():
-		if outro != id:
-			niveis.append(nivel(outro))
-	var p := {"nivel": nivel_de_entrada(niveis, Andares.limite_nivel()), "xp": 0}
-	_guardar(id, p)
-	salvar()
+## Roster.create). Quem já está liberado fica como está. Devolve o progresso.
+static func unlock(id: String) -> Dictionary:
+	if _data().has_section(_section(id)):
+		return progress(id)
+	var levels: Array[int] = []
+	for other in main_team():
+		if other != id:
+			levels.append(level(other))
+	var p := {"level": entry_level(levels, Floors.level_limit()), "xp": 0}
+	_store(id, p)
+	save()
 	return p
 
 
-## Dá `qtd` de XP a `id`, até o limite da Torre, e salva. Devolve {"id",
-## "xp" (a recompensa), "xp_aproveitada" (o que contou, menor no limite),
-## "nivel_antes", "nivel", "xp_atual", "xp_proximo", "limite", "no_limite"
-## (parou no limite da Torre), "ganhos" ({atributo: aumento}, vazio se não subiu)}.
-static func conceder_xp(id: String, qtd: int) -> Dictionary:
-	var r := _somar(id, qtd)
-	salvar()
+## Dá `amount` de XP a `id`, até o limite da Torre, e salva. Devolve {"id",
+## "xp" (a recompensa), "xp_gained" (o que contou, menor no limite),
+## "level_before", "level", "current_xp", "next_xp", "limit", "at_limit"
+## (parou no limite da Torre), "gains" ({atributo: aumento}, vazio se não subiu)}.
+static func grant_xp(id: String, amount: int) -> Dictionary:
+	var r := _add_xp(id, amount)
+	save()
 	return r
 
 
-static func _somar(id: String, qtd: int) -> Dictionary:
-	var antes := progresso(id)
-	var limite := Andares.limite_nivel()
-	var depois := somar_xp(antes.nivel, antes.xp, qtd, limite)
-	_guardar(id, depois)
-	var ganhos := {}
-	if depois.nivel > antes.nivel:
-		var nv1 := Elenco.atributos_nv1(id)
-		var cresc: Dictionary = Elenco.dados(id).get("crescimento", {})
-		var a := atributos(nv1, cresc, antes.nivel)
-		var b := atributos(nv1, cresc, depois.nivel)
-		for k in ATRIBUTOS:
+static func _add_xp(id: String, amount: int) -> Dictionary:
+	var before := progress(id)
+	var limit := Floors.level_limit()
+	var after := add_xp(before.level, before.xp, amount, limit)
+	_store(id, after)
+	var gains := {}
+	if after.level > before.level:
+		var base_stats := Roster.level_1_stats(id)
+		var growth: Dictionary = Roster.data(id).get("growth", {})
+		var a := stats(base_stats, growth, before.level)
+		var b := stats(base_stats, growth, after.level)
+		for k in STATS:
 			# como a interface mostra: diferença dos valores arredondados
-			var dif := roundi(b[k]) - roundi(a[k])
-			if dif != 0:
-				ganhos[k] = dif
-	var aproveitada := maxi(0, xp_acumulada(depois.nivel, depois.xp) - xp_acumulada(antes.nivel, antes.xp))
-	return {"id": id, "xp": qtd, "xp_aproveitada": aproveitada, "nivel_antes": antes.nivel, "nivel": depois.nivel,
-		"xp_atual": depois.xp, "xp_proximo": xp_para_subir(depois.nivel), "limite": limite,
-		"no_limite": depois.nivel >= limite and depois.nivel < NIVEL_MAX, "ganhos": ganhos}
+			var diff := roundi(b[k]) - roundi(a[k])
+			if diff != 0:
+				gains[k] = diff
+	var gained := maxi(0, total_xp(after.level, after.xp) - total_xp(before.level, before.xp))
+	return {"id": id, "xp": amount, "xp_gained": gained, "level_before": before.level, "level": after.level,
+		"current_xp": after.xp, "next_xp": xp_to_next(after.level), "limit": limit,
+		"at_limit": after.level >= limit and after.level < MAX_LEVEL, "gains": gains}
 
 
-## Recompensa de uma vitória: a XP dos `inimigos`, inteira, para quem lutou
-## (`participantes`, inclusive quem caiu) e também para os liberados que
+## Recompensa de uma vitória: a XP dos `enemies`, inteira, para quem lutou
+## (`participants`, inclusive quem caiu) e também para os liberados que
 ## ficaram de fora, para trocar de equipe não custar níveis. O valor não
 ## depende do tamanho do elenco. Quem não foi liberado não ganha. Salva uma
-## vez só no fim. Devolve um resultado de conceder_xp() por personagem, com
-## "participou"; quem lutou vem primeiro, na ordem da equipe.
-static func recompensar_vitoria(participantes: Array[String], inimigos: Array[Inimigo]) -> Array[Dictionary]:
-	var xp := xp_da_batalha(inimigos)
-	var lista: Array[Dictionary] = []
-	var ids: Array[String] = participantes.filter(func(id: String) -> bool: return desbloqueado(id))
-	for id in Elenco.disponiveis():
+## vez só no fim. Devolve um resultado de grant_xp() por personagem, com
+## "took_part"; quem lutou vem primeiro, na ordem da equipe.
+static func reward_victory(participants: Array[String], enemies: Array[Enemy]) -> Array[Dictionary]:
+	var xp := battle_xp(enemies)
+	var list: Array[Dictionary] = []
+	var ids: Array[String] = participants.filter(func(id: String) -> bool: return is_unlocked(id))
+	for id in Roster.available():
 		if id not in ids:
 			ids.append(id)
 	for id in ids:
-		var r := _somar(id, xp)
-		r.participou = id in participantes
-		lista.append(r)
-	salvar()
-	return lista
+		var r := _add_xp(id, xp)
+		r.took_part = id in participants
+		list.append(r)
+	save()
+	return list
 
 
 # ------------------------------------------------------------- a Torre
-## Andares vencidos ao menos uma vez (números, ver Andares).
-static func andares_vencidos() -> Array[int]:
-	var lista: Array[int] = []
-	for n: Variant in _dados().get_value("torre", "vencidos", []):
-		if (n is int or n is float) and int(n) not in lista:
-			lista.append(int(n))
-	return lista
+## Andares vencidos ao menos uma vez (números, ver Floors).
+static func cleared_floors() -> Array[int]:
+	var list: Array[int] = []
+	for n: Variant in _data().get_value("torre", "vencidos", []):
+		if (n is int or n is float) and int(n) not in list:
+			list.append(int(n))
+	return list
 
 
-static func marcar_andar_vencido(numero: int) -> void:
-	var lista := andares_vencidos()
-	if numero not in lista:
-		lista.append(numero)
-		lista.sort()
-		_dados().set_value("torre", "vencidos", lista)
-		salvar()
+static func mark_floor_cleared(number: int) -> void:
+	var list := cleared_floors()
+	if number not in list:
+		list.append(number)
+		list.sort()
+		_data().set_value("torre", "vencidos", list)
+		save()
 
 
-static func andar_escolhido() -> int:
-	return int(_dados().get_value("torre", "andar", 1))
+static func chosen_floor() -> int:
+	return int(_data().get_value("torre", "andar", 1))
 
 
-static func salvar_andar_escolhido(numero: int) -> void:
-	_dados().set_value("torre", "andar", numero)
-	salvar()
+static func save_chosen_floor(number: int) -> void:
+	_data().set_value("torre", "andar", number)
+	save()
 
 
 ## Eventos de história já aplicados que o saguão ainda não apresentou
-## (formato em Eventos), na ordem.
-static func eventos_pendentes() -> Array[Dictionary]:
-	var lista: Array[Dictionary] = []
-	for e: Variant in _dados().get_value("torre", "eventos_pendentes", []):
+## (formato em StoryEvents), na ordem.
+static func pending_events() -> Array[Dictionary]:
+	var list: Array[Dictionary] = []
+	for e: Variant in _data().get_value("torre", "eventos_pendentes", []):
 		if e is Dictionary:
-			lista.append(e)
-	return lista
+			list.append(_event_from_save(e))
+	return list
 
 
-static func adicionar_eventos_pendentes(eventos: Array) -> void:
-	if eventos.is_empty():
+## Evento salvo antes do código passar para o inglês ({"tipo": "desbloquear",
+## "id", "quem"?}) no formato atual; o que já está no formato atual passa igual.
+static func _event_from_save(e: Dictionary) -> Dictionary:
+	if not e.has("tipo"):
+		return e
+	var types := {"desbloquear": "unlock", "conversa": "conversation"}
+	var event := {"type": types.get(e.tipo, e.tipo), "id": e.get("id", "")}
+	if e.has("quem"):
+		event.speaker = e.quem
+	return event
+
+
+static func add_pending_events(events: Array) -> void:
+	if events.is_empty():
 		return
-	var lista := eventos_pendentes()
-	for e: Dictionary in eventos:
-		lista.append(e)
-	_dados().set_value("torre", "eventos_pendentes", lista)
-	salvar()
+	var list := pending_events()
+	for e: Dictionary in events:
+		list.append(e)
+	_data().set_value("torre", "eventos_pendentes", list)
+	save()
 
 
 ## Tira o primeiro pendente (depois de apresentado).
-static func tirar_evento_pendente() -> void:
-	var lista := eventos_pendentes()
-	if not lista.is_empty():
-		lista.pop_front()
-		_dados().set_value("torre", "eventos_pendentes", lista)
-		salvar()
+static func pop_pending_event() -> void:
+	var list := pending_events()
+	if not list.is_empty():
+		list.pop_front()
+		_data().set_value("torre", "eventos_pendentes", list)
+		save()

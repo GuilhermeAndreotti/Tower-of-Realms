@@ -63,7 +63,7 @@
         }
       ]
     },
-    "conjurar": {
+    "cast": {
       "row": 2,
       "frame_duration_ms": 90,
       "frames": [

@@ -1,31 +1,31 @@
-class_name Conversas
+class_name Conversations
 extends RefCounted
 ## Conversas do saguão. Dois tipos de chave:
-##  - id de um personagem (o mesmo do Elenco): abre ao falar com ele.
+##  - id de um personagem (o mesmo do Roster): abre ao falar com ele.
 ##    Quem não tem conversa aqui mostra "interação ainda não disponível";
 ##  - outro id (ex.: "chegada_andri"): conversa de história, aberta por um
-##    evento {"tipo": "conversa", "id": ..., "quem": <id de quem fala>}
-##    (ver Eventos; vem do "ao_vencer" de um andar ou de outra fala).
+##    evento {"type": "conversation", "id": ..., "speaker": <id de quem fala>}
+##    (ver StoryEvents; vem do "on_win" de um andar ou de outra fala).
 ## Ainda vazio: as falas não foram escritas.
 ##
-## Formato (só "falas" é obrigatório):
+## Formato (só "lines" é obrigatório):
 ## {
-##     "falas": [
+##     "lines": [
 ##         {
-##             "texto": "...",
-##             "nome": "...",          # opcional: quem fala (padrão: o dono da conversa)
-##             "evento": "...",        # opcional: avisado ao mostrar a fala;
-##                                     # "desbloquear:<id>" e "conversa:<id>" viram eventos de história
-##             "opcoes": [             # opcional: respostas
-##                 {"texto": "...", "evento": "...", "ir_para": 3},  # "evento" como acima
-##             ],                      # "ir_para": índice da próxima fala (padrão: a seguinte; -1 encerra)
+##             "text": "...",
+##             "name": "...",          # opcional: quem fala (padrão: o dono da conversa)
+##             "event": "...",        # opcional: avisado ao mostrar a fala;
+##                                     # "unlock:<id>" e "conversation:<id>" viram eventos de história
+##             "options": [             # opcional: respostas
+##                 {"text": "...", "event": "...", "go_to": 3},  # "event" como acima
+##             ],                      # "go_to": índice da próxima fala (padrão: a seguinte; -1 encerra)
 ##         },
 ##     ],
 ## }
-## Requisitos para liberar uma conversa ficam no Interagivel (requisito).
+## Requisitos para liberar uma conversa ficam no Interactable (requisito).
 
-const CONVERSAS := {}
+const CONVERSATIONS := {}
 
 
-static func de(id: String) -> Dictionary:
-	return CONVERSAS.get(id, {})
+static func from(id: String) -> Dictionary:
+	return CONVERSATIONS.get(id, {})

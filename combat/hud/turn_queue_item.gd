@@ -1,82 +1,82 @@
-class_name ItemFila
+class_name TurnQueueItem
 extends Control
 ## Uma linha da ordem de ação: número na sequência, retrato, nome e
 ## pontinhos dos efeitos ativos. A linha da vez é maior, tem filete dourado
 ## e uma seta que pulsa na calha da esquerda.
 
-const ALTURA := 20.0
-const ALTURA_VEZ := 28.0
-const CALHA := 14.0  ## espaço à esquerda para o número / seta
+const HEIGHT := 20.0
+const TURN_HEIGHT := 28.0
+const GUTTER := 14.0  ## espaço à esquerda para o número / seta
 
-var combatente: Combatente
-var retrato: Texture2D
-var indice := 0
-var vez := false
-var _tempo := 0.0
+var combatant: Combatant
+var portrait: Texture2D
+var index := 0
+var turn := false
+var _time := 0.0
 
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
-func mostrar(c: Combatente, p_retrato: Texture2D, p_indice: int, p_vez: bool) -> void:
-	combatente = c
-	retrato = p_retrato
-	indice = p_indice
-	vez = p_vez
-	custom_minimum_size.y = ALTURA_VEZ if vez else ALTURA
-	set_process(vez)
+func display(c: Combatant, p_portrait: Texture2D, p_index: int, p_turn: bool) -> void:
+	combatant = c
+	portrait = p_portrait
+	index = p_index
+	turn = p_turn
+	custom_minimum_size.y = TURN_HEIGHT if turn else HEIGHT
+	set_process(turn)
 	queue_redraw()
 
 
 func _process(delta: float) -> void:
-	_tempo += delta
+	_time += delta
 	queue_redraw()
 
 
 func _draw() -> void:
-	if not combatente:
+	if not combatant:
 		return
 	var h := size.y
-	var cor := EstiloUI.cor_lado(combatente.aliado)
-	var caixa := Rect2(CALHA, 0, size.x - CALHA, h)
+	var color := UIStyle.side_color(combatant.ally)
+	var box := Rect2(GUTTER, 0, size.x - GUTTER, h)
 
-	if vez:
-		var dx := roundf(sin(_tempo * 5.0) * 1.5)
+	if turn:
+		var dx := roundf(sin(_time * 5.0) * 1.5)
 		var cy := h / 2
-		var seta := PackedVector2Array([Vector2(2 + dx, cy - 5), Vector2(9 + dx, cy), Vector2(2 + dx, cy + 5)])
-		draw_colored_polygon(seta, EstiloUI.OURO)
-		draw_rect(caixa.grow(1), Color.BLACK)
-		draw_rect(caixa, cor.darkened(0.72))
-		draw_rect(caixa, EstiloUI.OURO, false, 1.0)
+		var arrow := PackedVector2Array([Vector2(2 + dx, cy - 5), Vector2(9 + dx, cy), Vector2(2 + dx, cy + 5)])
+		draw_colored_polygon(arrow, UIStyle.GOLD)
+		draw_rect(box.grow(1), Color.BLACK)
+		draw_rect(box, color.darkened(0.72))
+		draw_rect(box, UIStyle.GOLD, false, 1.0)
 	else:
-		EstiloUI.texto(self, Vector2(0, h - 6), str(indice + 1), 9, EstiloUI.TEXTO_FRACO, CALHA - 3, HORIZONTAL_ALIGNMENT_RIGHT)
-		draw_rect(caixa, Color(0, 0, 0, 0.42))
+		UIStyle.text(self, Vector2(0, h - 6), str(index + 1), 9, UIStyle.DIM_TEXT, GUTTER - 3, HORIZONTAL_ALIGNMENT_RIGHT)
+		draw_rect(box, Color(0, 0, 0, 0.42))
 	# faixa do lado (aliado/inimigo)
-	draw_rect(Rect2(caixa.position, Vector2(3, h)), cor if vez else cor.darkened(0.25))
+	draw_rect(Rect2(box.position, Vector2(3, h)), color if turn else color.darkened(0.25))
 
-	var lado_retrato := 22.0 if vez else 16.0
-	var pr := Rect2(caixa.position + Vector2(6, (h - lado_retrato) / 2), Vector2(lado_retrato, lado_retrato))
+	var portrait_side := 22.0 if turn else 16.0
+	var pr := Rect2(box.position + Vector2(6, (h - portrait_side) / 2), Vector2(portrait_side, portrait_side))
 	draw_rect(pr, Color(0.03, 0.03, 0.06))
-	if retrato:
-		draw_texture_rect(retrato, pr, false)
-	draw_rect(pr, cor.darkened(0.2) if not vez else EstiloUI.OURO.darkened(0.15), false, 1.0)
+	if portrait:
+		draw_texture_rect(portrait, pr, false)
+	draw_rect(pr, color.darkened(0.2) if not turn else UIStyle.GOLD.darkened(0.15), false, 1.0)
 
-	var tamanho := 13 if vez else 11
+	var font_size := 13 if turn else 11
 	var nx := pr.end.x + 5
-	var cor_nome := EstiloUI.TEXTO if vez else Color(0.8, 0.79, 0.86)
-	var efeitos := combatente.efeitos()
-	var espaco_pips := efeitos.size() * 10.0
-	EstiloUI.texto(self, Vector2(nx, h / 2 + tamanho * 0.36), combatente.nome, tamanho, cor_nome,
-		caixa.end.x - nx - espaco_pips - 4)
+	var name_color := UIStyle.TEXT if turn else Color(0.8, 0.79, 0.86)
+	var effects := combatant.effects()
+	var pip_spacing := effects.size() * 10.0
+	UIStyle.text(self, Vector2(nx, h / 2 + font_size * 0.36), combatant.name, font_size, name_color,
+		box.end.x - nx - pip_spacing - 4)
 
 	# efeitos: quadradinhos com a cor do efeito, encostados à direita
-	var x := caixa.end.x - 4
-	for e: Dictionary in efeitos:
+	var x := box.end.x - 4
+	for e: Dictionary in effects:
 		x -= 10
 		var r := Rect2(x, h / 2 - 4, 8, 8)
 		draw_rect(r.grow(1), Color.BLACK)
-		draw_rect(r, EstiloUI.cor_efeito(e))
-		if e.get("tipo") == "alerta":
+		draw_rect(r, UIStyle.effect_color(e))
+		if e.get("type") == "alert":
 			draw_rect(Rect2(r.position + Vector2(3, 1), Vector2(2, 4)), Color.BLACK)
 			draw_rect(Rect2(r.position + Vector2(3, 6), Vector2(2, 1)), Color.BLACK)

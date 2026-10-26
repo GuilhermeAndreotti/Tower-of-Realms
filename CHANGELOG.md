@@ -59,6 +59,7 @@ e o projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - O piloto da simulação dos andares usa as skills 2 (Bang! e Protocolo MOMC).
 - Ícones de habilidade e de artefato padronizados no estilo dos da Shumi: mesmo tamanho (desenho de 11×11 centrado), sem moldura própria (o slot da barra já tem borda) e com a borda da figura num tom escuro da própria cor. Todos os do Andri e da Àskara foram redesenhados; o Disparo do Andri virou uma bola de fogo.
 - Projeto reorganizado em pastas por feature, com nomes de pasta e de arquivo em inglês: cada cena fica junto do script e da arte dela (`combat/`, `characters/`, `enemies/`, `progression/`, `tower/`, `lobby/`, `menu/`, `ui/`), e os testes e ferramentas passam a `tests/` e `tools/`.
+- O código passa a usar nomes em inglês (classes, funções, variáveis, sinais e chaves internas); comentários, documentação e textos do jogo continuam em pt-BR. Saves antigos continuam abrindo: as chaves do arquivo não mudaram, e eventos de história pendentes no formato antigo são convertidos na leitura. Na simulação dos andares, a equipe passa a ser `team=id,id`.
 
 ### Fixed
 

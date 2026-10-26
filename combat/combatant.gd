@@ -1,389 +1,389 @@
-class_name Combatente
+class_name Combatant
 extends RefCounted
 ## Estado de um lutador durante a batalha: status, HP, energia e posição na
 ## fila de turnos. Não sabe nada de animação nem de interface.
 
 ## Distância que todo mundo percorre para agir; quem tem mais VEL chega antes.
-const DISTANCIA_TURNO := 10000.0
+const TURN_DISTANCE := 10000.0
 
-var nome: String
-var aliado: bool
-## Nível do personagem (Progressao); inimigos ficam no 1. Não confundir com
+var name: String
+var ally: bool
+## Nível do personagem (Progression); inimigos ficam no 1. Não confundir com
 ## níveis de forma de um kit (como o Kaioken da Shumi).
-var nivel_personagem := 1
+var character_level := 1
 ## HP máximo e atributos no nível atual, sem modificadores temporários (que
-## entram em bonus() e nos estados). Quem muda o nível é aplicar_nivel().
-var hp_max: int
+## entram em bonus() e nos estados). Quem muda o nível é apply_level().
+var max_hp: int
 var hp: int
-var atq_base: float
-var def_base: float
-var vel_base: float
-## Atributos com que o lutador foi definido (nível 1): {"hp", "atq", "def", "vel"}.
-var _nv1 := {}
-var energia_max: float = 0.0
-var energia: float = 0.0
-var energia_ao_apanhar: float = 0.0  ## energia ganha ao receber um golpe
-## Um tipo só (Tipos); é o que define o que o atinge melhor e, por padrão,
+var base_atk: float
+var base_def: float
+var base_spd: float
+## Atributos com que o lutador foi definido (nível 1): {"hp", "atk", "def", "spd"}.
+var _base_stats := {}
+var max_energy: float = 0.0
+var energy: float = 0.0
+var energy_on_hit: float = 0.0  ## energia ganha ao receber um golpe
+## Um tipo só (Types); é o que define o que o atinge melhor e, por padrão,
 ## o tipo dos ataques dele.
-var tipo: String
+var type: String
 
 ## Quanto falta para este lutador agir ("action value" do HSR).
 var av: float
 
-## Multiplicadores temporários (somados): {"atq": 0.2, "vel": -0.1}.
+## Multiplicadores temporários (somados): {"atk": 0.2, "spd": -0.1}.
 ## Personagens com mecânicas próprias (como o Kaioken) sobrescrevem bonus().
 var _bonus_extra := {}
 
-## Efeitos aplicados por habilidades (ver Estado). Um por id.
-var estados: Array[Estado] = []
+## Efeitos aplicados por habilidades (ver StatusEffect). Um por id.
+var status_effects: Array[StatusEffect] = []
 
-## Turnos que faltam para cada ação com "recarga" poder ser usada de novo
+## Turnos que faltam para cada ação com "cooldown" poder ser usada de novo
 ## (acao -> turnos do portador; sem a chave = pronta).
-var recargas := {}
+var cooldowns := {}
 
-## Devolve os aliados de pé deste lutador (Array[Combatente]); a batalha
+## Devolve os aliados de pé deste lutador (Array[Combatant]); a batalha
 ## preenche. Um Callable, e não a lista, para não criar ciclo de referência.
-var aliados_vivos := Callable()
+var living_allies := Callable()
 
-const DANO_CRITICO := 1.5  ## multiplicador do acerto crítico
+const CRITICAL_DAMAGE := 1.5  ## multiplicador do acerto crítico
 
 
-func _init(p_nome: String, p_aliado: bool, p_hp: int, p_atq: float, p_def: float, p_vel: float, p_tipo := Tipos.FISICO) -> void:
-	nome = p_nome
-	tipo = p_tipo
-	aliado = p_aliado
-	hp_max = p_hp
+func _init(p_name: String, p_ally: bool, p_hp: int, p_atk: float, p_def: float, p_spd: float, p_type := Types.PHYSICAL) -> void:
+	name = p_name
+	type = p_type
+	ally = p_ally
+	max_hp = p_hp
 	hp = p_hp
-	atq_base = p_atq
-	def_base = p_def
-	vel_base = p_vel
-	_nv1 = {"hp": p_hp, "atq": p_atq, "def": p_def, "vel": p_vel}
-	av = DISTANCIA_TURNO / vel_base
+	base_atk = p_atk
+	base_def = p_def
+	base_spd = p_spd
+	_base_stats = {"hp": p_hp, "atk": p_atk, "def": p_def, "spd": p_spd}
+	av = TURN_DISTANCE / base_spd
 
 
-func atributos_nv1() -> Dictionary:
-	return _nv1.duplicate()
+func level_1_stats() -> Dictionary:
+	return _base_stats.duplicate()
 
 
-## Põe o lutador em `p_nivel` com os `atributos` desse nível (Progressao.atributos).
+## Põe o lutador em `p_level` com os `stats` desse nível (Progression.stats).
 ## Troca só a base: a vida extra dos estados continua por cima, o HP atual
 ## ganha o que o máximo ganhou (sem passar dele) e quem caiu continua caído.
-func aplicar_nivel(p_nivel: int, atributos: Dictionary) -> void:
-	var vel_antes := vel()
-	var hp_max_antes := hp_max
-	var vida_extra := 0
-	for e in estados:
-		vida_extra += e.vida_extra
-	nivel_personagem = p_nivel
-	hp_max = int(atributos.hp) + vida_extra
+func apply_level(p_level: int, stats: Dictionary) -> void:
+	var spd_before := spd()
+	var max_hp_before := max_hp
+	var extra_life := 0
+	for e in status_effects:
+		extra_life += e.extra_life
+	character_level = p_level
+	max_hp = int(stats.hp) + extra_life
 	if hp > 0:
-		hp = clampi(hp + maxi(0, hp_max - hp_max_antes), 1, hp_max)
-	atq_base = atributos.atq
-	def_base = atributos.def
-	vel_base = atributos.vel
-	ajustar_av(vel_antes)
+		hp = clampi(hp + maxi(0, max_hp - max_hp_before), 1, max_hp)
+	base_atk = stats.atk
+	base_def = stats.def
+	base_spd = stats.spd
+	adjust_av(spd_before)
 
 
-func vivo() -> bool:
+func is_alive() -> bool:
 	return hp > 0
 
 
 func bonus(stat: String) -> float:
 	var total: float = _bonus_extra.get(stat, 0.0)
-	for e in estados:
+	for e in status_effects:
 		total += e.mods.get(stat, 0.0)
 	return total
 
 
-func atq() -> float:
-	return atq_base * (1.0 + bonus("atq"))
+func atk() -> float:
+	return base_atk * (1.0 + bonus("atk"))
 
 
-func defesa() -> float:
-	return def_base * (1.0 + bonus("def"))
+func defense() -> float:
+	return base_def * (1.0 + bonus("def"))
 
 
-func vel() -> float:
-	return maxf(1.0, vel_base * (1.0 + bonus("vel")))
+func spd() -> float:
+	return maxf(1.0, base_spd * (1.0 + bonus("spd")))
 
 
 ## Chame depois de qualquer mudança de VEL: o que falta para agir é
 ## reescalado, como no HSR (ficar mais rápido no meio do caminho adianta o turno).
-func ajustar_av(vel_antes: float) -> void:
-	av = av * vel_antes / vel()
+func adjust_av(spd_before: float) -> void:
+	av = av * spd_before / spd()
 
 
-func reiniciar_av() -> void:
-	av = DISTANCIA_TURNO / vel()
+func reset_av() -> void:
+	av = TURN_DISTANCE / spd()
 
 
-func ganhar_energia(qtd: float) -> void:
-	energia = minf(energia_max, energia + qtd)
+func gain_energy(amount: float) -> void:
+	energy = minf(max_energy, energy + amount)
 
 
-## Dano de `atacante` com multiplicador `mult` sobre `alvo`, com um ataque
-## do tipo `tipo_ataque` ("" = o tipo do atacante).
-## `variacao` (0..1) e `critico` são sorteados fora para os testes poderem
-## fixar o valor. Escudos não entram aqui (ver absorver()).
-static func calcular_dano(atacante: Combatente, alvo: Combatente, mult: float, variacao := 0.5, tipo_ataque := "", critico := false) -> int:
-	var tipo_golpe := tipo_ataque if tipo_ataque != "" else atacante.tipo
-	var bruto := atacante.atq() * mult * alvo.efetividade_contra(tipo_golpe) * 100.0 / (100.0 + alvo.defesa())
-	bruto *= 1.0 - alvo.reducao_dano()
-	if critico:
-		bruto *= DANO_CRITICO
-	return maxi(1, roundi(bruto * lerpf(0.95, 1.05, variacao)))
+## Dano de `attacker` com multiplicador `mult` sobre `target`, com um ataque
+## do tipo `attack_type` ("" = o tipo do atacante).
+## `variance` (0..1) e `critical` são sorteados fora para os testes poderem
+## fixar o valor. Escudos não entram aqui (ver absorb()).
+static func calculate_damage(attacker: Combatant, target: Combatant, mult: float, variance := 0.5, attack_type := "", critical := false) -> int:
+	var strike_type := attack_type if attack_type != "" else attacker.type
+	var raw := attacker.atk() * mult * target.effectiveness_against(strike_type) * 100.0 / (100.0 + target.defense())
+	raw *= 1.0 - target.damage_reduction()
+	if critical:
+		raw *= CRITICAL_DAMAGE
+	return maxi(1, roundi(raw * lerpf(0.95, 1.05, variance)))
 
 
 ## Tira HP direto, sem passar pelo escudo (custos próprios, como o Kaioken).
-## Golpes passam antes por absorver().
-func receber_dano(qtd: int) -> int:
-	var real := mini(qtd, hp)
+## Golpes passam antes por absorb().
+func take_damage(amount: int) -> int:
+	var real := mini(amount, hp)
 	hp -= real
 	return real
 
 
-func curar(qtd: int) -> int:
-	var real := mini(qtd, hp_max - hp)
+func heal(amount: int) -> int:
+	var real := mini(amount, max_hp - hp)
 	hp += real
 	return real
 
 
-## Multiplicador de um golpe do tipo `tipo_golpe` neste lutador: a tabela de
-## Tipos, a não ser que um estado tenha criado fraqueza a esse tipo.
-func efetividade_contra(tipo_golpe: String) -> float:
-	for e in estados:
-		if e.fraqueza == tipo_golpe:
-			return Tipos.SUPER
-	return Tipos.efetividade(tipo_golpe, tipo)
+## Multiplicador de um golpe do tipo `strike_type` neste lutador: a tabela de
+## Types, a não ser que um estado tenha criado fraqueza a esse tipo.
+func effectiveness_against(strike_type: String) -> float:
+	for e in status_effects:
+		if e.weakness == strike_type:
+			return Types.SUPER
+	return Types.effectiveness(strike_type, type)
 
 
-func chance_critico() -> float:
+func crit_chance() -> float:
 	return clampf(bonus("crit"), 0.0, 1.0)
 
 
 ## Fração cortada de todo golpe recebido (resistências dos estados).
-func reducao_dano() -> float:
+func damage_reduction() -> float:
 	var total := 0.0
-	for e in estados:
-		total += e.reducao_dano
+	for e in status_effects:
+		total += e.damage_reduction
 	return clampf(total, 0.0, 0.9)
 
 
 ## Peso deste lutador no sorteio de alvo dos inimigos (1 + provocações).
-func peso_alvo() -> float:
+func target_weight() -> float:
 	var total := 1.0
-	for e in estados:
-		total += e.provocacao
+	for e in status_effects:
+		total += e.taunt
 	return total
 
 
-## Outro aliado (`atacante`, da equipe ou invocação) acabou de acertar o
-## inimigo `alvo`, que segue de pé. Devolve o golpe com que este lutador
-## ataca junto ({"nome", "mult", "tipo"?}; {} = nenhum), que a batalha faz
+## Outro aliado (`attacker`, da equipe ou invocação) acabou de acertar o
+## inimigo `target`, que segue de pé. Devolve o golpe com que este lutador
+## ataca junto ({"name", "mult", "type"?}; {} = nenhum), que a batalha faz
 ## como golpe adicional: sem crítico, sem estados de acerto e sem encadear.
 ## Quem ataca junto no kit sobrescreve.
-func atacar_junto(_atacante: Combatente, _alvo: Combatente) -> Dictionary:
+func follow_up(_attacker: Combatant, _target: Combatant) -> Dictionary:
 	return {}
 
 
 ## Um inimigo caiu (chamado nos aliados de pé). Devolve o que este lutador
 ## ganhou com isso, para o registro da luta ("" = nada).
-func ao_inimigo_cair() -> String:
+func on_enemy_fallen() -> String:
 	return ""
 
 
 # --------------------------------------------------------------- estados
-func estado(id: String) -> Estado:
-	for e in estados:
+func state(id: String) -> StatusEffect:
+	for e in status_effects:
 		if e.id == id:
 			return e
 	return null
 
 
 ## Aplica `e` (substitui o de mesmo id, renovando).
-func aplicar_estado(e: Estado) -> void:
-	var vel_antes := vel()
-	var hp_antes := hp
-	var antigo := estado(e.id)
-	remover_estado(e.id)
-	estados.append(e)
+func apply_status(e: StatusEffect) -> void:
+	var spd_before := spd()
+	var hp_before := hp
+	var old := state(e.id)
+	remove_status(e.id)
+	status_effects.append(e)
 	# vida extra: o HP atual sobe só o que o máximo ganhou de novo (renovar
 	# não cura)
-	hp_max += e.vida_extra
-	hp = mini(hp_antes + maxi(0, e.vida_extra - (antigo.vida_extra if antigo else 0)), hp_max)
-	ajustar_av(vel_antes)
-	if antigo == null and e.atraso > 0:
-		av += e.atraso * DISTANCIA_TURNO / vel()
+	max_hp += e.extra_life
+	hp = mini(hp_before + maxi(0, e.extra_life - (old.extra_life if old else 0)), max_hp)
+	adjust_av(spd_before)
+	if old == null and e.delay > 0:
+		av += e.delay * TURN_DISTANCE / spd()
 
 
 ## Tira o estado `id`, desfazendo o que ele mudou (VEL, HP máximo).
-func remover_estado(id: String) -> void:
-	var vel_antes := vel()
-	for i in range(estados.size() - 1, -1, -1):
-		if estados[i].id == id:
-			hp_max -= estados[i].vida_extra
-			hp = mini(hp, hp_max)
-			estados.remove_at(i)
-	ajustar_av(vel_antes)
+func remove_status(id: String) -> void:
+	var spd_before := spd()
+	for i in range(status_effects.size() - 1, -1, -1):
+		if status_effects[i].id == id:
+			max_hp -= status_effects[i].extra_life
+			hp = mini(hp, max_hp)
+			status_effects.remove_at(i)
+	adjust_av(spd_before)
 
 
 ## Fim de um turno do portador: desconta a duração dos estados e as
 ## recargas. Devolve os estados que acabaram.
-func passar_turno() -> Array[Estado]:
-	for acao: String in recargas.keys():
-		recargas[acao] -= 1
-		if recargas[acao] <= 0:
-			recargas.erase(acao)
-	var acabaram: Array[Estado] = []
-	for e in estados:
-		if e.turnos > 0:
-			e.turnos -= 1
-			if e.turnos == 0:
-				acabaram.append(e)
-	for e in acabaram:
-		remover_estado(e.id)
-	return acabaram
+func pass_turn() -> Array[StatusEffect]:
+	for action: String in cooldowns.keys():
+		cooldowns[action] -= 1
+		if cooldowns[action] <= 0:
+			cooldowns.erase(action)
+	var ended: Array[StatusEffect] = []
+	for e in status_effects:
+		if e.turns > 0:
+			e.turns -= 1
+			if e.turns == 0:
+				ended.append(e)
+	for e in ended:
+		remove_status(e.id)
+	return ended
 
 
 ## Remove os debuffs (os estados genéricos; custos de kit, como a exaustão
 ## do Kaioken, não são estados e ficam). Devolve quantos saíram.
-func limpar_debuffs() -> int:
-	var antes := estados.size()
-	for e in estados.duplicate():
-		if e.tipo == "debuff":
-			remover_estado(e.id)
-	return antes - estados.size()
+func clear_debuffs() -> int:
+	var before := status_effects.size()
+	for e in status_effects.duplicate():
+		if e.type == "debuff":
+			remove_status(e.id)
+	return before - status_effects.size()
 
 
-func tem_debuff() -> bool:
-	for e in estados:
-		if e.tipo == "debuff":
+func has_debuff() -> bool:
+	for e in status_effects:
+		if e.type == "debuff":
 			return true
 	return false
 
 
-func escudo() -> int:
+func shield() -> int:
 	var total := 0
-	for e in estados:
-		total += e.escudo
+	for e in status_effects:
+		total += e.shield
 	return total
 
 
 ## Escudos absorvem o golpe primeiro. Devolve quanto foi absorvido.
-func absorver(dano: int) -> int:
-	var absorvido := 0
-	for e in estados.duplicate():
-		if e.escudo <= 0 or absorvido >= dano:
+func absorb(damage: int) -> int:
+	var absorbed := 0
+	for e in status_effects.duplicate():
+		if e.shield <= 0 or absorbed >= damage:
 			continue
-		var parte := mini(e.escudo, dano - absorvido)
-		e.escudo -= parte
-		absorvido += parte
-		if e.escudo == 0:
-			remover_estado(e.id)
-	return absorvido
+		var part := mini(e.shield, damage - absorbed)
+		e.shield -= part
+		absorbed += part
+		if e.shield == 0:
+			remove_status(e.id)
+	return absorbed
 
 
 ## Golpes adicionais que um golpe de multiplicador `mult` do portador
 ## dispara (ex.: dano elétrico extra). Os que se consomem acabam aqui.
 ## Golpes adicionais não chamam isto de novo: não há encadeamento.
-func golpes_extras(mult: float) -> Array[Dictionary]:
+func extra_strikes(mult: float) -> Array[Dictionary]:
 	var extras: Array[Dictionary] = []
-	for e in estados.duplicate():
-		if e.golpe_extra.is_empty():
+	for e in status_effects.duplicate():
+		if e.extra_strike.is_empty():
 			continue
-		var g: Dictionary = e.golpe_extra
-		extras.append({"tipo": g.tipo, "mult": g.mult * mult if g.get("proporcional", false) else g.mult, "fonte": e.nome})
-		if g.get("consome", false):
-			remover_estado(e.id)
+		var g: Dictionary = e.extra_strike
+		extras.append({"type": g.type, "mult": g.mult * mult if g.get("proportional", false) else g.mult, "source": e.name})
+		if g.get("consumes", false):
+			remove_status(e.id)
 	return extras
 
 
 ## Estados que o portador aplica em quem acerta (novos a cada acerto).
 ## Os que se consomem acabam aqui.
-func estados_ao_acertar() -> Array[Estado]:
-	var lista: Array[Estado] = []
-	for e in estados.duplicate():
-		if e.ao_acertar.is_valid():
-			var novo: Estado = e.ao_acertar.call()
-			lista.append(novo)
-			if e.ao_acertar_consome:
-				remover_estado(e.id)
-	return lista
+func on_hit_statuses() -> Array[StatusEffect]:
+	var list: Array[StatusEffect] = []
+	for e in status_effects.duplicate():
+		if e.on_hit.is_valid():
+			var candidate: StatusEffect = e.on_hit.call()
+			list.append(candidate)
+			if e.on_hit_consumes:
+				remove_status(e.id)
+	return list
 
 
 # --------------------------------------------------------------- recarga
-## Turnos que faltam para `acao` poder ser usada de novo (0 = pronta).
-func recarga(acao: String) -> int:
-	return recargas.get(acao, 0)
+## Turnos que faltam para `action` poder ser usada de novo (0 = pronta).
+func cooldown(action: String) -> int:
+	return cooldowns.get(action, 0)
 
 
-## `acao` foi usada: só volta depois de `turnos` turnos do portador, contando
+## `action` foi usada: só volta depois de `turns` turnos do portador, contando
 ## o turno em que foi usada (recarga 3 = uma vez a cada 3 turnos).
-func iniciar_recarga(acao: String, turnos: int) -> void:
-	if turnos > 0:
-		recargas[acao] = turnos
+func start_cooldown(action: String, turns: int) -> void:
+	if turns > 0:
+		cooldowns[action] = turns
 
 
-## Completa a descrição `h` de uma ação com "recarga": em recarga, ela fica
-## no estado "recarga" com os turnos que faltam ("recarga_restante").
-func com_recarga(h: Dictionary) -> Dictionary:
-	var falta := recarga(h.acao)
-	h.recarga_restante = falta
-	if falta > 0:
-		h.estado = "recarga"
-		h.falta = "Recarga: mais %d turno%s." % [falta, "" if falta == 1 else "s"]
+## Completa a descrição `h` de uma ação com "cooldown": em recarga, ela fica
+## no estado "cooldown" com os turnos que faltam ("cooldown_remaining").
+func with_cooldown(h: Dictionary) -> Dictionary:
+	var missing_reason := cooldown(h.action)
+	h.cooldown_remaining = missing_reason
+	if missing_reason > 0:
+		h.state = "cooldown"
+		h.missing_reason = "Recarga: mais %d turno%s." % [missing_reason, "" if missing_reason == 1 else "s"]
 	return h
 
 
 # ------------------------------------------------- descrição para a interface
 # A HUD só lê estes dados; quem tem kit ou estados próprios sobrescreve.
 
-## Efeitos ativos: [{"id", "curto", "nome", "tipo" (buff/debuff/alerta),
-## "turnos" (-1 = sem contagem), "detalhe"?, "cor"?}, ...].
+## Efeitos ativos: [{"id", "short", "name", "type" (buff/debuff/alerta),
+## "turns" (-1 = sem contagem), "detail"?, "color"?}, ...].
 ## Quem sobrescreve deve incluir super() (os estados genéricos).
-func efeitos() -> Array[Dictionary]:
-	var lista: Array[Dictionary] = []
-	for e in estados:
-		lista.append(e.descricao())
-	return lista
+func effects() -> Array[Dictionary]:
+	var list: Array[Dictionary] = []
+	for e in status_effects:
+		list.append(e.description())
+	return list
 
 
 ## Kit de ações do jogador, na ordem da barra (sempre básico, skill, skill 2,
-## ult e a passiva; a skill 2 pode ser uma passiva, no mesmo lugar): [{"acao", "nome", "tecla",
-## "icone", "estado" (pronta/sem_recurso/bloqueada/recarga), "alvo" (unico/
-## vizinhos/todos/proprio/aliado), "tipo"? (Tipos, só nas que causam dano),
-## "custo_pontos"?, "custo_energia"?, "custo_recurso"? (texto, para recursos
-## do kit, como "6 fragmentos"), "ganho_pontos"?, "opcoes"? (escolha
-## feita antes de confirmar: [{"id", "nome", "descricao", "icone"?, "cor"?,
-## "alvo"? (quando a opção mira outro tipo de alvo que a ação)}],
-## com "opcao_padrao"?), "recarga"? (turnos entre usos; ver com_recarga()),
-## "passiva"? (sem tecla; todo kit explica a sua),
-## "ao_iniciar_turno"? (o seletor de opções abre sozinho no começo da vez),
-## "seletor"? ("radial": as opções abrem em anel no próprio lutador; opções
-## podem ter "sigla" e "atual"),
-## "livre"? (não gasta o turno), "selo"?, "destaque"?, "cor"?,
-## "falta"? (por que não está pronta, quando o kit sabe dizer), "descricao"
+## ult e a passiva; a skill 2 pode ser uma passiva, no mesmo lugar): [{"action", "name", "key",
+## "icon", "state" (pronta/no_resource/bloqueada/recarga), "target" (unico/
+## vizinhos/todos/proprio/aliado), "type"? (Types, só nas que causam dano),
+## "point_cost"?, "energy_cost"?, "resource_cost"? (texto, para recursos
+## do kit, como "6 fragmentos"), "point_gain"?, "options"? (escolha
+## feita antes de confirmar: [{"id", "name", "description", "icon"?, "color"?,
+## "target"? (quando a opção mira outro tipo de alvo que a ação)}],
+## com "default_option"?), "cooldown"? (turnos entre usos; ver with_cooldown()),
+## "passive"? (sem tecla; todo kit explica a sua),
+## "on_turn_start"? (o seletor de opções abre sozinho no começo da vez),
+## "selector"? ("radial": as opções abrem em anel no próprio lutador; opções
+## podem ter "abbr" e "current"),
+## "free"? (não gasta o turno), "badge"?, "highlight"?, "color"?,
+## "missing_reason"? (por que não está pronta, quando o kit sabe dizer), "description"
 ## (resumo curto: custo, recarga e alvo já aparecem como etiquetas),
-## "detalhes"? (uma linha por item, no CartaoHabilidade: [{"rotulo",
-## "marca"?, "texto"?, "valores"? ([{"texto", "atual"?}], um por nível),
-## "cor"?, "atual"?}])}, ...].
-## A batalha cobra "custo_pontos" antes da ação e dá "ganho_pontos" depois.
-func habilidades(_pontos: int) -> Array[Dictionary]:
+## "details"? (uma linha por item, no SkillCard: [{"label",
+## "mark"?, "text"?, "values"? ([{"text", "current"?}], um por nível),
+## "color"?, "current"?}])}, ...].
+## A batalha cobra "point_cost" antes da ação e dá "point_gain" depois.
+func skills(_points: int) -> Array[Dictionary]:
 	return []
 
 
-## Inimigos que `acao` atingiria, quando a regra é do próprio kit (alvos que
-## mudam com uma forma, por exemplo). Vazio = a batalha usa o "alvo" da ação.
-func alvos_previstos(_acao: String, _inimigos: Array, _alvo: int) -> Array:
+## Inimigos que `action` atingiria, quando a regra é do próprio kit (alvos que
+## mudam com uma forma, por exemplo). Vazio = a batalha usa o "target" da ação.
+func predicted_targets(_action: String, _enemies: Array, _target: int) -> Array:
 	return []
 
 
-## Por que `acao` (com a `opcao` escolhida) não pode ser usada em `alvo`;
+## Por que `action` (com a `option` escolhida) não pode ser usada em `target`;
 ## "" = pode. A batalha impede a confirmação e a HUD mostra o motivo.
-func motivo_invalido(_acao: String, _opcao: String, _alvo: Combatente) -> String:
+func invalid_reason(_action: String, _option: String, _target: Combatant) -> String:
 	return ""
 
 
-## Se `acao` pode ser usada agora (com `pontos` de skill do time).
-func pode_usar(_acao: String, _pontos: int) -> bool:
+## Se `action` pode ser usada agora (com `points` de skill do time).
+func can_use(_action: String, _points: int) -> bool:
 	return false

@@ -1,130 +1,130 @@
-class_name HudLobby
+class_name LobbyHud
 extends CanvasLayer
 ## Interface do saguão: dica de controles, aviso curto, caixa de conversa e
 ## o véu preto das transições. Só mostra; quem decide é o Lobby.
 
-const CONTROLES := [[["←", "↑", "→", "↓"], "andar"], [["Enter"], "interagir"], [["Esc"], "menu"]]
+const CONTROLS := [[["←", "↑", "→", "↓"], "andar"], [["Enter"], "interagir"], [["Esc"], "menu"]]
 
-var dialogo: CaixaDialogo
+var dialog: DialogBox
 
-var _raiz: Control
-var _aviso: PanelContainer
-var _texto_aviso: Label
-var _tween_aviso: Tween
-var _veu: ColorRect
-var _anuncio: Label
+var _root: Control
+var _notice: PanelContainer
+var _notice_text: Label
+var _notice_tween: Tween
+var _veil: ColorRect
+var _announcement: Label
 
 
 func _ready() -> void:
-	_raiz = Control.new()
-	_raiz.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_raiz.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_raiz)
+	_root = Control.new()
+	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_root)
 
-	var controles := PanelContainer.new()
-	controles.add_theme_stylebox_override("panel", EstiloUI.painel())
-	controles.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var desenho := Control.new()
-	desenho.custom_minimum_size = Vector2(_largura_controles(), 15)
-	desenho.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	desenho.draw.connect(_desenhar_controles.bind(desenho))
-	controles.add_child(desenho)
-	_raiz.add_child(controles)
-	_ancorar(controles, Vector2(0, 1), Vector2(EstiloUI.MARGEM, -EstiloUI.MARGEM))
+	var controls := PanelContainer.new()
+	controls.add_theme_stylebox_override("panel", UIStyle.panel())
+	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var drawing := Control.new()
+	drawing.custom_minimum_size = Vector2(_controls_width(), 15)
+	drawing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	drawing.draw.connect(_draw_controls.bind(drawing))
+	controls.add_child(drawing)
+	_root.add_child(controls)
+	_anchor(controls, Vector2(0, 1), Vector2(UIStyle.MARGIN, -UIStyle.MARGIN))
 
-	_aviso = PanelContainer.new()
-	_aviso.add_theme_stylebox_override("panel", EstiloUI.painel(EstiloUI.FUNDO, EstiloUI.BORDA_CLARA))
-	_aviso.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_texto_aviso = EstiloUI.label("", 12, EstiloUI.TEXTO_FRACO)
-	_aviso.add_child(_texto_aviso)
-	_raiz.add_child(_aviso)
-	_ancorar(_aviso, Vector2(0.5, 1), Vector2(0, -56))
-	_aviso.modulate.a = 0
+	_notice = PanelContainer.new()
+	_notice.add_theme_stylebox_override("panel", UIStyle.panel(UIStyle.BACKGROUND, UIStyle.LIGHT_BORDER))
+	_notice.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_notice_text = UIStyle.label("", 12, UIStyle.DIM_TEXT)
+	_notice.add_child(_notice_text)
+	_root.add_child(_notice)
+	_anchor(_notice, Vector2(0.5, 1), Vector2(0, -56))
+	_notice.modulate.a = 0
 
-	dialogo = CaixaDialogo.new()
-	_raiz.add_child(dialogo)
-	_ancorar(dialogo, Vector2(0.5, 1), Vector2(0, -EstiloUI.MARGEM - 30))
+	dialog = DialogBox.new()
+	_root.add_child(dialog)
+	_anchor(dialog, Vector2(0.5, 1), Vector2(0, -UIStyle.MARGIN - 30))
 
-	_anuncio = EstiloUI.label("", 26, EstiloUI.OURO, 7)
-	_anuncio.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_raiz.add_child(_anuncio)
-	_ancorar(_anuncio, Vector2(0.5, 0.22), Vector2.ZERO)
-	_anuncio.modulate.a = 0
+	_announcement = UIStyle.label("", 26, UIStyle.GOLD, 7)
+	_announcement.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_root.add_child(_announcement)
+	_anchor(_announcement, Vector2(0.5, 0.22), Vector2.ZERO)
+	_announcement.modulate.a = 0
 
-	_veu = ColorRect.new()
-	_veu.color = Color.BLACK
-	_veu.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_veu.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_raiz.add_child(_veu)
+	_veil = ColorRect.new()
+	_veil.color = Color.BLACK
+	_veil.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_veil)
 
 
 ## Mensagem curta e discreta acima dos controles, que some sozinha.
-func avisar(texto: String) -> void:
-	_texto_aviso.text = texto
-	if _tween_aviso:
-		_tween_aviso.kill()
-	_aviso.modulate.a = 1
-	_tween_aviso = create_tween()
-	_tween_aviso.tween_interval(1.6)
-	_tween_aviso.tween_property(_aviso, "modulate:a", 0.0, 0.4)
+func warn(text: String) -> void:
+	_notice_text.text = text
+	if _notice_tween:
+		_notice_tween.kill()
+	_notice.modulate.a = 1
+	_notice_tween = create_tween()
+	_notice_tween.tween_interval(1.6)
+	_notice_tween.tween_property(_notice, "modulate:a", 0.0, 0.4)
 
 
 ## Anúncio grande no alto da tela (chegada de alguém, por exemplo).
-func anunciar(texto: String) -> void:
-	_anuncio.text = texto
-	_anuncio.pivot_offset = _anuncio.size / 2
-	_anuncio.scale = Vector2(1.3, 1.3)
+func announce(text: String) -> void:
+	_announcement.text = text
+	_announcement.pivot_offset = _announcement.size / 2
+	_announcement.scale = Vector2(1.3, 1.3)
 	var t := create_tween()
-	t.tween_property(_anuncio, "modulate:a", 1.0, 0.2)
-	t.parallel().tween_property(_anuncio, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK)
+	t.tween_property(_announcement, "modulate:a", 1.0, 0.2)
+	t.parallel().tween_property(_announcement, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK)
 	t.tween_interval(2.0)
-	t.tween_property(_anuncio, "modulate:a", 0.0, 0.5)
+	t.tween_property(_announcement, "modulate:a", 0.0, 0.5)
 
 
-func texto_anuncio() -> String:
-	return _anuncio.text if _anuncio.modulate.a > 0 else ""
+func announcement_text() -> String:
+	return _announcement.text if _announcement.modulate.a > 0 else ""
 
 
-func texto_aviso() -> String:
-	return _texto_aviso.text if _aviso.modulate.a > 0 else ""
+func notice_text() -> String:
+	return _notice_text.text if _notice.modulate.a > 0 else ""
 
 
 ## Escurece (alfa 1) ou clareia (alfa 0) a tela inteira.
-func veu(alfa: float, duracao: float) -> Tween:
+func veil(alpha: float, duration: float) -> Tween:
 	var t := create_tween()
-	t.tween_property(_veu, "color:a", alfa, duracao)
+	t.tween_property(_veil, "color:a", alpha, duration)
 	return t
 
 
-func _ancorar(c: Control, canto: Vector2, deslocamento: Vector2) -> void:
-	c.anchor_left = canto.x
-	c.anchor_right = canto.x
-	c.anchor_top = canto.y
-	c.anchor_bottom = canto.y
-	var direcao := func(v: float) -> int:
+func _anchor(c: Control, corner: Vector2, shift: Vector2) -> void:
+	c.anchor_left = corner.x
+	c.anchor_right = corner.x
+	c.anchor_top = corner.y
+	c.anchor_bottom = corner.y
+	var direction := func(v: float) -> int:
 		return Control.GROW_DIRECTION_END if v == 0 else (Control.GROW_DIRECTION_BEGIN if v == 1 else Control.GROW_DIRECTION_BOTH)
-	c.grow_horizontal = direcao.call(canto.x)
-	c.grow_vertical = direcao.call(canto.y)
-	c.offset_left = deslocamento.x
-	c.offset_right = deslocamento.x
-	c.offset_top = deslocamento.y
-	c.offset_bottom = deslocamento.y
+	c.grow_horizontal = direction.call(corner.x)
+	c.grow_vertical = direction.call(corner.y)
+	c.offset_left = shift.x
+	c.offset_right = shift.x
+	c.offset_top = shift.y
+	c.offset_bottom = shift.y
 
 
-func _largura_controles() -> float:
+func _controls_width() -> float:
 	var x := 0.0
-	for item: Array in CONTROLES:
+	for item: Array in CONTROLS:
 		for t: String in item[0]:
 			x += maxf(13.0, 7.0 * t.length() + 6.0) + 4
-		x += EstiloUI.fonte().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 14
+		x += UIStyle.source().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 14
 	return x - 14
 
 
-func _desenhar_controles(c: Control) -> void:
+func _draw_controls(c: Control) -> void:
 	var x := 0.0
-	for item: Array in CONTROLES:
+	for item: Array in CONTROLS:
 		for t: String in item[0]:
-			EstiloUI.tecla(c, Vector2(x + 1, 1), t)
+			UIStyle.key(c, Vector2(x + 1, 1), t)
 			x += maxf(13.0, 7.0 * t.length() + 6.0) + 4
-		EstiloUI.texto(c, Vector2(x, 11), item[1], 10, Color(0.82, 0.8, 0.88))
-		x += EstiloUI.fonte().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 14
+		UIStyle.text(c, Vector2(x, 11), item[1], 10, Color(0.82, 0.8, 0.88))
+		x += UIStyle.source().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 14

@@ -1,26 +1,26 @@
 # Torre e andares
 
-Os andares estão em `Andares.LISTA` ([`floors.gd`](../../tower/floors.gd)); o formato de cada um está no comentário do arquivo. Andar novo é um item a mais na lista, nada mais muda.
+Os andares estão em `Floors.LIST` ([`floors.gd`](../../tower/floors.gd)); o formato de cada um está no comentário do arquivo. Andar novo é um item a mais na lista, nada mais muda.
 
 ## Regras
 
 - O andar 1 está sempre liberado; vencer o N libera o N+1.
 - Andares vencidos podem ser repetidos: dão a XP de novo, mas os eventos de história só acontecem na primeira vitória.
-- `max_equipe` limita a seleção e a própria batalha (uma equipe salva maior é cortada).
-- `nivel_recomendado` só aparece como aviso; não bloqueia.
-- `limite_nivel` é o limite da Torre enquanto aquele for o andar mais alto liberado (ver [Progressão](progressao.md#limite-da-torre)).
+- `max_team` limita a seleção e a própria batalha (uma equipe salva maior é cortada).
+- `recommended_level` só aparece como aviso; não bloqueia.
+- `level_limit` é o limite da Torre enquanto aquele for o andar mais alto liberado (ver [Progressão](progressao.md#limite-da-torre)).
 
-`Andares.concluir()` registra a vitória: marca o andar, aplica os eventos da primeira vez e devolve o que mudou (andar liberado, limite antes e depois), que a tela de vitória mostra.
+`Floors.complete()` registra a vitória: marca o andar, aplica os eventos da primeira vez e devolve o que mudou (andar liberado, limite antes e depois), que a tela de vitória mostra.
 
 ## Ritmo planejado
 
 A curva de XP e a XP de cada andar foram escolhidas juntas:
 
-- Sem repetir nada, as primeiras vitórias levam o grupo ao `nivel_recomendado` do andar seguinte.
+- Sem repetir nada, as primeiras vitórias levam o grupo ao `recommended_level` do andar seguinte.
 - O limite deixa treinar só cerca de um nível acima disso (mais ou menos uma repetição).
 - Ninguém precisa repetir andares para avançar; repetir dá uma folga pequena, não uma vitória garantida.
 
-`test_tower.gd` confere as duas primeiras regras com as contas da `Progressao`. Mudou a XP de um andar, a curva ou um limite? Ajuste o resto junto e rode a simulação.
+`test_tower.gd` confere as duas primeiras regras com as contas da `Progression`. Mudou a XP de um andar, a curva ou um limite? Ajuste o resto junto e rode a simulação.
 
 ## Encontros
 
@@ -48,16 +48,16 @@ A simulação usa um piloto simples. Ela compara andares e níveis entre si; nã
 
 ## Eventos de história
 
-`Eventos` ([`story_events.gd`](../../tower/story_events.gd)) tem dois lados:
+`StoryEvents` ([`story_events.gd`](../../tower/story_events.gd)) tem dois lados:
 
-- **Efeito**: aplicado na hora e salvo (`Eventos.aplicar()`).
+- **Efeito**: aplicado na hora e salvo (`StoryEvents.apply()`).
 - **Apresentação**: fica na fila `torre/eventos_pendentes` e roda no saguão, na volta (ver [Saguão](saguao.md#eventos-de-história)).
 
-Vêm do `ao_vencer` de um andar (primeira vitória) ou de uma fala com `"evento": "tipo:id"`. Um evento que já não muda nada (`desbloquear` de quem já está liberado) é descartado antes de aplicar, sem efeito nem apresentação (`Eventos.pendente()`). Tipos:
+Vêm do `on_win` de um andar (primeira vitória) ou de uma fala com `"event": "type:id"`. Um evento que já não muda nada (`unlock` de quem já está liberado) é descartado antes de aplicar, sem efeito nem apresentação (`StoryEvents.pending()`). Tipos:
 
 | Tipo          | Efeito                                         | Apresentação no saguão                     |
 | ------------- | ---------------------------------------------- | ------------------------------------------ |
-| `desbloquear` | libera o personagem (`Progressao.desbloquear`) | ele surge com anel de luz e anúncio        |
-| `conversa`    | nenhum                                         | abre a conversa, se ela tiver falas        |
+| `unlock` | libera o personagem (`Progression.unlock`) | ele surge com anel de luz e anúncio        |
+| `conversation`    | nenhum                                         | abre a conversa, se ela tiver falas        |
 
-Tipo novo: efeito em `Eventos.aplicar()`, apresentação em `Lobby._apresentar()` e a linha da tela de vitória em `Eventos.resumo()`.
+Tipo novo: efeito em `StoryEvents.apply()`, apresentação em `Lobby._present()` e a linha da tela de vitória em `StoryEvents.summary()`.

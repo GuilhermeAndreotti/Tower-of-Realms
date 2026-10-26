@@ -1,5 +1,5 @@
 class_name Shumi
-extends Combatente
+extends Combatant
 ## Kit da Shumi.
 ##  Básico: corte de katana (gera 1 ponto de skill e um pouco de energia).
 ##  Skill: Engo-ji Beam, feixe que muda com o Kaioken: só o alvo, alvo + 1
@@ -17,311 +17,311 @@ extends Combatente
 ## A VEL sobe menos que o ATQ de propósito: a duração conta turnos dela, então
 ## VEL alta demais encurta a forma e quase tira a vez dos inimigos, que são
 ## o outro lado do risco.
-const NIVEIS := [
-	{"nome": "x2", "atq": 0.20, "vel": 0.20, "dreno": 0.03, "limite": 15.0, "exaustao_vel": -0.10},
-	{"nome": "x4", "atq": 0.40, "vel": 0.35, "dreno": 0.05, "limite": 20.0, "exaustao_vel": -0.20},
-	{"nome": "x10", "atq": 0.80, "vel": 0.55, "dreno": 0.08, "limite": 25.0, "exaustao_vel": -0.30},
-	{"nome": "x20", "atq": 1.50, "vel": 0.80, "dreno": 0.12, "limite": 30.0, "exaustao_vel": -0.40},
+const LEVELS := [
+	{"name": "x2", "atk": 0.20, "spd": 0.20, "drain": 0.03, "limit": 15.0, "exhaustion_spd": -0.10},
+	{"name": "x4", "atk": 0.40, "spd": 0.35, "drain": 0.05, "limit": 20.0, "exhaustion_spd": -0.20},
+	{"name": "x10", "atk": 0.80, "spd": 0.55, "drain": 0.08, "limit": 25.0, "exhaustion_spd": -0.30},
+	{"name": "x20", "atk": 1.50, "spd": 0.80, "drain": 0.12, "limit": 30.0, "exhaustion_spd": -0.40},
 ]
-const CUSTO_ENTRAR := 120.0
-const CUSTO_SUBIR := 80.0
-const DURACAO := 3  ## turnos dela; subir de nível renova
-const DURACAO_EXAUSTAO := 2
+const ENTER_COST := 120.0
+const LEVEL_UP_COST := 80.0
+const DURATION := 3  ## turnos dela; subir de nível renova
+const EXHAUSTION_DURATION := 2
 
-const ENERGIA_BASICO := 20.0
-const ENERGIA_SKILL := 30.0
-const ENERGIA_AO_APANHAR := 10.0
+const BASIC_ENERGY := 20.0
+const SKILL_ENERGY := 30.0
+const ENERGY_ON_HIT := 10.0
 
-const MULT_BASICO := 1.0
-## Engo-ji por nível (índice = nivel + 1). "alcance" é também o tipo de alvo
+const BASIC_MULT := 1.0
+## Engo-ji por nível (índice = nivel + 1). "reach" é também o tipo de alvo
 ## que a interface mostra: unico, dupla (alvo + o de trás), vizinhos, todos.
 const ENGO_JI := [
-	{"nome": "Engo-ji Beam", "alcance": "unico", "mult": 1.8},
-	{"nome": "Engo-ji Beam Amplificado", "alcance": "dupla", "mult": 1.8},
-	{"nome": "Engo-ji Beam: Ruptura", "alcance": "vizinhos", "mult": 1.8},
-	{"nome": "Engo-ji Beam: Devastação", "alcance": "todos", "mult": 1.8},
-	{"nome": "Engo-ji Beam: Colapso", "alcance": "todos", "mult": 2.2},
+	{"name": "Engo-ji Beam", "reach": "single", "mult": 1.8},
+	{"name": "Engo-ji Beam Amplificado", "reach": "pair", "mult": 1.8},
+	{"name": "Engo-ji Beam: Ruptura", "reach": "neighbors", "mult": 1.8},
+	{"name": "Engo-ji Beam: Devastação", "reach": "all", "mult": 1.8},
+	{"name": "Engo-ji Beam: Colapso", "reach": "all", "mult": 2.2},
 ]
-const MULT_ENGO_JI_SECUNDARIO := 0.9  ## alvos extras do x2 e do x4
+const ENGO_JI_SECONDARY_MULT := 0.9  ## alvos extras do x2 e do x4
 
 ## Finger Beam do Bang! (o tiro ao usar e cada ataque junto), por nível
 ## (índice = nivel + 1). Fraco de propósito: dispara a cada ação de aliado
 ## que acerta, invocações inclusive.
-const MULT_FINGER_BEAM := [0.4, 0.5, 0.65, 0.85, 1.1]
+const FINGER_BEAM_MULT := [0.4, 0.5, 0.65, 0.85, 1.1]
 ## Turnos dela, contando o da ação: o Bang! cobre os 2 turnos seguintes.
 ## A recarga conta do mesmo jeito; um turno a mais que a duração para ela
 ## sempre ficar pelo menos um turno sem ele (com as duas iguais, acabava e
 ## voltava no mesmo turno).
-const DURACAO_BANG := 3
-const RECARGA_BANG := DURACAO_BANG + 1
-const ENERGIA_JUNTO := 4.0  ## por ataque junto: a equipe atacando acelera o Kaioken
+const BANG_DURATION := 3
+const BANG_COOLDOWN := BANG_DURATION + 1
+const FOLLOW_UP_ENERGY := 4.0  ## por ataque junto: a equipe atacando acelera o Kaioken
 
-var nivel := -1  ## -1 = fora do Kaioken
-var turnos_kaioken := 0
-var turnos_exaustao := 0
-var exaustao_vel := 0.0
-var perde_proximo_turno := false
-var _sobrecarga_no_turno := false  ## o dreno (e a passiva) já rodou neste turno
+var level := -1  ## -1 = fora do Kaioken
+var kaioken_turns := 0
+var exhaustion_turns := 0
+var exhaustion_spd := 0.0
+var loses_next_turn := false
+var _overload_this_turn := false  ## o dreno (e a passiva) já rodou neste turno
 
 
 func _init() -> void:
-	super("Shumi", true, 1200, 150.0, 50.0, 105.0, Tipos.FISICO)
-	energia_max = 120.0
-	energia = 60.0
-	energia_ao_apanhar = ENERGIA_AO_APANHAR
+	super("Shumi", true, 1200, 150.0, 50.0, 105.0, Types.PHYSICAL)
+	max_energy = 120.0
+	energy = 60.0
+	energy_on_hit = ENERGY_ON_HIT
 
 
-func em_kaioken() -> bool:
-	return nivel >= 0
+func in_kaioken() -> bool:
+	return level >= 0
 
 
-func nome_nivel() -> String:
-	return NIVEIS[nivel].nome if em_kaioken() else ""
+func level_name() -> String:
+	return LEVELS[level].name if in_kaioken() else ""
 
 
-func nivel_maximo() -> bool:
-	return nivel == NIVEIS.size() - 1
+func at_max_level() -> bool:
+	return level == LEVELS.size() - 1
 
 
-func custo_ult() -> float:
-	return CUSTO_SUBIR if em_kaioken() else CUSTO_ENTRAR
+func ult_cost() -> float:
+	return LEVEL_UP_COST if in_kaioken() else ENTER_COST
 
 
-func pode_ultar() -> bool:
-	return not nivel_maximo() and energia >= custo_ult()
+func can_use_ult() -> bool:
+	return not at_max_level() and energy >= ult_cost()
 
 
-func proximo_nivel_nome() -> String:
-	return NIVEIS[mini(nivel + 1, NIVEIS.size() - 1)].nome
+func next_level_name() -> String:
+	return LEVELS[mini(level + 1, LEVELS.size() - 1)].name
 
 
 ## Versão do Engo-ji para o nível atual (ver ENGO_JI).
 func engo_ji() -> Dictionary:
-	return ENGO_JI[nivel + 1]
+	return ENGO_JI[level + 1]
 
 
-func engo_ji_atravessa() -> bool:
-	return engo_ji().alcance == "todos"
+func engo_ji_pierces() -> bool:
+	return engo_ji().reach == "all"
 
 
 func bonus(stat: String) -> float:
 	var b := super(stat)
-	if em_kaioken():
-		b += NIVEIS[nivel].get(stat, 0.0)
-	if turnos_exaustao > 0 and stat == "vel":
-		b += exaustao_vel
+	if in_kaioken():
+		b += LEVELS[level].get(stat, 0.0)
+	if exhaustion_turns > 0 and stat == "spd":
+		b += exhaustion_spd
 	return b
 
 
-func ultar() -> void:
-	var vel_antes := vel()
-	energia -= custo_ult()
-	nivel += 1
-	turnos_kaioken = DURACAO
-	turnos_exaustao = 0
-	ajustar_av(vel_antes)
+func use_ult() -> void:
+	var spd_before := spd()
+	energy -= ult_cost()
+	level += 1
+	kaioken_turns = DURATION
+	exhaustion_turns = 0
+	adjust_av(spd_before)
 
 
 ## Sobrecarga do Kaioken no início do turno dela: queima HP direto (sem
 ## defesa) e, se ela sobreviver, a passiva Limite Humano devolve energia.
-## Roda no máximo uma vez por turno. Devolve {"dano": int, "energia": float}.
-func sobrecarga_inicio_turno() -> Dictionary:
-	var r := {"dano": 0, "energia": 0.0}
-	if not em_kaioken() or _sobrecarga_no_turno:
+## Roda no máximo uma vez por turno. Devolve {"damage": int, "energy": float}.
+func turn_start_overload() -> Dictionary:
+	var r := {"damage": 0, "energy": 0.0}
+	if not in_kaioken() or _overload_this_turn:
 		return r
-	_sobrecarga_no_turno = true
-	r.dano = receber_dano(ceili(hp_max * NIVEIS[nivel].dreno))
-	if vivo():
-		var antes := energia
-		ganhar_energia(NIVEIS[nivel].limite)
-		r.energia = energia - antes
+	_overload_this_turn = true
+	r.damage = take_damage(ceili(max_hp * LEVELS[level].drain))
+	if is_alive():
+		var before := energy
+		gain_energy(LEVELS[level].limit)
+		r.energy = energy - before
 	return r
 
 
 ## Fim do turno dela. Devolve o nível que acabou ("" se o Kaioken continua).
-func fim_turno() -> String:
-	_sobrecarga_no_turno = false
-	if turnos_exaustao > 0:
-		turnos_exaustao -= 1
-	if not em_kaioken():
+func end_turn() -> String:
+	_overload_this_turn = false
+	if exhaustion_turns > 0:
+		exhaustion_turns -= 1
+	if not in_kaioken():
 		return ""
-	turnos_kaioken -= 1
-	if turnos_kaioken > 0:
+	kaioken_turns -= 1
+	if kaioken_turns > 0:
 		return ""
-	var acabou: Dictionary = NIVEIS[nivel]
-	exaustao_vel = acabou.exaustao_vel
-	turnos_exaustao = DURACAO_EXAUSTAO
-	perde_proximo_turno = nivel_maximo()
-	nivel = -1
-	return acabou.nome
+	var over: Dictionary = LEVELS[level]
+	exhaustion_spd = over.exhaustion_spd
+	exhaustion_turns = EXHAUSTION_DURATION
+	loses_next_turn = at_max_level()
+	level = -1
+	return over.name
 
 
 ## Alvos do Engo-ji: [[inimigo, multiplicador], ...], na ordem em que o
-## feixe passa. `inimigos` só com os vivos, em ordem.
-func alvos_engo_ji(inimigos: Array, alvo: int) -> Array:
+## feixe passa. `enemies` só com os vivos, em ordem.
+func engo_ji_targets(enemies: Array, target: int) -> Array:
 	var e := engo_ji()
 	var extras := []
-	match e.alcance:
-		"dupla": extras = [alvo + 1 if alvo + 1 < inimigos.size() else alvo - 1]
-		"vizinhos": extras = [alvo - 1, alvo + 1]
-	var alvos := []
-	for i in inimigos.size():
-		if e.alcance == "todos" or i == alvo:
-			alvos.append([inimigos[i], e.mult])
+	match e.reach:
+		"pair": extras = [target + 1 if target + 1 < enemies.size() else target - 1]
+		"neighbors": extras = [target - 1, target + 1]
+	var targets := []
+	for i in enemies.size():
+		if e.reach == "all" or i == target:
+			targets.append([enemies[i], e.mult])
 		elif i in extras:
-			alvos.append([inimigos[i], MULT_ENGO_JI_SECUNDARIO])
-	return alvos
+			targets.append([enemies[i], ENGO_JI_SECONDARY_MULT])
+	return targets
 
 
 # ----------------------------------------------------------------- Bang!
 func mult_finger_beam() -> float:
-	return MULT_FINGER_BEAM[nivel + 1]
+	return FINGER_BEAM_MULT[level + 1]
 
 
-## Bang! ativo: enquanto durar, atacar_junto() acompanha os aliados.
-static func estado_bang() -> Estado:
-	var e := Estado.new("bang", "Bang!", "BNG", "buff", DURACAO_BANG)
-	e.cor = COR_KAIOKEN
-	e.detalhe = "ataca junto com Finger Beam"
+## Bang! ativo: enquanto durar, follow_up() acompanha os aliados.
+static func bang_status() -> StatusEffect:
+	var e := StatusEffect.new("bang", "Bang!", "BNG", "buff", BANG_DURATION)
+	e.color = KAIOKEN_COLOR
+	e.detail = "ataca junto com Finger Beam"
 	return e
 
 
-func atacar_junto(atacante: Combatente, _alvo: Combatente) -> Dictionary:
-	if atacante == self or estado("bang") == null:
+func follow_up(attacker: Combatant, _target: Combatant) -> Dictionary:
+	if attacker == self or state("bang") == null:
 		return {}
-	ganhar_energia(ENERGIA_JUNTO)
-	return {"nome": "Finger Beam", "mult": mult_finger_beam(), "tipo": tipo}
+	gain_energy(FOLLOW_UP_ENERGY)
+	return {"name": "Finger Beam", "mult": mult_finger_beam(), "type": type}
 
 
-func alvos_previstos(acao: String, inimigos: Array, alvo: int) -> Array:
-	if acao == "skill":
-		return alvos_engo_ji(inimigos, alvo).map(func(par: Array) -> Combatente: return par[0])
-	return super(acao, inimigos, alvo)
+func predicted_targets(action: String, enemies: Array, target: int) -> Array:
+	if action == "skill":
+		return engo_ji_targets(enemies, target).map(func(pair: Array) -> Combatant: return pair[0])
+	return super(action, enemies, target)
 
 
 # ------------------------------------------------- descrição para a interface
-const COR_KAIOKEN := Color(1.0, 0.25, 0.2)
-const ICONE_CORTE := "res://characters/shumi/basic-attack-melee.png"
-const ICONE_ENGO_JI := "res://characters/shumi/engo-ji-beam-icon.png"
-const ICONE_KAIOKEN := "res://characters/shumi/kaiokenn-shumi.png"
-const ICONE_BANG := "res://characters/shumi/icon_bang.png"
-const ICONE_LIMITE_HUMANO := "res://characters/shumi/icon_human_limit.png"
+const KAIOKEN_COLOR := Color(1.0, 0.25, 0.2)
+const SLASH_ICON := "res://characters/shumi/basic-attack-melee.png"
+const ENGO_JI_ICON := "res://characters/shumi/engo-ji-beam-icon.png"
+const KAIOKEN_ICON := "res://characters/shumi/kaiokenn-shumi.png"
+const BANG_ICON := "res://characters/shumi/icon_bang.png"
+const HUMAN_LIMIT_ICON := "res://characters/shumi/icon_human_limit.png"
 
 
-func pode_usar(acao: String, pontos: int) -> bool:
-	match acao:
-		"basico": return true
-		"skill": return pontos > 0
-		"skill2": return pontos > 0 and recarga("skill2") == 0
-		"ult": return pode_ultar()
+func can_use(action: String, points: int) -> bool:
+	match action:
+		"basic": return true
+		"skill": return points > 0
+		"skill2": return points > 0 and cooldown("skill2") == 0
+		"ult": return can_use_ult()
 	return false
 
 
-const DESCRICAO_ENGO_JI := {
-	"unico": "Feixe concentrado no alvo.",
-	"dupla": "Feixe mais forte: acerta o alvo e o inimigo logo atrás.",
-	"vizinhos": "Feixe roxo e vermelho: alvo + vizinhos (dano menor nos vizinhos).",
-	"todos": "O feixe atravessa todos os inimigos.",
+const ENGO_JI_DESCRIPTIONS := {
+	"single": "Feixe concentrado no alvo.",
+	"pair": "Feixe mais forte: acerta o alvo e o inimigo logo atrás.",
+	"neighbors": "Feixe roxo e vermelho: alvo + vizinhos (dano menor nos vizinhos).",
+	"all": "O feixe atravessa todos os inimigos.",
 }
 
 
-func habilidades(pontos: int) -> Array[Dictionary]:
+func skills(points: int) -> Array[Dictionary]:
 	var e := engo_ji()
 	var ult := {
-		"acao": "ult", "nome": "Kaioken", "tecla": "R", "icone": ICONE_KAIOKEN,
-		"alvo": "proprio", "cor": COR_KAIOKEN, "destaque": true, "livre": true,
+		"action": "ult", "name": "Kaioken", "key": "R", "icon": KAIOKEN_ICON,
+		"target": "self", "color": KAIOKEN_COLOR, "highlight": true, "free": true,
 	}
-	var niveis: Array[Dictionary] = []
-	for i in NIVEIS.size():
-		var n: Dictionary = NIVEIS[i]
-		niveis.append({"rotulo": "Kaioken " + n.nome, "cor": COR_KAIOKEN, "atual": i == nivel,
-			"marca": "atual" if i == nivel else ("próximo" if i == nivel + 1 else ""),
-			"texto": "ATQ +%d%% · VEL +%d%% · queima %d%% do HP por turno" % [
-				roundi(n.atq * 100), roundi(n.vel * 100), roundi(n.dreno * 100)]})
-	ult.detalhes = niveis
-	if nivel_maximo():
-		ult.merge({"estado": "bloqueada", "selo": "MÁX",
-			"descricao": "Já está no x20. Quando acabar, perde um turno."})
+	var levels: Array[Dictionary] = []
+	for i in LEVELS.size():
+		var n: Dictionary = LEVELS[i]
+		levels.append({"label": "Kaioken " + n.name, "color": KAIOKEN_COLOR, "current": i == level,
+			"mark": "current" if i == level else ("próximo" if i == level + 1 else ""),
+			"text": "ATQ +%d%% · VEL +%d%% · queima %d%% do HP por turno" % [
+				roundi(n.atk * 100), roundi(n.spd * 100), roundi(n.drain * 100)]})
+	ult.details = levels
+	if at_max_level():
+		ult.merge({"state": "blocked", "badge": "MÁX",
+			"description": "Já está no x20. Quando acabar, perde um turno."})
 	else:
-		var prox: Dictionary = NIVEIS[nivel + 1]
+		var next: Dictionary = LEVELS[level + 1]
 		ult.merge({
-			"estado": "pronta" if pode_ultar() else "sem_recurso",
-			"custo_energia": roundi(custo_ult()),
-			"selo": prox.nome,
-			"descricao": "%s %s. Cada nível dura %d turnos dela (subir renova); quando acaba, ela fica exausta, e depois do x20 perde um turno." % [
-				"Sobe para o" if em_kaioken() else "Entra no", prox.nome, DURACAO],
+			"state": "ready" if can_use_ult() else "no_resource",
+			"energy_cost": roundi(ult_cost()),
+			"badge": next.name,
+			"description": "%s %s. Cada nível dura %d turnos dela (subir renova); quando acaba, ela fica exausta, e depois do x20 perde um turno." % [
+				"Sobe para o" if in_kaioken() else "Entra no", next.name, DURATION],
 		})
 	var engo: Array[Dictionary] = []
 	for i in ENGO_JI.size():
 		var g: Dictionary = ENGO_JI[i]
-		engo.append({"rotulo": _nome_nivel(i - 1), "marca": g.nome, "cor": COR_KAIOKEN, "atual": i == nivel + 1,
-			"texto": "Colapso: energia extrema contra todos os inimigos." if i == ENGO_JI.size() - 1 else DESCRICAO_ENGO_JI[g.alcance]})
+		engo.append({"label": _level_name(i - 1), "mark": g.name, "color": KAIOKEN_COLOR, "current": i == level + 1,
+			"text": "Colapso: energia extrema contra todos os inimigos." if i == ENGO_JI.size() - 1 else ENGO_JI_DESCRIPTIONS[g.reach]})
 	return [
 		{
-			"acao": "basico", "nome": "Corte", "tecla": "Q", "icone": ICONE_CORTE,
-			"estado": "pronta", "alvo": "unico", "tipo": tipo, "ganho_pontos": 1,
-			"descricao": "Corte de katana no alvo. Gera 1 ponto de skill e %d de energia." % roundi(ENERGIA_BASICO),
+			"action": "basic", "name": "Corte", "key": "Q", "icon": SLASH_ICON,
+			"state": "ready", "target": "single", "type": type, "point_gain": 1,
+			"description": "Corte de katana no alvo. Gera 1 ponto de skill e %d de energia." % roundi(BASIC_ENERGY),
 		},
 		{
-			"acao": "skill", "nome": e.nome, "tecla": "E", "icone": ICONE_ENGO_JI,
-			"estado": "pronta" if pontos > 0 else "sem_recurso",
-			"alvo": e.alcance, "tipo": tipo, "custo_pontos": 1,
-			"selo": nome_nivel(), "cor": COR_KAIOKEN,
-			"descricao": "Feixe de energia que cresce com o Kaioken: cada nível aumenta o alcance.",
-			"detalhes": engo,
+			"action": "skill", "name": e.name, "key": "E", "icon": ENGO_JI_ICON,
+			"state": "ready" if points > 0 else "no_resource",
+			"target": e.reach, "type": type, "point_cost": 1,
+			"badge": level_name(), "color": KAIOKEN_COLOR,
+			"description": "Feixe de energia que cresce com o Kaioken: cada nível aumenta o alcance.",
+			"details": engo,
 		},
-		com_recarga({
-			"acao": "skill2", "nome": "Bang!", "tecla": "W", "icone": ICONE_BANG,
-			"estado": "pronta" if pontos > 0 else "sem_recurso",
-			"alvo": "unico", "tipo": tipo, "custo_pontos": 1, "recarga": RECARGA_BANG,
-			"selo": nome_nivel(), "cor": COR_KAIOKEN,
-			"descricao": "Dispara uma rajada de energia de seus dedos em um alvo e, pelos %d turnos seguintes dela, ataca junto com a equipe." % (DURACAO_BANG - 1),
-			"detalhes": [
-				{"rotulo": "Ataca junto", "cor": COR_KAIOKEN,
-					"texto": "Quando um aliado ou invocação acerta um inimigo, ela dispara um Finger Beam nele (uma vez por ação) e ganha %d de energia." % roundi(ENERGIA_JUNTO)},
-				{"rotulo": "Dano do Finger Beam", "cor": COR_KAIOKEN,
-					"valores": _por_nivel(MULT_FINGER_BEAM.map(func(m: float) -> String: return str(m).replace(".", ",") + "x"))},
+		with_cooldown({
+			"action": "skill2", "name": "Bang!", "key": "W", "icon": BANG_ICON,
+			"state": "ready" if points > 0 else "no_resource",
+			"target": "single", "type": type, "point_cost": 1, "cooldown": BANG_COOLDOWN,
+			"badge": level_name(), "color": KAIOKEN_COLOR,
+			"description": "Dispara uma rajada de energia de seus dedos em um alvo e, pelos %d turnos seguintes dela, ataca junto com a equipe." % (BANG_DURATION - 1),
+			"details": [
+				{"label": "Ataca junto", "color": KAIOKEN_COLOR,
+					"text": "Quando um aliado ou invocação acerta um inimigo, ela dispara um Finger Beam nele (uma vez por ação) e ganha %d de energia." % roundi(FOLLOW_UP_ENERGY)},
+				{"label": "Dano do Finger Beam", "color": KAIOKEN_COLOR,
+					"values": _per_level(FINGER_BEAM_MULT.map(func(m: float) -> String: return str(m).replace(".", ",") + "x"))},
 			],
 		}),
 		ult,
 		{
-			"acao": "limite_humano", "nome": "Limite Humano", "tecla": "", "icone": ICONE_LIMITE_HUMANO,
-			"estado": "pronta", "alvo": "proprio", "passiva": true, "cor": COR_KAIOKEN,
-			"descricao": "Se sobrevive ao dreno do Kaioken no começo do turno, recupera energia.",
-			"detalhes": [{"rotulo": "Energia por nível", "cor": COR_KAIOKEN,
-				"valores": _por_nivel(NIVEIS.map(func(n: Dictionary) -> String: return "+%d" % roundi(n.limite)), false)}],
+			"action": "human_limit", "name": "Limite Humano", "key": "", "icon": HUMAN_LIMIT_ICON,
+			"state": "ready", "target": "self", "passive": true, "color": KAIOKEN_COLOR,
+			"description": "Se sobrevive ao dreno do Kaioken no começo do turno, recupera energia.",
+			"details": [{"label": "Energia por nível", "color": KAIOKEN_COLOR,
+				"values": _per_level(LEVELS.map(func(n: Dictionary) -> String: return "+%d" % roundi(n.limit)), false)}],
 		},
 	]
 
 
 ## Nome do nível `i` do Kaioken (-1 = fora dele).
-static func _nome_nivel(i: int) -> String:
-	return "Base" if i < 0 else NIVEIS[i].nome
+static func _level_name(i: int) -> String:
+	return "Base" if i < 0 else LEVELS[i].name
 
 
 ## Um valor por nível ("Base 0,4x", "x2 0,5x"...), marcando o atual, para os
-## "valores" dos detalhes. `valores` começa no Base; sem `com_base`, no x2.
-func _por_nivel(valores: Array, com_base := true) -> Array[Dictionary]:
-	var lista: Array[Dictionary] = []
-	for i in valores.size():
-		var n := i - 1 if com_base else i
-		lista.append({"texto": "%s %s" % [_nome_nivel(n), valores[i]], "atual": n == nivel})
-	return lista
+## "values" dos detalhes. `values` começa no Base; sem `with_base`, no x2.
+func _per_level(values: Array, with_base := true) -> Array[Dictionary]:
+	var list: Array[Dictionary] = []
+	for i in values.size():
+		var n := i - 1 if with_base else i
+		list.append({"text": "%s %s" % [_level_name(n), values[i]], "current": n == level})
+	return list
 
 
-func efeitos() -> Array[Dictionary]:
-	var lista: Array[Dictionary] = []
-	if em_kaioken():
-		var n: Dictionary = NIVEIS[nivel]
-		lista.append({"id": "kaioken", "curto": n.nome, "nome": "Kaioken " + n.nome, "tipo": "buff",
-			"cor": COR_KAIOKEN, "turnos": turnos_kaioken,
-			"detalhe": "ATQ +%d%% · VEL +%d%% · -%d%% HP/turno · +%d energia" % [
-				roundi(n.atq * 100), roundi(n.vel * 100), roundi(n.dreno * 100), roundi(n.limite)]})
-	if turnos_exaustao > 0:
-		lista.append({"id": "exaustao", "curto": "EXA", "nome": "Exausta", "tipo": "debuff",
-			"turnos": turnos_exaustao, "detalhe": "VEL %d%%" % roundi(exaustao_vel * 100)})
-	if perde_proximo_turno:
-		lista.append({"id": "perde_turno", "curto": "Zz", "nome": "Perde o próximo turno",
-			"tipo": "debuff", "turnos": -1})
-	lista.append_array(super())
-	return lista
+func effects() -> Array[Dictionary]:
+	var list: Array[Dictionary] = []
+	if in_kaioken():
+		var n: Dictionary = LEVELS[level]
+		list.append({"id": "kaioken", "short": n.name, "name": "Kaioken " + n.name, "type": "buff",
+			"color": KAIOKEN_COLOR, "turns": kaioken_turns,
+			"detail": "ATQ +%d%% · VEL +%d%% · -%d%% HP/turno · +%d energia" % [
+				roundi(n.atk * 100), roundi(n.spd * 100), roundi(n.drain * 100), roundi(n.limit)]})
+	if exhaustion_turns > 0:
+		list.append({"id": "exhaustion", "short": "EXA", "name": "Exausta", "type": "debuff",
+			"turns": exhaustion_turns, "detail": "VEL %d%%" % roundi(exhaustion_spd * 100)})
+	if loses_next_turn:
+		list.append({"id": "loses_turn", "short": "Zz", "name": "Perde o próximo turno",
+			"type": "debuff", "turns": -1})
+	list.append_array(super())
+	return list

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cg1555psookem"
-path="res://.godot/imported/lorde_luz.png-2c36b1f1919c4d2d38a73c6633d599fa.ctex"
+uid="uid://teac553pk7sy"
+path="res://.godot/imported/barrel.png-0f6b1df5d9a8a8126e1370cd150fda00.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://characters/askara/lorde_luz.png"
-dest_files=["res://.godot/imported/lorde_luz.png-2c36b1f1919c4d2d38a73c6633d599fa.ctex"]
+source_file="res://lobby/art/barrel.png"
+dest_files=["res://.godot/imported/barrel.png-0f6b1df5d9a8a8126e1370cd150fda00.ctex"]
 
 [params]
 

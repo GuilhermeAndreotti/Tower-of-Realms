@@ -1,116 +1,116 @@
-class_name Invocacao
-extends Combatente
+class_name Summon
+extends Combatant
 ## Criatura chamada por um aliado (como os demônios da Askara). Luta do lado
 ## dele, com vez própria na fila, HP e estados, mas não é da equipe: não
 ## ganha XP, não conta para a derrota e não é salva. Age sozinha: em cada vez
-## usa o `golpe` (e o `debuff`, se tiver). Vai embora quando as vezes acabam,
+## usa o `strike` (e o `debuff`, se tiver). Vai embora quando as vezes acabam,
 ## quando cai ou quando quem a invocou cai; quem tira de campo é a batalha.
-## Ao sair por tempo ou ao cair, faz o `ultimo_ato`, se tiver.
+## Ao sair por tempo ou ao cair, faz o `last_act`, se tiver.
 
-const DURACAO_ESCUDO := 2  ## turnos de quem recebe o escudo do último ato
+const SHIELD_DURATION := 2  ## turnos de quem recebe o escudo do último ato
 
 var id: String
 ## Quem a chamou. Referência fraca: o kit guarda as invocações, e as duas
 ## pontas fortes formariam um ciclo que nunca é liberado.
-var invocador: Combatente:
-	get: return _invocador.get_ref() as Combatente
-var textura: String
-var cor := Color.WHITE  ## cor da aura e do nome no registro
-var turnos := 0  ## vezes que ainda vai agir; ao chegar a 0, vai embora
-var turnos_max := 0
-var em_campo := true  ## false = saiu (tempo, queda, substituída)
+var summoner: Combatant:
+	get: return _summoner.get_ref() as Combatant
+var texture: String
+var color := Color.WHITE  ## cor da aura e do nome no registro
+var turns := 0  ## vezes que ainda vai agir; ao chegar a 0, vai embora
+var max_turns := 0
+var on_field := true  ## false = saiu (tempo, queda, substituída)
 
-## Golpe de cada vez: {"nome", "mult", "alcance" (unico/dupla/vizinhos/todos;
-## dupla = o alvo e o de trás), "mult_vizinhos"?, "mira"? (alvo/mais_forte),
-## "estilo"? (projetil/investida), "debuff_em_todos"? (o debuff vai em todos
+## Golpe de cada vez: {"name", "mult", "reach" (unico/dupla/vizinhos/todos;
+## dupla = o alvo e o de trás), "neighbor_mult"?, "aim"? (alvo/strongest),
+## "style"? (projetil/investida), "debuff_all"? (o debuff vai em todos
 ## os atingidos, não só no principal)}. O dano é do tipo da invocação.
-var golpe := {}
+var strike := {}
 ## Golpe na chegada, na hora da invocação, no mesmo formato ({} = nenhum).
-var golpe_entrada := {}
+var entrance_strike := {}
 ## Último ato, quando sai por tempo ou cai: golpe no mesmo formato, com
-## "mult" opcional, e "escudo"?
+## "mult" opcional, e "shield"?
 ## (fração do HP máximo dela que vira escudo no aliado com menos HP).
 ## Substituição e a queda de quem invocou não disparam. {} = nenhum.
-var ultimo_ato := {}
-## Fábrica (Callable sem argumentos que devolve um Estado novo) do debuff
+var last_act := {}
+## Fábrica (Callable sem argumentos que devolve um StatusEffect novo) do debuff
 ## que o golpe deixa no alvo principal; vazio = nenhum.
 var debuff := Callable()
 
-var _invocador: WeakRef
+var _summoner: WeakRef
 
 
-func _init(p_id: String, p_nome: String, p_invocador: Combatente, p_hp: int, p_atq: float, p_def: float, p_vel: float, p_tipo: String, p_turnos: int) -> void:
-	super(p_nome, true, p_hp, p_atq, p_def, p_vel, p_tipo)
+func _init(p_id: String, p_name: String, p_summoner: Combatant, p_hp: int, p_atk: float, p_def: float, p_spd: float, p_type: String, p_turns: int) -> void:
+	super(p_name, true, p_hp, p_atk, p_def, p_spd, p_type)
 	id = p_id
-	_invocador = weakref(p_invocador)
-	turnos = p_turnos
-	turnos_max = p_turnos
+	_summoner = weakref(p_summoner)
+	turns = p_turns
+	max_turns = p_turns
 
 
-func em_jogo() -> bool:
-	return em_campo and vivo()
+func in_play() -> bool:
+	return on_field and is_alive()
 
 
 ## Volta ao começo: HP cheio e todas as vezes (invocar de novo a mesma).
-func renovar() -> void:
-	hp = hp_max
-	turnos = turnos_max
+func renew() -> void:
+	hp = max_hp
+	turns = max_turns
 
 
 ## Fim de uma vez dela. Devolve true se acabou o tempo (a batalha a tira).
-func passar_vez() -> bool:
-	turnos -= 1
-	return turnos <= 0
+func consume_turn() -> bool:
+	turns -= 1
+	return turns <= 0
 
 
-## Alvos de `g` entre `inimigos` (vivos, em ordem), a partir do inimigo
-## que o jogador marcou (`alvo`): [[inimigo, mult], ...], o principal primeiro.
-func alvos(g: Dictionary, inimigos: Array, alvo: int) -> Array:
-	if inimigos.is_empty() or g.is_empty():
+## Alvos de `g` entre `enemies` (vivos, em ordem), a partir do inimigo
+## que o jogador marcou (`target`): [[inimigo, mult], ...], o principal primeiro.
+func targets(g: Dictionary, enemies: Array, target: int) -> Array:
+	if enemies.is_empty() or g.is_empty():
 		return []
-	var i := clampi(alvo, 0, inimigos.size() - 1)
-	if g.get("mira", "alvo") == "mais_forte":
-		for k in inimigos.size():
-			if (inimigos[k] as Combatente).atq() > (inimigos[i] as Combatente).atq():
+	var i := clampi(target, 0, enemies.size() - 1)
+	if g.get("aim", "target") == "strongest":
+		for k in enemies.size():
+			if (enemies[k] as Combatant).atk() > (enemies[i] as Combatant).atk():
 				i = k
-	var lista := [[inimigos[i], g.mult]]
-	var de_tras := i + 1 if i + 1 < inimigos.size() else i - 1
-	for k in inimigos.size():
+	var list := [[enemies[i], g.mult]]
+	var behind := i + 1 if i + 1 < enemies.size() else i - 1
+	for k in enemies.size():
 		if k == i:
 			continue
-		match g.get("alcance", "unico"):
-			"todos": lista.append([inimigos[k], g.mult])
-			"dupla":
-				if k == de_tras:
-					lista.append([inimigos[k], g.get("mult_vizinhos", g.mult)])
-			"vizinhos":
+		match g.get("reach", "single"):
+			"all": list.append([enemies[k], g.mult])
+			"pair":
+				if k == behind:
+					list.append([enemies[k], g.get("neighbor_mult", g.mult)])
+			"neighbors":
 				if absi(k - i) == 1:
-					lista.append([inimigos[k], g.get("mult_vizinhos", g.mult)])
-	return lista
+					list.append([enemies[k], g.get("neighbor_mult", g.mult)])
+	return list
 
 
 ## Quem recebe o escudo do último ato: o aliado de pé (fora ela) com a menor
-## fração de HP. `aliados` = os aliados em campo; null se não houver.
-func alvo_escudo(aliados: Array) -> Combatente:
-	var melhor: Combatente = null
-	for c: Combatente in aliados:
-		if c == self or not c.vivo():
+## fração de HP. `allies` = os aliados em campo; null se não houver.
+func shield_target(allies: Array) -> Combatant:
+	var best: Combatant = null
+	for c: Combatant in allies:
+		if c == self or not c.is_alive():
 			continue
-		if melhor == null or float(c.hp) / c.hp_max < float(melhor.hp) / melhor.hp_max:
-			melhor = c
-	return melhor
+		if best == null or float(c.hp) / c.max_hp < float(best.hp) / best.max_hp:
+			best = c
+	return best
 
 
 ## Escudo do último ato `g`, sobre o HP máximo dela.
-func escudo_ultimo_ato(g: Dictionary) -> Estado:
-	var e := Estado.new("escudo_" + id, g.nome, "ESC", "buff", DURACAO_ESCUDO)
-	e.escudo = roundi(hp_max * g.escudo)
-	e.cor = cor
+func last_act_shield(g: Dictionary) -> StatusEffect:
+	var e := StatusEffect.new("shield_" + id, g.name, "ESC", "buff", SHIELD_DURATION)
+	e.shield = roundi(max_hp * g.shield)
+	e.color = color
 	return e
 
 
-func efeitos() -> Array[Dictionary]:
-	var lista: Array[Dictionary] = [{"id": "invocacao", "curto": str(turnos), "nome": "Invocação", "tipo": "buff",
-		"turnos": turnos, "cor": cor, "detalhe": "vai embora em %d vez%s" % [turnos, "" if turnos == 1 else "es"]}]
-	lista.append_array(super())
-	return lista
+func effects() -> Array[Dictionary]:
+	var list: Array[Dictionary] = [{"id": "summon", "short": str(turns), "name": "Invocação", "type": "buff",
+		"turns": turns, "color": color, "detail": "vai embora em %d vez%s" % [turns, "" if turns == 1 else "es"]}]
+	list.append_array(super())
+	return list

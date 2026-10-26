@@ -1,106 +1,106 @@
-class_name Andares
+class_name Floors
 extends RefCounted
 ## Cadastro dos andares da Torre. Cada ida à dungeon é um andar: vence e
 ## volta ao saguão. Vencer o andar N libera o N+1; andares vencidos podem
 ## ser repetidos (dão XP de novo, mas os eventos de história só acontecem
-## na primeira vitória). O que já foi vencido fica na Progressao.
+## na primeira vitória). O que já foi vencido fica na Progression.
 ##
-## Para pôr um andar novo: mais um item em LISTA, na ordem. Nada mais muda.
+## Para pôr um andar novo: mais um item em LIST, na ordem. Nada mais muda.
 ##
 ## Formato de cada andar:
 ## {
-##     "nome", "descricao",
-##     "nivel_recomendado": o nível de quem chega sem repetir andares (aviso
+##     "name", "description",
+##     "recommended_level": o nível de quem chega sem repetir andares (aviso
 ##         na escolha do andar; não bloqueia),
-##     "limite_nivel": limite de nível da Torre enquanto este for o andar
-##         mais alto liberado (ver limite_nivel()),
-##     "max_equipe": quantos personagens podem entrar (até Elenco.MAX_EQUIPE),
-##     "fundo": cenário da batalha,
-##     "inimigos": [{"nome", "textura", "hp", "atq", "def", "vel",
-##                   "pesado_a_cada"?, "tipo"? (Tipos), "xp"? (sem ela, a regra
-##                   da Progressao pelo HP), "ultimo_recurso"? (escudo quando
-##                   está quase caindo; formato em Inimigo.ultimo_recurso)}],
-##     "ao_vencer"?: eventos da primeira vitória (formato em Eventos),
+##     "level_limit": limite de nível da Torre enquanto este for o andar
+##         mais alto liberado (ver level_limit()),
+##     "max_team": quantos personagens podem entrar (até Roster.MAX_TEAM),
+##     "background": cenário da batalha,
+##     "enemies": [{"name", "texture", "hp", "atk", "def", "spd",
+##                   "heavy_every"?, "type"? (Types), "xp"? (sem ela, a regra
+##                   da Progression pelo HP), "last_resort"? (escudo quando
+##                   está quase caindo; formato em Enemy.last_resort)}],
+##     "on_win"?: eventos da primeira vitória (formato em StoryEvents),
 ## }
 ##
-## Ritmo planejado (curva em Progressao): a XP de cada andar leva quem não
+## Ritmo planejado (curva em Progression): a XP de cada andar leva quem não
 ## repete nada ao nível recomendado do seguinte (1 -> 2 -> 4 -> 6 -> 8 -> 10), e o
 ## limite deixa treinar só até 1 nível acima disso (uma repetição, mais ou
 ## menos). Os tipos dos inimigos fazem a lente e a Análise do Andri serem
 ## escolhas, e não um x2 automático.
 
-const FUNDO_PADRAO := "res://tower/floor_background.png"
-const SENTINELA := "res://enemies/sentinel.png"
-const GUARDIAO := "res://enemies/guardian.png"
+const DEFAULT_BACKGROUND := "res://tower/floor_background.png"
+const SENTINEL := "res://enemies/sentinel.png"
+const GUARDIAN := "res://enemies/guardian.png"
 const GOLEM := "res://enemies/stone_golem.png"
-const ELEMENTAL_FOGO := "res://enemies/fire_elemental.png"
+const FIRE_ELEMENTAL := "res://enemies/fire_elemental.png"
 ## Ferro Negro: abaixo de 30% do HP, um escudo de 25% do HP máximo por 3
 ## turnos, uma vez por luta (andar 5).
-const FERRO_NEGRO := {"nome": "Ferro Negro", "curto": "FN", "abaixo_de": 0.3, "escudo": 0.25, "turnos": 3}
+const BLACK_IRON := {"name": "Ferro Negro", "short": "FN", "below": 0.3, "shield": 0.25, "turns": 3}
 
-const LISTA := [
+const LIST := [
 	{
 		# Shumi sozinha contra dois alvos simples: aprende Corte, Engo-ji e pontos.
-		"nome": "Vigia da Entrada",
-		"descricao": "Duas sentinelas guardam a escada. Um bom lugar para sentir a Torre.",
-		"nivel_recomendado": 1,
-		"limite_nivel": 3,
-		"max_equipe": 1,
-		"fundo": FUNDO_PADRAO,
-		"inimigos": [
-			{"nome": "Sentinela", "textura": SENTINELA, "hp": 420, "atq": 62.0, "def": 30.0, "vel": 92.0, "xp": 75},
-			{"nome": "Sentinela", "textura": SENTINELA, "hp": 420, "atq": 62.0, "def": 30.0, "vel": 100.0, "xp": 75},
+		"name": "Vigia da Entrada",
+		"description": "Duas sentinelas guardam a escada. Um bom lugar para sentir a Torre.",
+		"recommended_level": 1,
+		"level_limit": 3,
+		"max_team": 1,
+		"background": DEFAULT_BACKGROUND,
+		"enemies": [
+			{"name": "Sentinela", "texture": SENTINEL, "hp": 420, "atk": 62.0, "def": 30.0, "spd": 92.0, "xp": 75},
+			{"name": "Sentinela", "texture": SENTINEL, "hp": 420, "atk": 62.0, "def": 30.0, "spd": 100.0, "xp": 75},
 		],
 	},
 	{
 		# o primeiro Golpe Pesado: pede o Kaioken na hora certa (o dreno pesa sozinha)
-		"nome": "Salão do Guardião",
-		"descricao": "Um Guardião vigia o salão. A cada três ações, ele solta um Golpe Pesado.",
-		"nivel_recomendado": 2,
-		"limite_nivel": 5,
-		"max_equipe": 1,
-		"fundo": FUNDO_PADRAO,
-		"inimigos": [
-			{"nome": "Sentinela", "textura": SENTINELA, "hp": 560, "atq": 62.0, "def": 40.0, "vel": 98.0, "xp": 110},
-			{"nome": "Guardião", "textura": GUARDIAO, "hp": 1300, "atq": 74.0, "def": 55.0, "vel": 82.0, "pesado_a_cada": 3, "xp": 240},
+		"name": "Salão do Guardião",
+		"description": "Um Guardião vigia o salão. A cada três ações, ele solta um Golpe Pesado.",
+		"recommended_level": 2,
+		"level_limit": 5,
+		"max_team": 1,
+		"background": DEFAULT_BACKGROUND,
+		"enemies": [
+			{"name": "Sentinela", "texture": SENTINEL, "hp": 560, "atk": 62.0, "def": 40.0, "spd": 98.0, "xp": 110},
+			{"name": "Guardião", "texture": GUARDIAN, "hp": 1300, "atk": 74.0, "def": 55.0, "spd": 82.0, "heavy_every": 3, "xp": 240},
 		],
-		"ao_vencer": [{"tipo": "desbloquear", "id": "andri"}],
+		"on_win": [{"type": "unlock", "id": "andri"}],
 	},
 	{
 		# o Andri chega: as sentinelas Físicas caem rápido com a lente Ácido,
 		# mas o Guardião de Veneno não é fraco a nenhuma lente (Análise ou
 		# Engo-ji? os pontos de skill são da equipe) e a sentinela veloz age
 		# quase duas vezes por rodada
-		"nome": "Guarnição",
-		"descricao": "A guarda completa: duas sentinelas, uma delas veloz, e um Guardião de Veneno.",
-		"nivel_recomendado": 4,
-		"limite_nivel": 7,
-		"max_equipe": 2,
-		"fundo": FUNDO_PADRAO,
-		"inimigos": [
-			{"nome": "Sentinela", "textura": SENTINELA, "hp": 700, "atq": 175.0, "def": 45.0, "vel": 100.0, "xp": 150},
-			{"nome": "Guardião", "textura": GUARDIAO, "hp": 2000, "atq": 235.0, "def": 65.0, "vel": 84.0,
-				"pesado_a_cada": 3, "tipo": Tipos.VENENO, "xp": 300},
-			{"nome": "Sentinela Veloz", "textura": SENTINELA, "hp": 560, "atq": 155.0, "def": 35.0, "vel": 128.0, "xp": 150},
+		"name": "Guarnição",
+		"description": "A guarda completa: duas sentinelas, uma delas veloz, e um Guardião de Veneno.",
+		"recommended_level": 4,
+		"level_limit": 7,
+		"max_team": 2,
+		"background": DEFAULT_BACKGROUND,
+		"enemies": [
+			{"name": "Sentinela", "texture": SENTINEL, "hp": 700, "atk": 175.0, "def": 45.0, "spd": 100.0, "xp": 150},
+			{"name": "Guardião", "texture": GUARDIAN, "hp": 2000, "atk": 235.0, "def": 65.0, "spd": 84.0,
+				"heavy_every": 3, "type": Types.POISON, "xp": 300},
+			{"name": "Sentinela Veloz", "texture": SENTINEL, "hp": 560, "atk": 155.0, "def": 35.0, "spd": 128.0, "xp": 150},
 		],
 	},
 	{
 		# chefe de Trevas (nenhuma lente é super efetiva; Análise é o caminho)
 		# com Golpe Pesado a cada 2 ações; a escolta castiga cada um: a de
 		# Água é super efetiva no Andri (Fogo), a de Ácido na Shumi (Físico)
-		"nome": "Trono Sombrio",
-		"descricao": "O Guardião Sombrio, de Trevas, ataca pesado a cada duas ações. Sua escolta é de Água e de Ácido.",
-		"nivel_recomendado": 6,
-		"limite_nivel": 9,
-		"max_equipe": 2,
-		"fundo": FUNDO_PADRAO,
-		"inimigos": [
-			{"nome": "Sentinela de Água", "textura": SENTINELA, "hp": 720, "atq": 160.0, "def": 45.0, "vel": 106.0,
-				"tipo": Tipos.AGUA, "xp": 175},
-			{"nome": "Guardião Sombrio", "textura": GUARDIAO, "hp": 2700, "atq": 205.0, "def": 75.0, "vel": 90.0,
-				"pesado_a_cada": 2, "tipo": Tipos.TREVAS, "xp": 550},
-			{"nome": "Sentinela de Ácido", "textura": SENTINELA, "hp": 720, "atq": 160.0, "def": 45.0, "vel": 116.0,
-				"tipo": Tipos.ACIDO, "xp": 175},
+		"name": "Trono Sombrio",
+		"description": "O Guardião Sombrio, de Trevas, ataca pesado a cada duas ações. Sua escolta é de Água e de Ácido.",
+		"recommended_level": 6,
+		"level_limit": 9,
+		"max_team": 2,
+		"background": DEFAULT_BACKGROUND,
+		"enemies": [
+			{"name": "Sentinela de Água", "texture": SENTINEL, "hp": 720, "atk": 160.0, "def": 45.0, "spd": 106.0,
+				"type": Types.WATER, "xp": 175},
+			{"name": "Guardião Sombrio", "texture": GUARDIAN, "hp": 2700, "atk": 205.0, "def": 75.0, "spd": 90.0,
+				"heavy_every": 2, "type": Types.DARKNESS, "xp": 550},
+			{"name": "Sentinela de Ácido", "texture": SENTINEL, "hp": 720, "atk": 160.0, "def": 45.0, "spd": 116.0,
+				"type": Types.ACID, "xp": 175},
 		],
 	},
 	{
@@ -108,102 +108,102 @@ const LISTA := [
 		# e os elementais são de Fogo (a Água dobra neles), então o Andri
 		# troca de lente conforme o alvo; o Ferro Negro dá escudo a quem
 		# cai abaixo de 30%, e acabar com alguém pede guardar dano para depois
-		"nome": "Forja de Pedra",
-		"descricao": "Um Golem de Pedra e dois Elementais de Fogo. Quase caindo, o Ferro Negro os cobre com um escudo.",
-		"nivel_recomendado": 8,
-		"limite_nivel": 11,
-		"max_equipe": 3,
-		"fundo": FUNDO_PADRAO,
-		"inimigos": [
-			{"nome": "Elemental de Fogo", "textura": ELEMENTAL_FOGO, "hp": 1000, "atq": 360.0, "def": 45.0, "vel": 118.0,
-				"tipo": Tipos.FOGO, "xp": 175, "ultimo_recurso": FERRO_NEGRO},
-			{"nome": "Golem de Pedra", "textura": GOLEM, "hp": 4800, "atq": 450.0, "def": 100.0, "vel": 82.0,
-				"pesado_a_cada": 3, "xp": 650, "ultimo_recurso": FERRO_NEGRO},
-			{"nome": "Elemental de Fogo", "textura": ELEMENTAL_FOGO, "hp": 1000, "atq": 360.0, "def": 45.0, "vel": 124.0,
-				"tipo": Tipos.FOGO, "xp": 175, "ultimo_recurso": FERRO_NEGRO},
+		"name": "Forja de Pedra",
+		"description": "Um Golem de Pedra e dois Elementais de Fogo. Quase caindo, o Ferro Negro os cobre com um escudo.",
+		"recommended_level": 8,
+		"level_limit": 11,
+		"max_team": 3,
+		"background": DEFAULT_BACKGROUND,
+		"enemies": [
+			{"name": "Elemental de Fogo", "texture": FIRE_ELEMENTAL, "hp": 1000, "atk": 360.0, "def": 45.0, "spd": 118.0,
+				"type": Types.FIRE, "xp": 175, "last_resort": BLACK_IRON},
+			{"name": "Golem de Pedra", "texture": GOLEM, "hp": 4800, "atk": 450.0, "def": 100.0, "spd": 82.0,
+				"heavy_every": 3, "xp": 650, "last_resort": BLACK_IRON},
+			{"name": "Elemental de Fogo", "texture": FIRE_ELEMENTAL, "hp": 1000, "atk": 360.0, "def": 45.0, "spd": 124.0,
+				"type": Types.FIRE, "xp": 175, "last_resort": BLACK_IRON},
 		],
 	},
 ]
 
 
 static func total() -> int:
-	return LISTA.size()
+	return LIST.size()
 
 
-## Dados do andar `numero` (1 = o primeiro).
-static func dados(numero: int) -> Dictionary:
-	if numero < 1 or numero > LISTA.size():
-		push_error("andar inexistente: %d" % numero)
+## Dados do andar `number` (1 = o primeiro).
+static func data(number: int) -> Dictionary:
+	if number < 1 or number > LIST.size():
+		push_error("andar inexistente: %d" % number)
 		return {}
-	return LISTA[numero - 1]
+	return LIST[number - 1]
 
 
-static func max_equipe(numero: int) -> int:
-	return clampi(dados(numero).get("max_equipe", Elenco.MAX_EQUIPE), 1, Elenco.MAX_EQUIPE)
+static func max_team(number: int) -> int:
+	return clampi(data(number).get("max_team", Roster.MAX_TEAM), 1, Roster.MAX_TEAM)
 
 
-static func criar_inimigos(numero: int) -> Array[Inimigo]:
-	var lista: Array[Inimigo] = []
-	for d: Dictionary in dados(numero).inimigos:
-		var ini := Inimigo.new(d.nome, d.textura, d.hp, d.atq, d.def, d.vel, d.get("pesado_a_cada", 0), d.get("tipo", Tipos.FISICO))
+static func create_enemies(number: int) -> Array[Enemy]:
+	var list: Array[Enemy] = []
+	for d: Dictionary in data(number).enemies:
+		var ini := Enemy.new(d.name, d.texture, d.hp, d.atk, d.def, d.spd, d.get("heavy_every", 0), d.get("type", Types.PHYSICAL))
 		ini.xp = d.get("xp", -1)
-		ini.ultimo_recurso = d.get("ultimo_recurso", {})
-		lista.append(ini)
-	return lista
+		ini.last_resort = d.get("last_resort", {})
+		list.append(ini)
+	return list
 
 
 # ------------------------------------------------------- estado (no save)
-static func vencido(numero: int) -> bool:
-	return numero in Progressao.andares_vencidos()
+static func is_cleared(number: int) -> bool:
+	return number in Progression.cleared_floors()
 
 
 ## Limite de nível da Torre agora: o do andar mais alto liberado (a única
-## fonte desse limite; ver Progressao). Repetir andares não o muda.
-static func limite_nivel() -> int:
-	return limite_do_andar(mais_alto_liberado())
+## fonte desse limite; ver Progression). Repetir andares não o muda.
+static func level_limit() -> int:
+	return floor_limit(highest_unlocked())
 
 
-## O limite enquanto `numero` for o andar mais alto liberado.
-static func limite_do_andar(numero: int) -> int:
-	return clampi(dados(numero).get("limite_nivel", Progressao.NIVEL_MAX), 1, Progressao.NIVEL_MAX)
+## O limite enquanto `number` for o andar mais alto liberado.
+static func floor_limit(number: int) -> int:
+	return clampi(data(number).get("level_limit", Progression.MAX_LEVEL), 1, Progression.MAX_LEVEL)
 
 
 ## O 1 sempre; os outros, depois de vencer o anterior.
-static func liberado(numero: int) -> bool:
-	return numero >= 1 and numero <= total() and (numero == 1 or vencido(numero - 1))
+static func is_unlocked(number: int) -> bool:
+	return number >= 1 and number <= total() and (number == 1 or is_cleared(number - 1))
 
 
 ## O andar mais alto liberado.
-static func mais_alto_liberado() -> int:
+static func highest_unlocked() -> int:
 	var n := 1
-	while n < total() and liberado(n + 1):
+	while n < total() and is_unlocked(n + 1):
 		n += 1
 	return n
 
 
 ## O andar escolhido para a próxima ida (um liberado; sem escolha, o mais alto).
-static func atual() -> int:
-	var n := Progressao.andar_escolhido()
-	return n if liberado(n) else mais_alto_liberado()
+static func current() -> int:
+	var n := Progression.chosen_floor()
+	return n if is_unlocked(n) else highest_unlocked()
 
 
-static func escolher(numero: int) -> void:
-	if liberado(numero):
-		Progressao.salvar_andar_escolhido(numero)
+static func choose(number: int) -> void:
+	if is_unlocked(number):
+		Progression.save_chosen_floor(number)
 
 
-## Registra a vitória no andar `numero`. Na primeira, aplica os eventos de
-## "ao_vencer" (Eventos.aplicar) e os deixa pendentes para o saguão
-## apresentar. Devolve {"primeira", "eventos", "liberou" (o andar liberado
-## agora, 0 se nenhum), "limite_antes", "limite_depois" (limite de nível)}.
-static func concluir(numero: int) -> Dictionary:
-	var limite_antes := limite_nivel()
-	var primeira := not vencido(numero)
-	var eventos: Array = dados(numero).get("ao_vencer", []).filter(Eventos.pendente) if primeira else []
-	if primeira:
-		Progressao.marcar_andar_vencido(numero)
-		for e: Dictionary in eventos:
-			Eventos.aplicar(e)
-		Progressao.adicionar_eventos_pendentes(eventos)
-	return {"primeira": primeira, "eventos": eventos, "liberou": numero + 1 if primeira and numero < total() else 0,
-		"limite_antes": limite_antes, "limite_depois": limite_nivel()}
+## Registra a vitória no andar `number`. Na primeira, aplica os eventos de
+## "on_win" (StoryEvents.apply) e os deixa pendentes para o saguão
+## apresentar. Devolve {"first", "events", "unlocked_floor" (o andar liberado
+## agora, 0 se nenhum), "limit_before", "limit_after" (limite de nível)}.
+static func complete(number: int) -> Dictionary:
+	var limit_before := level_limit()
+	var first := not is_cleared(number)
+	var events: Array = data(number).get("on_win", []).filter(StoryEvents.pending) if first else []
+	if first:
+		Progression.mark_floor_cleared(number)
+		for e: Dictionary in events:
+			StoryEvents.apply(e)
+		Progression.add_pending_events(events)
+	return {"first": first, "events": events, "unlocked_floor": number + 1 if first and number < total() else 0,
+		"limit_before": limit_before, "limit_after": level_limit()}

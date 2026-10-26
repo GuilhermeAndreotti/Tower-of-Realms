@@ -1,77 +1,77 @@
-class_name VisualLutador
+class_name FighterVisual
 extends Node2D
 ## Desenho de um lutador na arena. A origem do nó fica nos pés do personagem.
 ## Personagens usam o sprite sheet (+ JSON gerado pelo script da Shumi);
 ## inimigos de teste usam uma imagem só, animada com tweens.
 
-const ESCALA := 3.0
-const ANIMACOES_EM_LOOP := ["idle", "walk", "kaioken"]
+const SCALE := 3.0
+const LOOPING_ANIMATIONS := ["idle", "walk", "kaioken"]
 
-var combatente: Combatente
-var altura := 0.0  ## altura do personagem na tela, para barra e números
-var mostrar_barra := false
-var marcado := false:  ## alvo escolhido
+var combatant: Combatant
+var height := 0.0  ## altura do personagem na tela, para barra e números
+var show_bar := false
+var marked := false:  ## alvo escolhido
 	set(v):
-		marcado = v
+		marked = v
 		queue_redraw()
-var realce := false:  ## seria atingido pela habilidade em foco
+var highlighted := false:  ## seria atingido pela habilidade em foco
 	set(v):
-		realce = v
+		highlighted = v
 		queue_redraw()
-var da_vez := false:  ## aliado que está agindo agora
+var acting := false:  ## aliado que está agindo agora
 	set(v):
-		da_vez = v
+		acting = v
 		queue_redraw()
 
 var _sprite: Node2D
-var _animado: AnimatedSprite2D
-var _anim_parado := "idle"
-var _cor_base := Color.WHITE
-var _tempo := 0.0
-var _hp_mostrado := -1.0
-var _hp_rastro := -1.0
-var _retrato: Texture2D
+var _animated: AnimatedSprite2D
+var _idle_anim := "idle"
+var _base_color := Color.WHITE
+var _time := 0.0
+var _shown_hp := -1.0
+var _trail_hp := -1.0
+var _portrait: Texture2D
 
 
-## `pe` é onde ficam os pés dentro de cada quadro do sprite sheet;
-## `rosto` é o recorte do primeiro quadro usado como retrato na HUD.
-func iniciar_animado(c: Combatente, png: String, json: String, pe: Vector2, altura_px: float, rosto := Rect2()) -> void:
-	combatente = c
-	var textura: Texture2D = load(png)
-	var frames := carregar_frames(png, json)
-	_animado = AnimatedSprite2D.new()
-	_animado.sprite_frames = frames
-	_animado.centered = false
-	_animado.offset = -pe
-	_animado.scale = Vector2(ESCALA, ESCALA)
-	_animado.animation_finished.connect(func() -> void:
-		_animado.speed_scale = 1.0
-		_animado.play(_anim_parado))
-	add_child(_animado)
-	_sprite = _animado
-	altura = altura_px * ESCALA
-	_animado.play(_anim_parado)
-	if rosto.has_area():
+## `foot` é onde ficam os pés dentro de cada quadro do sprite sheet;
+## `face` é o recorte do primeiro quadro usado como retrato na HUD.
+func setup_animated(c: Combatant, png: String, json: String, foot: Vector2, height_px: float, face := Rect2()) -> void:
+	combatant = c
+	var texture: Texture2D = load(png)
+	var frames := load_frames(png, json)
+	_animated = AnimatedSprite2D.new()
+	_animated.sprite_frames = frames
+	_animated.centered = false
+	_animated.offset = -foot
+	_animated.scale = Vector2(SCALE, SCALE)
+	_animated.animation_finished.connect(func() -> void:
+		_animated.speed_scale = 1.0
+		_animated.play(_idle_anim))
+	add_child(_animated)
+	_sprite = _animated
+	height = height_px * SCALE
+	_animated.play(_idle_anim)
+	if face.has_area():
 		var r := AtlasTexture.new()
-		r.atlas = textura
-		r.region = rosto
-		_retrato = r
+		r.atlas = texture
+		r.region = face
+		_portrait = r
 	else:
-		_retrato = frames.get_frame_texture(_anim_parado, 0)
+		_portrait = frames.get_frame_texture(_idle_anim, 0)
 
 
-func iniciar_estatico(c: Combatente, png: String) -> void:
-	combatente = c
+func setup_static(c: Combatant, png: String) -> void:
+	combatant = c
 	var spr := Sprite2D.new()
 	spr.texture = load(png)
 	spr.centered = false
 	spr.offset = -Vector2(spr.texture.get_width() / 2.0, spr.texture.get_height())
-	spr.scale = Vector2(ESCALA, ESCALA)
+	spr.scale = Vector2(SCALE, SCALE)
 	add_child(spr)
 	_sprite = spr
-	altura = spr.texture.get_height() * ESCALA
-	_retrato = spr.texture
-	mostrar_barra = true
+	height = spr.texture.get_height() * SCALE
+	_portrait = spr.texture
+	show_bar = true
 	# flutua de leve, cada um num ritmo
 	var t := create_tween().set_loops()
 	t.tween_property(spr, "position:y", -5.0, 0.9 + randf() * 0.3).set_trans(Tween.TRANS_SINE)
@@ -79,103 +79,103 @@ func iniciar_estatico(c: Combatente, png: String) -> void:
 
 
 ## Animações de um sprite sheet + JSON (formato do gerar_spritesheet.py).
-static func carregar_frames(png: String, json: String) -> SpriteFrames:
-	var textura: Texture2D = load(png)
-	var dados: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(json))
+static func load_frames(png: String, json: String) -> SpriteFrames:
+	var texture: Texture2D = load(png)
+	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(json))
 	var frames := SpriteFrames.new()
 	frames.remove_animation("default")
-	for nome: String in dados.animations:
-		var anim: Dictionary = dados.animations[nome]
-		frames.add_animation(nome)
-		frames.set_animation_loop(nome, nome in ANIMACOES_EM_LOOP)
-		frames.set_animation_speed(nome, 1000.0 / anim.frame_duration_ms)
+	for anim_name: String in data.animations:
+		var anim: Dictionary = data.animations[anim_name]
+		frames.add_animation(anim_name)
+		frames.set_animation_loop(anim_name, anim_name in LOOPING_ANIMATIONS)
+		frames.set_animation_speed(anim_name, 1000.0 / anim.frame_duration_ms)
 		for f: Dictionary in anim.frames:
-			var quadro := AtlasTexture.new()
-			quadro.atlas = textura
-			quadro.region = Rect2(f.x, f.y, f.w, f.h)
-			frames.add_frame(nome, quadro)
+			var frame := AtlasTexture.new()
+			frame.atlas = texture
+			frame.region = Rect2(f.x, f.y, f.w, f.h)
+			frames.add_frame(anim_name, frame)
 	return frames
 
 
-## Animações em uso (para guardar e voltar depois de trocar_frames()).
+## Animações em uso (para guardar e voltar depois de swap_frames()).
 func frames() -> SpriteFrames:
-	return _animado.sprite_frames if _animado else null
+	return _animated.sprite_frames if _animated else null
 
 
 ## Troca o visual (outra roupa ou forma, com as mesmas animações) sem
 ## interromper a animação nem o quadro em que está.
-func trocar_frames(novos: SpriteFrames) -> void:
-	if not _animado or novos == null or novos == _animado.sprite_frames:
+func swap_frames(new_frames: SpriteFrames) -> void:
+	if not _animated or new_frames == null or new_frames == _animated.sprite_frames:
 		return
-	var anim := _animado.animation
-	var quadro := _animado.frame
-	var progresso := _animado.frame_progress
-	_animado.sprite_frames = novos
-	_animado.play(anim)
-	_animado.set_frame_and_progress(quadro, progresso)
+	var anim := _animated.animation
+	var frame := _animated.frame
+	var progress := _animated.frame_progress
+	_animated.sprite_frames = new_frames
+	_animated.play(anim)
+	_animated.set_frame_and_progress(frame, progress)
 
 
 ## Imagem pequena do lutador para a HUD (ordem de turnos, painel).
-func retrato() -> Texture2D:
-	return _retrato
+func portrait() -> Texture2D:
+	return _portrait
 
 
-func topo() -> Vector2:
-	return position + Vector2(0, -altura)
+func top() -> Vector2:
+	return position + Vector2(0, -height)
 
 
-## `velocidade` acelera só esta animação; volta ao normal quando ela acaba.
-func tocar(anim: String, velocidade := 1.0) -> void:
-	if _animado:
-		_animado.speed_scale = velocidade
-		_animado.play(anim)
+## `speed` acelera só esta animação; volta ao normal quando ela acaba.
+func play(anim: String, speed := 1.0) -> void:
+	if _animated:
+		_animated.speed_scale = speed
+		_animated.play(anim)
 
 
 ## Animação usada quando não está fazendo nada (ex.: "kaioken" enquanto na forma).
-func definir_parado(anim: String) -> void:
-	_anim_parado = anim
-	if _animado and _animado.animation in ANIMACOES_EM_LOOP:
-		_animado.play(anim)
+func set_idle_anim(anim: String) -> void:
+	_idle_anim = anim
+	if _animated and _animated.animation in LOOPING_ANIMATIONS:
+		_animated.play(anim)
 
 
 ## Olha para a esquerda (espelha em torno dos pés) ou volta para a direita.
-func virar(para_esquerda: bool) -> void:
-	_sprite.scale.x = -absf(_sprite.scale.x) if para_esquerda else absf(_sprite.scale.x)
+func set_facing_left(facing_left: bool) -> void:
+	_sprite.scale.x = -absf(_sprite.scale.x) if facing_left else absf(_sprite.scale.x)
 
 
-func definir_cor_base(cor: Color) -> void:
-	_cor_base = cor
-	_sprite.modulate = cor
+func set_base_color(color: Color) -> void:
+	_base_color = color
+	_sprite.modulate = color
 
 
-func mover_para(destino: Vector2, duracao: float) -> void:
+func move_to(destination: Vector2, duration: float) -> void:
 	var t := create_tween()
-	t.tween_property(self, "position", destino, duracao).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.tween_property(self, "position", destination, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	await t.finished
 
 
-func levar_golpe() -> void:
-	if _animado:
-		_animado.play("hurt")
+func take_hit() -> void:
+	if _animated:
+		_animated.play("hurt")
 	_sprite.modulate = Color(4, 4, 4)
 	var t := create_tween()
-	t.tween_property(_sprite, "modulate", _cor_base, 0.18)
+	t.tween_property(_sprite, "modulate", _base_color, 0.18)
 	var x := _sprite.position.x
 	var s := create_tween()
 	for d in [8.0, -6.0, 4.0, 0.0]:
 		s.tween_property(_sprite, "position:x", x + d, 0.04)
 
 
-func piscar(cor: Color) -> void:
-	_sprite.modulate = cor
-	create_tween().tween_property(_sprite, "modulate", _cor_base, 0.4)
+func flash(color: Color) -> void:
+	_sprite.modulate = color
+	create_tween().tween_property(_sprite, "modulate", _base_color, 0.4)
 
 
-func morrer() -> void:
-	marcado = false
-	realce = false
-	da_vez = false
-	mostrar_barra = false
+func die() -> void:
+	marked = false
+	highlighted = false
+	acting = false
+	show_bar = false
 	queue_redraw()
 	var t := create_tween().set_parallel()
 	t.tween_property(_sprite, "modulate:a", 0.0, 0.6)
@@ -183,80 +183,80 @@ func morrer() -> void:
 
 
 func _process(delta: float) -> void:
-	if not (marcado or realce or da_vez or mostrar_barra):
+	if not (marked or highlighted or acting or show_bar):
 		return
-	_tempo += delta
-	if combatente and mostrar_barra:
+	_time += delta
+	if combatant and show_bar:
 		# a barra desliza até o HP real; o rastro claro vai atrás, mais devagar
-		var hp := float(combatente.hp)
-		if _hp_mostrado < 0:
-			_hp_mostrado = hp
-			_hp_rastro = hp
-		_hp_mostrado = move_toward(_hp_mostrado, hp, maxf(1.0, absf(_hp_mostrado - hp)) * delta * 12.0)
-		_hp_rastro = hp if _hp_rastro < hp else move_toward(_hp_rastro, hp, combatente.hp_max * delta * 0.6)
+		var hp := float(combatant.hp)
+		if _shown_hp < 0:
+			_shown_hp = hp
+			_trail_hp = hp
+		_shown_hp = move_toward(_shown_hp, hp, maxf(1.0, absf(_shown_hp - hp)) * delta * 12.0)
+		_trail_hp = hp if _trail_hp < hp else move_toward(_trail_hp, hp, combatant.max_hp * delta * 0.6)
 	queue_redraw()
 
 
 func _draw() -> void:
-	if not combatente or not combatente.vivo():
+	if not combatant or not combatant.is_alive():
 		return
 	# elipse nos pés: dourada no alvo escolhido, clara nos outros atingidos
-	if marcado or realce:
-		var pulso := 0.5 + 0.5 * sin(_tempo * 6.0)
-		var cor := EstiloUI.OURO if marcado else Color(1, 0.95, 0.8)
-		var largura := clampf(altura * 0.55, 40, 90)
-		_elipse(Vector2(0, -2), Vector2(largura / 2, 7), Color(cor, 0.18 + 0.12 * pulso), true)
-		_elipse(Vector2(0, -2), Vector2(largura / 2, 7), Color(cor, 0.55 + 0.35 * pulso), false)
+	if marked or highlighted:
+		var pulso := 0.5 + 0.5 * sin(_time * 6.0)
+		var color := UIStyle.GOLD if marked else Color(1, 0.95, 0.8)
+		var width := clampf(height * 0.55, 40, 90)
+		_ellipse(Vector2(0, -2), Vector2(width / 2, 7), Color(color, 0.18 + 0.12 * pulso), true)
+		_ellipse(Vector2(0, -2), Vector2(width / 2, 7), Color(color, 0.55 + 0.35 * pulso), false)
 
-	if da_vez:
+	if acting:
 		# losango dourado sobre a cabeça + base no chão
-		var largura_vez := clampf(altura * 0.55, 40, 90)
-		_elipse(Vector2(0, -2), Vector2(largura_vez / 2, 7), Color(EstiloUI.OURO, 0.5), false)
-		var cy := -altura - 14.0 + sin(_tempo * 5.0) * 2.0
+		var turn_width := clampf(height * 0.55, 40, 90)
+		_ellipse(Vector2(0, -2), Vector2(turn_width / 2, 7), Color(UIStyle.GOLD, 0.5), false)
+		var cy := -height - 14.0 + sin(_time * 5.0) * 2.0
 		var los := PackedVector2Array([Vector2(0, cy - 6), Vector2(5, cy), Vector2(0, cy + 6), Vector2(-5, cy)])
-		draw_colored_polygon(los, EstiloUI.OURO)
+		draw_colored_polygon(los, UIStyle.GOLD)
 		draw_polyline(los + PackedVector2Array([los[0]]), Color.BLACK, 1.5)
 
-	var y := -altura - 16.0
-	if mostrar_barra:
-		var largura := 64.0
-		var frac := clampf(_hp_mostrado / combatente.hp_max, 0, 1)
-		var frac_rastro := clampf(_hp_rastro / combatente.hp_max, 0, 1)
-		draw_rect(Rect2(-largura / 2 - 1, y - 1, largura + 2, 8), Color(0, 0, 0, 0.85))
-		draw_rect(Rect2(-largura / 2, y, largura, 6), Color(0.12, 0.08, 0.1))
-		draw_rect(Rect2(-largura / 2, y, roundf(largura * frac_rastro), 6), Color(1, 0.9, 0.8, 0.85))
-		draw_rect(Rect2(-largura / 2, y, roundf(largura * frac), 6), Color(0.86, 0.22, 0.25))
-		draw_rect(Rect2(-largura / 2, y, roundf(largura * frac), 2), Color(1, 0.5, 0.5))
-		if combatente.escudo() > 0:
-			EstiloUI.contorno_escudo(self, Rect2(-largura / 2 - 1, y - 1, largura + 2, 8), float(combatente.escudo()) / combatente.hp_max)
-		var cor_nome := EstiloUI.OURO if marcado else EstiloUI.TEXTO
-		EstiloUI.texto(self, Vector2(-largura, y - 5), combatente.nome, 12, cor_nome, largura * 2, HORIZONTAL_ALIGNMENT_CENTER)
+	var y := -height - 16.0
+	if show_bar:
+		var width := 64.0
+		var frac := clampf(_shown_hp / combatant.max_hp, 0, 1)
+		var trail_frac := clampf(_trail_hp / combatant.max_hp, 0, 1)
+		draw_rect(Rect2(-width / 2 - 1, y - 1, width + 2, 8), Color(0, 0, 0, 0.85))
+		draw_rect(Rect2(-width / 2, y, width, 6), Color(0.12, 0.08, 0.1))
+		draw_rect(Rect2(-width / 2, y, roundf(width * trail_frac), 6), Color(1, 0.9, 0.8, 0.85))
+		draw_rect(Rect2(-width / 2, y, roundf(width * frac), 6), Color(0.86, 0.22, 0.25))
+		draw_rect(Rect2(-width / 2, y, roundf(width * frac), 2), Color(1, 0.5, 0.5))
+		if combatant.shield() > 0:
+			UIStyle.shield_outline(self, Rect2(-width / 2 - 1, y - 1, width + 2, 8), float(combatant.shield()) / combatant.max_hp)
+		var name_color := UIStyle.GOLD if marked else UIStyle.TEXT
+		UIStyle.text(self, Vector2(-width, y - 5), combatant.name, 12, name_color, width * 2, HORIZONTAL_ALIGNMENT_CENTER)
 		# elemento à esquerda da barra (os efeitos ficam à direita)
-		var largura_selo := EstiloUI.largura_selo_tipo(combatente.tipo)
-		EstiloUI.selo_tipo(self, Vector2(-largura / 2 - 5 - largura_selo, y - 3), combatente.tipo)
+		var badge_width := UIStyle.type_badge_width(combatant.type)
+		UIStyle.type_badge(self, Vector2(-width / 2 - 5 - badge_width, y - 3), combatant.type)
 		# efeitos ativos ao lado da barra
-		var x := largura / 2 + 4
-		for e: Dictionary in combatente.efeitos():
-			var cor_e := EstiloUI.cor_efeito(e)
+		var x := width / 2 + 4
+		for e: Dictionary in combatant.effects():
+			var effect_color := UIStyle.effect_color(e)
 			var r := Rect2(x, y - 3, 11, 11)
 			draw_rect(r.grow(1), Color.BLACK)
-			draw_rect(r, cor_e)
-			draw_string(EstiloUI.fonte(), r.position + Vector2(0, 9), e.get("curto", ""), HORIZONTAL_ALIGNMENT_CENTER, 11, 9, Color.BLACK)
+			draw_rect(r, effect_color)
+			draw_string(UIStyle.source(), r.position + Vector2(0, 9), e.get("short", ""), HORIZONTAL_ALIGNMENT_CENTER, 11, 9, Color.BLACK)
 			x += 14
-	if marcado:
-		var my := y - 30.0 + sin(_tempo * 6.0) * 3.0
+	if marked:
+		var my := y - 30.0 + sin(_time * 6.0) * 3.0
 		var tri := PackedVector2Array([Vector2(-9, my), Vector2(9, my), Vector2(0, my + 11)])
-		draw_colored_polygon(tri, EstiloUI.OURO)
+		draw_colored_polygon(tri, UIStyle.GOLD)
 		draw_polyline(tri + PackedVector2Array([tri[0]]), Color.BLACK, 2.0)
 
 
-func _elipse(centro: Vector2, raios: Vector2, cor: Color, cheia: bool) -> void:
+func _ellipse(center: Vector2, radii: Vector2, color: Color, full: bool) -> void:
 	var pts := PackedVector2Array()
 	for i in 20:
 		var a := TAU * i / 20
-		pts.append(centro + Vector2(cos(a) * raios.x, sin(a) * raios.y))
-	if cheia:
-		draw_colored_polygon(pts, cor)
+		pts.append(center + Vector2(cos(a) * radii.x, sin(a) * radii.y))
+	if full:
+		draw_colored_polygon(pts, color)
 	else:
 		pts.append(pts[0])
-		draw_polyline(pts, cor, 2.0)
+		draw_polyline(pts, color, 2.0)

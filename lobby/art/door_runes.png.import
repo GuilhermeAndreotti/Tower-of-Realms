@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://teac553pk7sy"
-path="res://.godot/imported/barril.png-645554c683f880a53665fcee13b9d9aa.ctex"
+uid="uid://v0x37q7itr2e"
+path="res://.godot/imported/door_runes.png-1fc8face914bb318742a4ac9d213825a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://lobby/art/barril.png"
-dest_files=["res://.godot/imported/barril.png-645554c683f880a53665fcee13b9d9aa.ctex"]
+source_file="res://lobby/art/door_runes.png"
+dest_files=["res://.godot/imported/door_runes.png-1fc8face914bb318742a4ac9d213825a.ctex"]
 
 [params]
 

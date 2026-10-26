@@ -28,7 +28,7 @@ godot --headless --path . -s tests/test_menu.gd
 
 Regras para testes:
 
-- Troque `Progressao.arquivo` para um arquivo próprio no começo e chame `Progressao.apagar()` no fim. Quem mexe em slots troca também `Progressao.prefixo_slots` e apaga os slots no fim. Nunca leia nem escreva os saves do jogador.
+- Troque `Progression.file` para um arquivo próprio no começo e chame `Progression.delete()` no fim. Quem mexe em slots troca também `Progression.slots_prefix` e apaga os slots no fim. Nunca leia nem escreva os saves do jogador.
 - Fixe sorteios por parâmetro (as regras recebem variação e crítico de fora) em vez de depender de `randf()`.
 - Testes que montam cenas usam `_initialize()` e `await`; os de regra pura podem rodar direto no `_init()`.
 - O aviso de objetos vazados ao sair do `test_lobby.gd` vem da troca de cena no fim e não indica falha.
@@ -38,17 +38,17 @@ Regras para testes:
 `tools/simulate_floors.gd` roda a batalha de verdade com um piloto automático e imprime, por andar e nível, vitórias, turnos dos aliados e HP restante.
 
 ```bash
-godot --headless --path . -s tools/simulate_floors.gd -- [rodadas] [andar:nível ...] [equipe=id,id]
+godot --headless --path . -s tools/simulate_floors.gd -- [rodadas] [andar:nível ...] [team=id,id]
 ```
 
-Sem cenários, roda cada andar um nível abaixo do recomendado, no recomendado e no limite. Sem `equipe=`, usa os primeiros liberados do Elenco que cabem no andar (hoje, Shumi e Andri); para medir outro personagem, passe a equipe (por exemplo `equipe=askara,shumi`). Usa save próprio e acelera o tempo. O piloto é simples (descrito no topo do arquivo): use os números para comparar, não como prova de que um andar é divertido. Rode antes e depois de qualquer mudança de equilíbrio e registre os números no commit ou no changelog.
+Sem cenários, roda cada andar um nível abaixo do recomendado, no recomendado e no limite. Sem `team=`, usa os primeiros liberados do Roster que cabem no andar (hoje, Shumi e Andri); para medir outro personagem, passe a equipe (por exemplo `team=askara,shumi`). Usa save próprio e acelera o tempo. O piloto é simples (descrito no topo do arquivo): use os números para comparar, não como prova de que um andar é divertido. Rode antes e depois de qualquer mudança de equilíbrio e registre os números no commit ou no changelog.
 
 ## Outras ferramentas
 
 | Ferramenta                        | Uso                                                                              |
 | --------------------------------- | -------------------------------------------------------------------------------- |
 | `tools/capture_demo.gd`     | joga uma batalha sozinho e salva capturas (precisa de janela, não roda headless) |
-| `tools/generate_character_readmes.gd` | reescreve o trecho gerado do `characters/<id>/README.md` (atributos e habilidades com o texto do jogo, via `habilidades()` e `CartaoHabilidade.etiquetas()`); o resto do arquivo é escrito à mão. O `test_combat.gd` falha se algum README ficar desatualizado |
+| `tools/generate_character_readmes.gd` | reescreve o trecho gerado do `characters/<id>/README.md` (atributos e habilidades com o texto do jogo, via `skills()` e `SkillCard.tags()`); o resto do arquivo é escrito à mão. O `test_combat.gd` falha se algum README ficar desatualizado |
 | `tools/generate_lobby.py`      | gera o fundo, os móveis e a porta do saguão                                       |
 | `tools/generate_andri.py`      | gera a spritesheet, o MOMC e os ícones do Andri                                   |
 | `tools/generate_caoimhe.py`    | gera a spritesheet da Caoimhe a partir do sprite parado                          |

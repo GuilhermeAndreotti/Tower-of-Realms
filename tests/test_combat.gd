@@ -2,880 +2,880 @@ extends SceneTree
 ## Testes da lógica de combate, sem interface.
 ## Rodar: godot --headless --path . -s tests/test_combat.gd
 
-var _falhas := 0
+var _failures := 0
 
 
 func _init() -> void:
 	# a equipe é salva no progresso: os testes usam um arquivo só deles
-	Progressao.arquivo = "user://teste_combate_progresso.cfg"
+	Progression.file = "user://teste_combate_progresso.cfg"
 	# a história (quem chega depois) é testada com a chave temporária de
 	# todos liberados desligada
-	Elenco.todos_liberados = false
-	Progressao.apagar()
-	_teste_fila()
-	_teste_velocidade_reescala_av()
-	_teste_kaioken_entrar_e_subir()
-	_teste_kaioken_fim_e_exaustao()
-	_teste_kaioken_x20()
-	_teste_energia_em_kaioken()
-	_teste_engo_ji()
-	_teste_dano()
-	_teste_tipos()
-	_teste_estados()
-	_teste_andri_lente_e_disparo()
-	_teste_andri_analise()
-	_teste_andri_arsenal()
-	_teste_descricao_interface()
-	_teste_equipe()
-	_teste_askara_fragmentos()
-	_teste_askara_invocacao()
-	_teste_askara_lorde()
-	_teste_invocacao_alvos_e_provocacao()
-	_teste_recarga()
-	_teste_shumi_bang()
-	_teste_andri_protocolo()
-	_teste_askara_ultimo_ato()
-	_teste_ultimo_recurso()
+	Roster.all_unlocked = false
+	Progression.delete()
+	_test_queue()
+	_test_speed_rescales_av()
+	_test_kaioken_enter_and_level_up()
+	_test_kaioken_end_and_exhaustion()
+	_test_kaioken_x20()
+	_test_kaioken_energy()
+	_test_engo_ji()
+	_test_damage()
+	_test_types()
+	_test_status_effects()
+	_test_andri_lens_and_shot()
+	_test_andri_analysis()
+	_test_andri_arsenal()
+	_test_interface_description()
+	_test_team()
+	_test_askara_fragments()
+	_test_askara_summon()
+	_test_askara_lord()
+	_test_summon_targets_and_taunt()
+	_test_cooldown()
+	_test_shumi_bang()
+	_test_andri_protocol()
+	_test_askara_last_act()
+	_test_last_resort()
 
 
 ## Os testes com a batalha de verdade precisam da árvore de cenas.
 func _initialize() -> void:
-	await _teste_askara_na_batalha()
-	await _teste_bang_na_batalha()
-	await _teste_ferro_negro_na_batalha()
-	Progressao.apagar()
-	print("\n%s (%d falha%s)" % ["TUDO OK" if _falhas == 0 else "FALHOU", _falhas, "" if _falhas == 1 else "s"])
-	quit(1 if _falhas else 0)
+	await _test_askara_in_battle()
+	await _test_bang_in_battle()
+	await _test_black_iron_in_battle()
+	Progression.delete()
+	print("\n%s (%d falha%s)" % ["TUDO OK" if _failures == 0 else "FALHOU", _failures, "" if _failures == 1 else "s"])
+	quit(1 if _failures else 0)
 
 
-## A habilidade `acao` do kit de `c` (pela ação, não pela posição na barra).
-func _hab(c: Combatente, acao: String, pontos := 1) -> Dictionary:
-	return _hab_em(c.habilidades(pontos), acao)
+## A habilidade `action` do kit de `c` (pela ação, não pela posição na barra).
+func _skill_data(c: Combatant, action: String, points := 1) -> Dictionary:
+	return _skill_at(c.skills(points), action)
 
 
-func _hab_em(kit: Array[Dictionary], acao: String) -> Dictionary:
+func _skill_at(kit: Array[Dictionary], action: String) -> Dictionary:
 	for h in kit:
-		if h.acao == acao:
+		if h.action == action:
 			return h
 	return {}
 
 
-func checar(condicao: bool, descricao: String) -> void:
-	if condicao:
-		print("  ok   ", descricao)
+func check(condition: bool, description: String) -> void:
+	if condition:
+		print("  ok   ", description)
 	else:
-		_falhas += 1
-		printerr("  FALHOU ", descricao)
+		_failures += 1
+		printerr("  FALHOU ", description)
 
 
-func _teste_fila() -> void:
+func _test_queue() -> void:
 	print("fila de turnos")
-	var lento := Combatente.new("Lento", true, 100, 10, 0, 100)
-	var rapido := Combatente.new("Rápido", false, 100, 10, 0, 250)
-	var todos: Array = [lento, rapido]
-	var ordem := FilaTurnos.previsao(todos, 4)
-	checar(Array(ordem) == [rapido, rapido, lento, rapido], "VEL 250 age 2x antes do VEL 100")
-	var ator := FilaTurnos.proximo(todos)
-	checar(ator == rapido, "o mais rápido age primeiro")
-	FilaTurnos.avancar_ate(todos, ator)
-	checar(is_equal_approx(lento.av, 60.0), "tempo passado é descontado dos outros (100 - 40 = 60)")
-	lento.hp = 0
-	checar(FilaTurnos.previsao(todos, 3).count(lento) == 0, "derrotados saem da fila")
+	var slow := Combatant.new("Lento", true, 100, 10, 0, 100)
+	var fast := Combatant.new("Rápido", false, 100, 10, 0, 250)
+	var all: Array = [slow, fast]
+	var order := TurnQueue.forecast(all, 4)
+	check(Array(order) == [fast, fast, slow, fast], "VEL 250 age 2x antes do VEL 100")
+	var actor := TurnQueue.next(all)
+	check(actor == fast, "o mais rápido age primeiro")
+	TurnQueue.advance_to(all, actor)
+	check(is_equal_approx(slow.av, 60.0), "tempo passado é descontado dos outros (100 - 40 = 60)")
+	slow.hp = 0
+	check(TurnQueue.forecast(all, 3).count(slow) == 0, "derrotados saem da fila")
 
 
-func _teste_velocidade_reescala_av() -> void:
+func _test_speed_rescales_av() -> void:
 	print("mudança de velocidade")
-	var c := Combatente.new("C", true, 100, 10, 0, 100)
+	var c := Combatant.new("C", true, 100, 10, 0, 100)
 	c.av = 50.0
-	var antes := c.vel()
-	c._bonus_extra["vel"] = 1.0
-	c.ajustar_av(antes)
-	checar(is_equal_approx(c.av, 25.0), "dobrar a VEL no meio do caminho corta o que falta pela metade")
+	var before := c.spd()
+	c._bonus_extra["spd"] = 1.0
+	c.adjust_av(before)
+	check(is_equal_approx(c.av, 25.0), "dobrar a VEL no meio do caminho corta o que falta pela metade")
 
 
-func _teste_kaioken_entrar_e_subir() -> void:
+func _test_kaioken_enter_and_level_up() -> void:
 	print("kaioken: entrar e subir")
 	var s := Shumi.new()
-	checar(not s.pode_ultar(), "começa sem energia suficiente (60/120)")
-	s.energia = 120
-	checar(s.pode_ultar(), "com 120 de energia pode entrar")
-	s.ultar()
-	checar(s.nome_nivel() == "x2" and s.energia == 0.0, "entra no x2 e gasta 120")
-	checar(is_equal_approx(s.atq(), 180.0), "x2 dá +20% ATQ (150 -> 180)")
-	checar(is_equal_approx(s.vel(), 126.0), "x2 dá +20% VEL (105 -> 126)")
-	s.energia = 80
-	checar(s.pode_ultar() and s.custo_ult() == 80.0, "subir de nível custa 80")
-	s.turnos_kaioken = 1
-	s.ultar()
-	checar(s.nome_nivel() == "x4" and s.turnos_kaioken == Shumi.DURACAO, "sobe para x4 e renova a duração")
-	checar(is_equal_approx(s.bonus("atq"), 0.40), "subir troca o bônus em vez de somar (x4 = +40%, não +60%)")
-	var r := s.sobrecarga_inicio_turno()
-	checar(r.dano == 60 and s.hp == 1140, "x4 queima 5% do HP (60)")
-	checar(s.sobrecarga_inicio_turno().dano == 0 and s.hp == 1140, "a sobrecarga roda uma vez só por turno")
-	s.fim_turno()
-	checar(s.sobrecarga_inicio_turno().dano == 60, "no turno seguinte queima de novo")
+	check(not s.can_use_ult(), "começa sem energia suficiente (60/120)")
+	s.energy = 120
+	check(s.can_use_ult(), "com 120 de energia pode entrar")
+	s.use_ult()
+	check(s.level_name() == "x2" and s.energy == 0.0, "entra no x2 e gasta 120")
+	check(is_equal_approx(s.atk(), 180.0), "x2 dá +20% ATQ (150 -> 180)")
+	check(is_equal_approx(s.spd(), 126.0), "x2 dá +20% VEL (105 -> 126)")
+	s.energy = 80
+	check(s.can_use_ult() and s.ult_cost() == 80.0, "subir de nível custa 80")
+	s.kaioken_turns = 1
+	s.use_ult()
+	check(s.level_name() == "x4" and s.kaioken_turns == Shumi.DURATION, "sobe para x4 e renova a duração")
+	check(is_equal_approx(s.bonus("atk"), 0.40), "subir troca o bônus em vez de somar (x4 = +40%, não +60%)")
+	var r := s.turn_start_overload()
+	check(r.damage == 60 and s.hp == 1140, "x4 queima 5% do HP (60)")
+	check(s.turn_start_overload().damage == 0 and s.hp == 1140, "a sobrecarga roda uma vez só por turno")
+	s.end_turn()
+	check(s.turn_start_overload().damage == 60, "no turno seguinte queima de novo")
 
 
-func _teste_kaioken_fim_e_exaustao() -> void:
+func _test_kaioken_end_and_exhaustion() -> void:
 	print("kaioken: fim e exaustão")
 	var s := Shumi.new()
-	s.energia = 120
-	s.ultar()
-	s.energia = 80
-	s.ultar()
-	checar(s.fim_turno() == "" and s.fim_turno() == "", "dura 3 turnos")
-	checar(s.fim_turno() == "x4", "no 3º turno acaba e avisa o nível")
-	checar(not s.em_kaioken(), "saiu da forma")
-	checar(is_equal_approx(s.vel(), 84.0), "exaustão do x4: VEL -20% (105 -> 84)")
-	checar(not s.perde_proximo_turno, "fora do x20 não perde turno")
-	s.fim_turno()
-	checar(is_equal_approx(s.vel(), 84.0), "exaustão continua no 1º turno seguinte")
-	s.fim_turno()
-	checar(is_equal_approx(s.vel(), 105.0), "exaustão acaba depois de 2 turnos")
+	s.energy = 120
+	s.use_ult()
+	s.energy = 80
+	s.use_ult()
+	check(s.end_turn() == "" and s.end_turn() == "", "dura 3 turnos")
+	check(s.end_turn() == "x4", "no 3º turno acaba e avisa o nível")
+	check(not s.in_kaioken(), "saiu da forma")
+	check(is_equal_approx(s.spd(), 84.0), "exaustão do x4: VEL -20% (105 -> 84)")
+	check(not s.loses_next_turn, "fora do x20 não perde turno")
+	s.end_turn()
+	check(is_equal_approx(s.spd(), 84.0), "exaustão continua no 1º turno seguinte")
+	s.end_turn()
+	check(is_equal_approx(s.spd(), 105.0), "exaustão acaba depois de 2 turnos")
 
 
-func _teste_kaioken_x20() -> void:
+func _test_kaioken_x20() -> void:
 	print("kaioken: x20")
 	var s := Shumi.new()
 	for i in 4:
-		s.energia = 120
-		s.ultar()
-	checar(s.nome_nivel() == "x20" and s.nivel_maximo(), "4 ults chegam no x20")
-	checar(not s.pode_ultar(), "não sobe além do x20")
-	checar(is_equal_approx(s.atq(), 375.0), "x20 dá +150% ATQ (150 -> 375)")
-	checar(s.sobrecarga_inicio_turno().dano == 144, "x20 queima 12% do HP (144)")
+		s.energy = 120
+		s.use_ult()
+	check(s.level_name() == "x20" and s.at_max_level(), "4 ults chegam no x20")
+	check(not s.can_use_ult(), "não sobe além do x20")
+	check(is_equal_approx(s.atk(), 375.0), "x20 dá +150% ATQ (150 -> 375)")
+	check(s.turn_start_overload().damage == 144, "x20 queima 12% do HP (144)")
 	for i in 3:
-		s.fim_turno()
-	checar(s.perde_proximo_turno, "depois do x20 perde o próximo turno")
+		s.end_turn()
+	check(s.loses_next_turn, "depois do x20 perde o próximo turno")
 	s.hp = 100
-	s.energia = 120
-	s.ultar()
-	s.nivel = 3
-	s.energia = 0
-	var r := s.sobrecarga_inicio_turno()
-	checar(r.dano == 100 and not s.vivo(), "o dreno pode matar a Shumi")
-	checar(r.energia == 0.0 and s.energia == 0.0, "Limite Humano não ativa se ela cai")
+	s.energy = 120
+	s.use_ult()
+	s.level = 3
+	s.energy = 0
+	var r := s.turn_start_overload()
+	check(r.damage == 100 and not s.is_alive(), "o dreno pode matar a Shumi")
+	check(r.energy == 0.0 and s.energy == 0.0, "Limite Humano não ativa se ela cai")
 
 
-func _teste_energia_em_kaioken() -> void:
+func _test_kaioken_energy() -> void:
 	print("energia e Limite Humano")
 	var s := Shumi.new()
-	s.energia = 0
-	checar(s.sobrecarga_inicio_turno() == {"dano": 0, "energia": 0.0}, "fora do Kaioken: sem dreno e sem passiva")
-	s.energia = 120
-	s.ultar()
-	var r := s.sobrecarga_inicio_turno()
-	checar(r.dano == 36 and r.energia == 15.0 and s.energia == 15.0, "x2: perde 36 de HP e recupera 15 de energia")
-	s.fim_turno()
-	s.energia = 80
-	s.ultar()
-	s.energia = 0
-	checar(s.sobrecarga_inicio_turno().energia == 20.0, "x4 recupera mais (20)")
-	s.fim_turno()
-	checar(Shumi.NIVEIS.all(func(n: Dictionary) -> bool: return n.limite < Shumi.CUSTO_SUBIR),
+	s.energy = 0
+	check(s.turn_start_overload() == {"damage": 0, "energy": 0.0}, "fora do Kaioken: sem dreno e sem passiva")
+	s.energy = 120
+	s.use_ult()
+	var r := s.turn_start_overload()
+	check(r.damage == 36 and r.energy == 15.0 and s.energy == 15.0, "x2: perde 36 de HP e recupera 15 de energia")
+	s.end_turn()
+	s.energy = 80
+	s.use_ult()
+	s.energy = 0
+	check(s.turn_start_overload().energy == 20.0, "x4 recupera mais (20)")
+	s.end_turn()
+	check(Shumi.LEVELS.all(func(n: Dictionary) -> bool: return n.limit < Shumi.LEVEL_UP_COST),
 		"a passiva nunca paga sozinha a subida de nível")
-	s.energia = 110
-	checar(s.sobrecarga_inicio_turno().energia == 10.0 and s.energia == 120.0, "a passiva respeita o máximo de energia")
+	s.energy = 110
+	check(s.turn_start_overload().energy == 10.0 and s.energy == 120.0, "a passiva respeita o máximo de energia")
 
 
-func _teste_engo_ji() -> void:
+func _test_engo_ji() -> void:
 	print("engo-ji")
 	var s := Shumi.new()
-	var a := Inimigo.new("A", "", 100, 1, 0, 100)
-	var b := Inimigo.new("B", "", 100, 1, 0, 100)
-	var c := Inimigo.new("C", "", 100, 1, 0, 100)
-	var lista := [a, b, c]
-	checar(s.alvos_engo_ji(lista, 1) == [[b, 1.8]], "normal: só o alvo")
-	s.nivel = 0
-	checar(s.alvos_engo_ji(lista, 1) == [[b, 1.8], [c, 0.9]], "x2: alvo + o de trás, com dano menor")
-	checar(s.alvos_engo_ji(lista, 2) == [[b, 0.9], [c, 1.8]], "x2 no último: o segundo é o da frente")
-	checar(s.alvos_engo_ji([a], 0) == [[a, 1.8]], "x2 com um inimigo só: só ele")
-	s.nivel = 1
-	checar(s.alvos_engo_ji(lista, 0) == [[a, 1.8], [b, 0.9]], "x4 na ponta: alvo + 1 vizinho")
-	checar(s.alvos_engo_ji(lista, 1) == [[a, 0.9], [b, 1.8], [c, 0.9]], "x4 no meio: até 3 alinhados")
-	s.nivel = 2
-	checar(s.alvos_engo_ji(lista, 0) == [[a, 1.8], [b, 1.8], [c, 1.8]], "x10 atravessa todos com dano cheio")
-	s.nivel = 3
-	checar(s.alvos_engo_ji(lista, 0) == [[a, 2.2], [b, 2.2], [c, 2.2]], "x20 (Colapso) acerta todos com dano massivo")
-	checar(s.alvos_previstos("skill", lista, 0) == [a, b, c] and s.alvos_previstos("basico", lista, 0).is_empty(),
+	var a := Enemy.new("A", "", 100, 1, 0, 100)
+	var b := Enemy.new("B", "", 100, 1, 0, 100)
+	var c := Enemy.new("C", "", 100, 1, 0, 100)
+	var list := [a, b, c]
+	check(s.engo_ji_targets(list, 1) == [[b, 1.8]], "normal: só o alvo")
+	s.level = 0
+	check(s.engo_ji_targets(list, 1) == [[b, 1.8], [c, 0.9]], "x2: alvo + o de trás, com dano menor")
+	check(s.engo_ji_targets(list, 2) == [[b, 0.9], [c, 1.8]], "x2 no último: o segundo é o da frente")
+	check(s.engo_ji_targets([a], 0) == [[a, 1.8]], "x2 com um inimigo só: só ele")
+	s.level = 1
+	check(s.engo_ji_targets(list, 0) == [[a, 1.8], [b, 0.9]], "x4 na ponta: alvo + 1 vizinho")
+	check(s.engo_ji_targets(list, 1) == [[a, 0.9], [b, 1.8], [c, 0.9]], "x4 no meio: até 3 alinhados")
+	s.level = 2
+	check(s.engo_ji_targets(list, 0) == [[a, 1.8], [b, 1.8], [c, 1.8]], "x10 atravessa todos com dano cheio")
+	s.level = 3
+	check(s.engo_ji_targets(list, 0) == [[a, 2.2], [b, 2.2], [c, 2.2]], "x20 (Colapso) acerta todos com dano massivo")
+	check(s.predicted_targets("skill", list, 0) == [a, b, c] and s.predicted_targets("basic", list, 0).is_empty(),
 		"a prévia de alvos usa a mesma regra do Engo-ji")
 
 
-func _teste_dano() -> void:
+func _test_damage() -> void:
 	print("dano")
 	var s := Shumi.new()
-	var sentinela := Inimigo.new("Sentinela", "", 550, 60, 40, 95)
-	checar(Combatente.calcular_dano(s, sentinela, 1.0) == 107, "corte na Sentinela: 150 * 100/140 = 107")
-	checar(Combatente.calcular_dano(sentinela, s, 1.0) == 40, "Sentinela na Shumi: 60 * 100/150 = 40")
+	var sentinel := Enemy.new("Sentinela", "", 550, 60, 40, 95)
+	check(Combatant.calculate_damage(s, sentinel, 1.0) == 107, "corte na Sentinela: 150 * 100/140 = 107")
+	check(Combatant.calculate_damage(sentinel, s, 1.0) == 40, "Sentinela na Shumi: 60 * 100/150 = 40")
 
 
-func _teste_tipos() -> void:
+func _test_types() -> void:
 	print("tipos de dano")
-	var e := Tipos.efetividade
-	var pares := [
-		[Tipos.FISICO, Tipos.ARCANO, Tipos.SUPER], [Tipos.FISICO, Tipos.NATUREZA, Tipos.POUCO],
-		[Tipos.FOGO, Tipos.GELO, Tipos.SUPER], [Tipos.FOGO, Tipos.AGUA, Tipos.POUCO],
-		[Tipos.AGUA, Tipos.FOGO, Tipos.SUPER], [Tipos.AGUA, Tipos.ELETRICIDADE, Tipos.POUCO],
-		[Tipos.GELO, Tipos.NATUREZA, Tipos.SUPER], [Tipos.GELO, Tipos.FOGO, Tipos.POUCO],
-		[Tipos.ELETRICIDADE, Tipos.AGUA, Tipos.SUPER], [Tipos.ELETRICIDADE, Tipos.NATUREZA, Tipos.POUCO],
-		[Tipos.NATUREZA, Tipos.ELETRICIDADE, Tipos.SUPER], [Tipos.NATUREZA, Tipos.FOGO, Tipos.POUCO],
-		[Tipos.VENENO, Tipos.NATUREZA, Tipos.SUPER], [Tipos.VENENO, Tipos.ACIDO, Tipos.POUCO],
-		[Tipos.ACIDO, Tipos.FISICO, Tipos.SUPER], [Tipos.ACIDO, Tipos.AGUA, Tipos.POUCO],
-		[Tipos.LUZ, Tipos.TREVAS, Tipos.SUPER], [Tipos.TREVAS, Tipos.LUZ, Tipos.SUPER],
+	var e := Types.effectiveness
+	var pairs := [
+		[Types.PHYSICAL, Types.ARCANE, Types.SUPER], [Types.PHYSICAL, Types.NATURE, Types.NOT_VERY],
+		[Types.FIRE, Types.ICE, Types.SUPER], [Types.FIRE, Types.WATER, Types.NOT_VERY],
+		[Types.WATER, Types.FIRE, Types.SUPER], [Types.WATER, Types.ELECTRICITY, Types.NOT_VERY],
+		[Types.ICE, Types.NATURE, Types.SUPER], [Types.ICE, Types.FIRE, Types.NOT_VERY],
+		[Types.ELECTRICITY, Types.WATER, Types.SUPER], [Types.ELECTRICITY, Types.NATURE, Types.NOT_VERY],
+		[Types.NATURE, Types.ELECTRICITY, Types.SUPER], [Types.NATURE, Types.FIRE, Types.NOT_VERY],
+		[Types.POISON, Types.NATURE, Types.SUPER], [Types.POISON, Types.ACID, Types.NOT_VERY],
+		[Types.ACID, Types.PHYSICAL, Types.SUPER], [Types.ACID, Types.WATER, Types.NOT_VERY],
+		[Types.LIGHT, Types.DARKNESS, Types.SUPER], [Types.DARKNESS, Types.LIGHT, Types.SUPER],
 	]
-	var erros := pares.filter(func(p: Array) -> bool: return e.call(p[0], p[1]) != p[2])
-	checar(erros.is_empty(), "tabela de efetividade (%d relações) %s" % [pares.size(), erros])
-	checar(e.call(Tipos.FISICO, Tipos.FISICO) == 1.0 and e.call(Tipos.FOGO, Tipos.LUZ) == 1.0, "sem relação definida: x1")
-	var arcano_ok := Tipos.TODOS.all(func(t: String) -> bool:
-		return e.call(Tipos.ARCANO, t) == (Tipos.POUCO if t == Tipos.FISICO else Tipos.SUPER))
-	checar(arcano_ok, "Arcano: x2 contra todos, menos Físico (x0,5)")
-	checar(Tipos.TODOS.all(func(t: String) -> bool: return e.call(t, Tipos.ARCANO) == Tipos.SUPER),
+	var errors := pairs.filter(func(p: Array) -> bool: return e.call(p[0], p[1]) != p[2])
+	check(errors.is_empty(), "tabela de efetividade (%d relações) %s" % [pairs.size(), errors])
+	check(e.call(Types.PHYSICAL, Types.PHYSICAL) == 1.0 and e.call(Types.FIRE, Types.LIGHT) == 1.0, "sem relação definida: x1")
+	var arcane_ok := Types.ALL.all(func(t: String) -> bool:
+		return e.call(Types.ARCANE, t) == (Types.NOT_VERY if t == Types.PHYSICAL else Types.SUPER))
+	check(arcane_ok, "Arcano: x2 contra todos, menos Físico (x0,5)")
+	check(Types.ALL.all(func(t: String) -> bool: return e.call(t, Types.ARCANE) == Types.SUPER),
 		"alvo Arcano recebe x2 de todos os tipos, inclusive Arcano (sem acumular)")
-	checar(e.call(Tipos.NATUREZA, Tipos.FISICO) == 1.0 and e.call(Tipos.FOGO, Tipos.VENENO) == 1.0,
+	check(e.call(Types.NATURE, Types.PHYSICAL) == 1.0 and e.call(Types.FIRE, Types.POISON) == 1.0,
 		"Arcano atacando não deixa ninguém vulnerável a outros tipos")
 
 	var s := Shumi.new()
-	checar(s.tipo == Tipos.FISICO, "a Shumi é do tipo Físico")
-	checar(s.habilidades(1).filter(func(h: Dictionary) -> bool: return h.acao in ["basico", "skill"]).all(
-		func(h: Dictionary) -> bool: return h.tipo == Tipos.FISICO), "Corte e Engo-ji causam dano Físico")
-	checar(not _hab(s, "ult", 1).has("tipo"), "o Kaioken (sem dano) não tem tipo")
-	var neutro := Inimigo.new("N", "", 550, 60, 40, 95)
-	var arcano := Inimigo.new("A", "", 550, 60, 40, 95, 0, Tipos.ARCANO)
-	var planta := Inimigo.new("P", "", 550, 60, 40, 95, 0, Tipos.NATUREZA)
+	check(s.type == Types.PHYSICAL, "a Shumi é do tipo Físico")
+	check(s.skills(1).filter(func(h: Dictionary) -> bool: return h.action in ["basic", "skill"]).all(
+		func(h: Dictionary) -> bool: return h.type == Types.PHYSICAL), "Corte e Engo-ji causam dano Físico")
+	check(not _skill_data(s, "ult", 1).has("type"), "o Kaioken (sem dano) não tem tipo")
+	var neutral := Enemy.new("N", "", 550, 60, 40, 95)
+	var arcane := Enemy.new("A", "", 550, 60, 40, 95, 0, Types.ARCANE)
+	var plant := Enemy.new("P", "", 550, 60, 40, 95, 0, Types.NATURE)
 	# dano base da Shumi numa Sentinela: 150 * 100/140
 	var base := 150.0 * 100.0 / 140.0
-	checar(Combatente.calcular_dano(s, neutro, 1.0) == roundi(base), "Físico em Físico: dano normal")
-	checar(Combatente.calcular_dano(s, arcano, 1.0) == roundi(base * Tipos.SUPER), "Físico em Arcano: forte")
-	checar(Combatente.calcular_dano(s, planta, 1.0) == roundi(base * Tipos.POUCO), "Físico em Natureza: fraco")
-	checar(Combatente.calcular_dano(s, neutro, 1.0, 0.5, Tipos.ACIDO) == roundi(base * Tipos.SUPER), "o ataque pode ter outro tipo que o do atacante")
-	checar(Combatente.calcular_dano(arcano, s, 1.0) == roundi(60.0 * Tipos.POUCO * 100.0 / 150.0), "Arcano na Shumi (Físico): fraco")
-	checar(neutro.proximo_golpe().tipo == neutro.tipo, "golpe do inimigo usa o tipo dele")
+	check(Combatant.calculate_damage(s, neutral, 1.0) == roundi(base), "Físico em Físico: dano normal")
+	check(Combatant.calculate_damage(s, arcane, 1.0) == roundi(base * Types.SUPER), "Físico em Arcano: forte")
+	check(Combatant.calculate_damage(s, plant, 1.0) == roundi(base * Types.NOT_VERY), "Físico em Natureza: fraco")
+	check(Combatant.calculate_damage(s, neutral, 1.0, 0.5, Types.ACID) == roundi(base * Types.SUPER), "o ataque pode ter outro tipo que o do atacante")
+	check(Combatant.calculate_damage(arcane, s, 1.0) == roundi(60.0 * Types.NOT_VERY * 100.0 / 150.0), "Arcano na Shumi (Físico): fraco")
+	check(neutral.next_strike().type == neutral.type, "golpe do inimigo usa o tipo dele")
 
 
-func _teste_estados() -> void:
+func _test_status_effects() -> void:
 	print("estados (buffs, debuffs, escudo)")
-	var c := Combatente.new("C", true, 1000, 100, 0, 100)
-	var e := Estado.new("teste", "Teste", "T", "buff", 2)
-	e.mods = {"atq": 0.3}
-	c.aplicar_estado(e)
-	var igual := Estado.new("teste", "Teste", "T", "buff", 2)
-	igual.mods = {"atq": 0.3}
-	c.aplicar_estado(igual)
-	checar(c.estados.size() == 1 and is_equal_approx(c.atq(), 130.0), "o mesmo estado renova em vez de acumular (ATQ +30%, não +60%)")
-	checar(c.passar_turno().is_empty() and c.passar_turno().size() == 1 and c.estados.is_empty(), "dura 2 turnos do portador e some")
-	checar(is_equal_approx(c.atq(), 100.0), "o bônus sai junto")
-	var esc := Estado.new("escudo", "Escudo", "E", "buff", 3)
-	esc.escudo = 100
-	c.aplicar_estado(esc)
-	checar(c.absorver(60) == 60 and c.escudo() == 40, "o escudo absorve o golpe primeiro")
-	checar(c.absorver(70) == 40 and c.estado("escudo") == null, "o escudo quebra e o resto passa")
-	var alvo := Combatente.new("A", false, 1000, 100, 0, 100)
-	checar(Combatente.calcular_dano(c, alvo, 1.0, 0.5, "", true) == 150, "crítico causa x1,5")
+	var c := Combatant.new("C", true, 1000, 100, 0, 100)
+	var e := StatusEffect.new("test", "Teste", "T", "buff", 2)
+	e.mods = {"atk": 0.3}
+	c.apply_status(e)
+	var equal := StatusEffect.new("test", "Teste", "T", "buff", 2)
+	equal.mods = {"atk": 0.3}
+	c.apply_status(equal)
+	check(c.status_effects.size() == 1 and is_equal_approx(c.atk(), 130.0), "o mesmo estado renova em vez de acumular (ATQ +30%, não +60%)")
+	check(c.pass_turn().is_empty() and c.pass_turn().size() == 1 and c.status_effects.is_empty(), "dura 2 turnos do portador e some")
+	check(is_equal_approx(c.atk(), 100.0), "o bônus sai junto")
+	var esc := StatusEffect.new("shield", "Escudo", "E", "buff", 3)
+	esc.shield = 100
+	c.apply_status(esc)
+	check(c.absorb(60) == 60 and c.shield() == 40, "o escudo absorve o golpe primeiro")
+	check(c.absorb(70) == 40 and c.state("shield") == null, "o escudo quebra e o resto passa")
+	var target := Combatant.new("A", false, 1000, 100, 0, 100)
+	check(Combatant.calculate_damage(c, target, 1.0, 0.5, "", true) == 150, "crítico causa x1,5")
 
 
-func _teste_andri_lente_e_disparo() -> void:
+func _test_andri_lens_and_shot() -> void:
 	print("andri: lente elemental e disparo")
 	var a := Andri.new()
-	checar(a.tipo == Tipos.FOGO and a.lente == Tipos.FOGO, "Andri é Fogo e começa com a lente em Fogo")
-	checar(a.trocar_lente(Tipos.AGUA) and a.lente == Tipos.AGUA, "troca a lente para Água")
-	checar(not a.trocar_lente(Tipos.AGUA) and not a.trocar_lente(Tipos.ARCANO) and not a.trocar_lente(Tipos.FISICO),
+	check(a.type == Types.FIRE and a.lens == Types.FIRE, "Andri é Fogo e começa com a lente em Fogo")
+	check(a.switch_lens(Types.WATER) and a.lens == Types.WATER, "troca a lente para Água")
+	check(not a.switch_lens(Types.WATER) and not a.switch_lens(Types.ARCANE) and not a.switch_lens(Types.PHYSICAL),
 		"não troca para o mesmo elemento nem para Arcano/Físico")
-	checar(a.motivo_invalido("lente", Tipos.AGUA, a) == "", "manter a lente atual é uma escolha válida")
-	var kit := a.habilidades(1)
-	checar(kit[0].tipo == Tipos.AGUA and kit[0].selo == "ÁGU", "o Disparo usa e mostra o elemento da lente")
-	checar(_hab_em(kit, "lente").acao == "lente" and _hab_em(kit, "lente").livre and _hab_em(kit, "lente").opcoes.size() == Andri.LENTES.size(), "escolher a lente não gasta o turno e tem os 7 elementos")
-	checar(_hab_em(kit, "lente").passiva and _hab_em(kit, "lente").tecla == "" and _hab_em(kit, "lente").ao_iniciar_turno and _hab_em(kit, "lente").opcao_padrao == Tipos.AGUA,
+	check(a.invalid_reason("lens", Types.WATER, a) == "", "manter a lente atual é uma escolha válida")
+	var kit := a.skills(1)
+	check(kit[0].type == Types.WATER and kit[0].badge == "ÁGU", "o Disparo usa e mostra o elemento da lente")
+	check(_skill_at(kit, "lens").action == "lens" and _skill_at(kit, "lens").free and _skill_at(kit, "lens").options.size() == Andri.LENSES.size(), "escolher a lente não gasta o turno e tem os 7 elementos")
+	check(_skill_at(kit, "lens").passive and _skill_at(kit, "lens").key == "" and _skill_at(kit, "lens").on_turn_start and _skill_at(kit, "lens").default_option == Types.WATER,
 		"a lente é passiva: fora da barra, abre sozinha no começo do turno e já sugere a atual")
-	checar(_hab_em(kit, "lente").seletor == "radial" and _hab_em(kit, "lente").opcoes.filter(func(o: Dictionary) -> bool: return o.atual).size() == 1
-		and _hab_em(kit, "lente").opcoes[1].sigla == "ÁGU", "a lente abre em anel no personagem, com siglas e a atual marcada")
-	checar(a.efeitos()[0].id == "lente" and a.efeitos()[0].nome == "Lente: Água", "a lente aparece nos efeitos")
+	check(_skill_at(kit, "lens").selector == "radial" and _skill_at(kit, "lens").options.filter(func(o: Dictionary) -> bool: return o.current).size() == 1
+		and _skill_at(kit, "lens").options[1].abbr == "ÁGU", "a lente abre em anel no personagem, com siglas e a atual marcada")
+	check(a.effects()[0].id == "lens" and a.effects()[0].name == "Lente: Água", "a lente aparece nos efeitos")
 
-	var golpes := a.golpes_disparo()
-	checar(golpes.size() == 2 and golpes[0].fonte == "andri" and golpes[1].fonte == "momc", "cada Disparo tem o golpe do Andri e o do MOMC")
-	checar(golpes.all(func(g: Dictionary) -> bool: return g.tipo == Tipos.AGUA), "os dois usam o elemento da lente")
-	checar(not golpes[0].extra and golpes[1].extra, "o golpe do MOMC é adicional: não dispara outros golpes nem efeitos de acerto")
-	var fogo := Inimigo.new("F", "", 550, 60, 40, 95, 0, Tipos.FOGO)
+	var strikes := a.shot_strikes()
+	check(strikes.size() == 2 and strikes[0].source == "andri" and strikes[1].source == "momc", "cada Disparo tem o golpe do Andri e o do MOMC")
+	check(strikes.all(func(g: Dictionary) -> bool: return g.type == Types.WATER), "os dois usam o elemento da lente")
+	check(not strikes[0].extra and strikes[1].extra, "o golpe do MOMC é adicional: não dispara outros golpes nem efeitos de acerto")
+	var fire := Enemy.new("F", "", 550, 60, 40, 95, 0, Types.FIRE)
 	var base := 130.0 * 100.0 / 140.0
-	checar(Combatente.calcular_dano(a, fogo, golpes[0].mult, 0.5, golpes[0].tipo) == roundi(base * Andri.MULT_DISPARO * Tipos.SUPER),
+	check(Combatant.calculate_damage(a, fire, strikes[0].mult, 0.5, strikes[0].type) == roundi(base * Andri.SHOT_MULT * Types.SUPER),
 		"Disparo de Água num inimigo de Fogo é super efetivo")
-	checar(Combatente.calcular_dano(a, fogo, golpes[1].mult, 0.5, golpes[1].tipo) == roundi(base * Andri.MULT_MOMC * Tipos.SUPER),
+	check(Combatant.calculate_damage(a, fire, strikes[1].mult, 0.5, strikes[1].type) == roundi(base * Andri.MOMC_MULT * Types.SUPER),
 		"o MOMC calcula o dano dele à parte, com a mesma tabela")
 	# Thorim no Andri: o golpe dele ganha o extra elétrico; o do MOMC (extra) não pede extras
-	a.aplicar_estado(Andri.estado_artefato("thorim", a, a.lente))
-	var extras := a.golpes_extras(golpes[0].mult)
-	checar(extras.size() == 1 and extras[0].tipo == Tipos.AGUA and is_equal_approx(extras[0].mult, Andri.MULT_DISPARO * Andri.MULT_THORIM),
+	a.apply_status(Andri.artifact_status("thorim", a, a.lens))
+	var extras := a.extra_strikes(strikes[0].mult)
+	check(extras.size() == 1 and extras[0].type == Types.WATER and is_equal_approx(extras[0].mult, Andri.SHOT_MULT * Andri.THORIM_MULT),
 		"Braço de Thorim: +30% do golpe no elemento da lente (Água)")
-	checar(a.golpes_extras(golpes[0].mult).size() == 1, "o extra do Thorim não se consome")
+	check(a.extra_strikes(strikes[0].mult).size() == 1, "o extra do Thorim não se consome")
 
 
-func _teste_andri_analise() -> void:
+func _test_andri_analysis() -> void:
 	print("andri: análise de vulnerabilidade")
 	var a := Andri.new()
-	var pedra := Inimigo.new("Pedra", "", 550, 60, 40, 95)
-	var agua := Inimigo.new("Água", "", 550, 60, 40, 95, 0, Tipos.AGUA)
-	var arcano := Inimigo.new("Arc", "", 550, 60, 40, 95, 0, Tipos.ARCANO)
-	checar(a.motivo_invalido("skill", Tipos.FOGO, pedra) == "", "pode expor Fogo num inimigo Físico")
-	checar(a.motivo_invalido("skill", Tipos.ACIDO, pedra) != "", "não aplica fraqueza a um elemento que já é super efetivo (Ácido em Físico)")
-	checar(a.motivo_invalido("skill", Tipos.FOGO, arcano) != "", "não aplica em Arcano, que já recebe x2 de tudo")
-	checar(a.motivo_invalido("skill", Tipos.FOGO, a) != "", "não aplica em aliado")
-	checar(a.elementos_analise() == [Tipos.FOGO], "sem equipe, só o elemento do próprio Andri")
+	var stone := Enemy.new("Pedra", "", 550, 60, 40, 95)
+	var water := Enemy.new("Água", "", 550, 60, 40, 95, 0, Types.WATER)
+	var arcane := Enemy.new("Arc", "", 550, 60, 40, 95, 0, Types.ARCANE)
+	check(a.invalid_reason("skill", Types.FIRE, stone) == "", "pode expor Fogo num inimigo Físico")
+	check(a.invalid_reason("skill", Types.ACID, stone) != "", "não aplica fraqueza a um elemento que já é super efetivo (Ácido em Físico)")
+	check(a.invalid_reason("skill", Types.FIRE, arcane) != "", "não aplica em Arcano, que já recebe x2 de tudo")
+	check(a.invalid_reason("skill", Types.FIRE, a) != "", "não aplica em aliado")
+	check(a.analysis_elements() == [Types.FIRE], "sem equipe, só o elemento do próprio Andri")
 	var s := Shumi.new()
-	var sombra := Combatente.new("Sombra", true, 1000, 100, 0, 100, Tipos.TREVAS)
-	var outro_fogo := Combatente.new("Chama", true, 1000, 100, 0, 100, Tipos.FOGO)
-	var time: Array[Combatente] = [s, a, sombra, outro_fogo]
-	a.aliados_vivos = func() -> Array: return time.filter(func(c: Combatente) -> bool: return c.vivo())
-	checar(a.elementos_analise() == [Tipos.FISICO, Tipos.FOGO, Tipos.TREVAS], "com Shumi e um aliado de Trevas: Físico, Fogo e Trevas, sem repetir")
-	checar(_hab(a, "skill", 1).opcoes.map(func(o: Dictionary) -> String: return o.id) == [Tipos.FISICO, Tipos.FOGO, Tipos.TREVAS],
+	var shadow := Combatant.new("Sombra", true, 1000, 100, 0, 100, Types.DARKNESS)
+	var other_fire := Combatant.new("Chama", true, 1000, 100, 0, 100, Types.FIRE)
+	var time: Array[Combatant] = [s, a, shadow, other_fire]
+	a.living_allies = func() -> Array: return time.filter(func(c: Combatant) -> bool: return c.is_alive())
+	check(a.analysis_elements() == [Types.PHYSICAL, Types.FIRE, Types.DARKNESS], "com Shumi e um aliado de Trevas: Físico, Fogo e Trevas, sem repetir")
+	check(_skill_data(a, "skill", 1).options.map(func(o: Dictionary) -> String: return o.id) == [Types.PHYSICAL, Types.FIRE, Types.DARKNESS],
 		"o seletor da Análise mostra só esses elementos")
-	checar(a.motivo_invalido("skill", Tipos.GELO, pedra) != "", "não aplica elemento que ninguém da equipe tem")
-	checar(a.motivo_invalido("skill", Tipos.TREVAS, pedra) == "", "aplica o elemento de um aliado (Trevas)")
-	sombra.hp = 0
-	checar(Tipos.TREVAS not in a.elementos_analise(), "aliado caído não conta")
+	check(a.invalid_reason("skill", Types.ICE, stone) != "", "não aplica elemento que ninguém da equipe tem")
+	check(a.invalid_reason("skill", Types.DARKNESS, stone) == "", "aplica o elemento de um aliado (Trevas)")
+	shadow.hp = 0
+	check(Types.DARKNESS not in a.analysis_elements(), "aliado caído não conta")
 	for c in time:
 		c.hp = 0
-	checar(a.elementos_analise() == [Tipos.FOGO], "com a equipe toda caída, a lista nunca fica vazia")
+	check(a.analysis_elements() == [Types.FIRE], "com a equipe toda caída, a lista nunca fica vazia")
 	for c in time:
-		c.hp = c.hp_max
+		c.hp = c.max_hp
 
-	var antes := Combatente.calcular_dano(a, pedra, 1.0, 0.5, Tipos.FOGO)
-	pedra.aplicar_estado(Andri.fraqueza(Tipos.FOGO))
-	checar(pedra.efetividade_contra(Tipos.FOGO) == Tipos.SUPER, "com a fraqueza, Fogo passa a ser super efetivo")
-	checar(Combatente.calcular_dano(a, pedra, 1.0, 0.5, Tipos.FOGO) == roundi(antes * Tipos.SUPER), "e o dano usa o multiplicador da tabela")
-	checar(pedra.efetividade_contra(Tipos.AGUA) == 1.0, "outros elementos não mudam")
-	agua.aplicar_estado(Andri.fraqueza(Tipos.FOGO))
-	checar(agua.efetividade_contra(Tipos.FOGO) == Tipos.SUPER, "a fraqueza vence uma resistência (Fogo em Água: x0,5 -> x2)")
-	pedra.aplicar_estado(Andri.fraqueza(Tipos.GELO))
-	checar(pedra.estados.size() == 1 and pedra.efetividade_contra(Tipos.GELO) == Tipos.SUPER and pedra.efetividade_contra(Tipos.FOGO) == 1.0,
+	var before := Combatant.calculate_damage(a, stone, 1.0, 0.5, Types.FIRE)
+	stone.apply_status(Andri.weakness(Types.FIRE))
+	check(stone.effectiveness_against(Types.FIRE) == Types.SUPER, "com a fraqueza, Fogo passa a ser super efetivo")
+	check(Combatant.calculate_damage(a, stone, 1.0, 0.5, Types.FIRE) == roundi(before * Types.SUPER), "e o dano usa o multiplicador da tabela")
+	check(stone.effectiveness_against(Types.WATER) == 1.0, "outros elementos não mudam")
+	water.apply_status(Andri.weakness(Types.FIRE))
+	check(water.effectiveness_against(Types.FIRE) == Types.SUPER, "a fraqueza vence uma resistência (Fogo em Água: x0,5 -> x2)")
+	stone.apply_status(Andri.weakness(Types.ICE))
+	check(stone.status_effects.size() == 1 and stone.effectiveness_against(Types.ICE) == Types.SUPER and stone.effectiveness_against(Types.FIRE) == 1.0,
 		"uma fraqueza por vez: a nova substitui a antiga e renova a duração")
-	checar(pedra.efeitos()[0].tipo == "debuff" and pedra.efeitos()[0].turnos == Andri.DURACAO_FRAQUEZA and pedra.efeitos()[0].curto == "GEL",
+	check(stone.effects()[0].type == "debuff" and stone.effects()[0].turns == Andri.WEAKNESS_DURATION and stone.effects()[0].short == "GEL",
 		"aparece como debuff com elemento e turnos")
-	pedra.passar_turno()
-	checar(pedra.efetividade_contra(Tipos.GELO) == Tipos.SUPER, "ainda ativa depois de 1 turno do inimigo")
-	pedra.passar_turno()
-	checar(pedra.estados.is_empty() and pedra.efetividade_contra(Tipos.GELO) == 1.0, "expira depois de %d turnos do inimigo" % Andri.DURACAO_FRAQUEZA)
-	var kit := a.habilidades(1)
-	checar(_hab_em(kit, "skill").custo_pontos == 1 and _hab_em(kit, "skill").opcao_padrao == Tipos.FISICO, "a Análise custa 1 ponto e começa no primeiro elemento da equipe")
-	a.aliados_vivos = Callable()  # a lambda guarda o time, que contém o próprio Andri
+	stone.pass_turn()
+	check(stone.effectiveness_against(Types.ICE) == Types.SUPER, "ainda ativa depois de 1 turno do inimigo")
+	stone.pass_turn()
+	check(stone.status_effects.is_empty() and stone.effectiveness_against(Types.ICE) == 1.0, "expira depois de %d turnos do inimigo" % Andri.WEAKNESS_DURATION)
+	var kit := a.skills(1)
+	check(_skill_at(kit, "skill").point_cost == 1 and _skill_at(kit, "skill").default_option == Types.PHYSICAL, "a Análise custa 1 ponto e começa no primeiro elemento da equipe")
+	a.living_allies = Callable()  # a lambda guarda o time, que contém o próprio Andri
 
 
-func _teste_andri_arsenal() -> void:
+func _test_andri_arsenal() -> void:
 	print("andri: arsenal titânico")
 	var a := Andri.new()
 	var s := Shumi.new()
-	var ini := Inimigo.new("I", "", 550, 60, 40, 95)
-	var kit := a.habilidades(1)
-	checar(_hab_em(kit, "ult").alvo == "aliado" and _hab_em(kit, "ult").opcoes.size() == Andri.ARTEFATOS.size() and _hab_em(kit, "ult").opcoes.size() == 8, "a ult mira aliados e oferece os 8 artefatos")
-	checar(_hab_em(kit, "ult").opcoes.all(func(o: Dictionary) -> bool: return o.has("icone") and o.descricao != ""), "cada artefato tem ícone e descrição")
-	checar(not a.pode_usar("ult", 1), "começa sem energia para a ult (60/120)")
-	a.energia = 120
-	checar(a.pode_usar("ult", 1), "com 120 de energia pode usar")
-	checar(a.motivo_invalido("ult", "odyn", ini) != "", "artefatos não vão para inimigos")
-	checar(a.motivo_invalido("ult", "freya", s) != "", "Raiz de Freya recusa alvo com HP cheio e sem efeitos negativos")
-	checar(a.motivo_invalido("ult", "nada", s) != "", "artefato desconhecido é recusado")
+	var ini := Enemy.new("I", "", 550, 60, 40, 95)
+	var kit := a.skills(1)
+	check(_skill_at(kit, "ult").target == "ally" and _skill_at(kit, "ult").options.size() == Andri.ARTIFACTS.size() and _skill_at(kit, "ult").options.size() == 8, "a ult mira aliados e oferece os 8 artefatos")
+	check(_skill_at(kit, "ult").options.all(func(o: Dictionary) -> bool: return o.has("icon") and o.description != ""), "cada artefato tem ícone e descrição")
+	check(not a.can_use("ult", 1), "começa sem energia para a ult (60/120)")
+	a.energy = 120
+	check(a.can_use("ult", 1), "com 120 de energia pode usar")
+	check(a.invalid_reason("ult", "odyn", ini) != "", "artefatos não vão para inimigos")
+	check(a.invalid_reason("ult", "freya", s) != "", "Raiz de Freya recusa alvo com HP cheio e sem efeitos negativos")
+	check(a.invalid_reason("ult", "nothing", s) != "", "artefato desconhecido é recusado")
 
-	a.usar_artefato("odyn", s)
-	checar(a.energia == 0.0 and is_equal_approx(s.chance_critico(), Andri.CRIT_ODYN), "Olho de Odyn: gasta a energia e dá +50% de crítico")
-	for i in Andri.DURACAO_ARTEFATO:
-		s.passar_turno()
-	checar(s.chance_critico() == 0.0, "e expira depois de %d turnos do portador" % Andri.DURACAO_ARTEFATO)
+	a.use_artifact("odyn", s)
+	check(a.energy == 0.0 and is_equal_approx(s.crit_chance(), Andri.ODYN_CRIT), "Olho de Odyn: gasta a energia e dá +50% de crítico")
+	for i in Andri.ARTIFACT_DURATION:
+		s.pass_turn()
+	check(s.crit_chance() == 0.0, "e expira depois de %d turnos do portador" % Andri.ARTIFACT_DURATION)
 
-	a.usar_artefato("tyr", s)
-	checar(s.escudo() == roundi(s.hp_max * Andri.ESCUDO_TYR), "Mão de Tyr: escudo de 25% do HP máximo")
-	s.energia = 120
-	s.ultar()
-	s.sobrecarga_inicio_turno()
-	checar(s.hp == s.hp_max - 36 and s.escudo() == 300, "o dreno do Kaioken ignora o escudo (é custo, não golpe)")
+	a.use_artifact("tyr", s)
+	check(s.shield() == roundi(s.max_hp * Andri.TYR_SHIELD), "Mão de Tyr: escudo de 25% do HP máximo")
+	s.energy = 120
+	s.use_ult()
+	s.turn_start_overload()
+	check(s.hp == s.max_hp - 36 and s.shield() == 300, "o dreno do Kaioken ignora o escudo (é custo, não golpe)")
 
-	var frio := Combatente.new("Frio", true, 1000, 100, 0, 100)
-	a.usar_artefato("hodir", frio)
-	var inimigo_lento := Inimigo.new("L", "", 550, 60, 40, 100)
-	var av_antes_lento := inimigo_lento.av
-	var lentos := frio.estados_ao_acertar()
-	checar(lentos.size() == 1 and lentos[0].id == "lento", "Manto de Hodir: o próximo golpe do portador aplica Lento")
-	inimigo_lento.aplicar_estado(lentos[0])
-	checar(is_equal_approx(inimigo_lento.vel(), 100.0 * (1.0 + Andri.VEL_LENTO)) and inimigo_lento.av > av_antes_lento,
+	var cold := Combatant.new("Frio", true, 1000, 100, 0, 100)
+	a.use_artifact("hodir", cold)
+	var slow_enemy := Enemy.new("L", "", 550, 60, 40, 100)
+	var av_before_slow := slow_enemy.av
+	var slow := cold.on_hit_statuses()
+	check(slow.size() == 1 and slow[0].id == "slow", "Manto de Hodir: o próximo golpe do portador aplica Lento")
+	slow_enemy.apply_status(slow[0])
+	check(is_equal_approx(slow_enemy.spd(), 100.0 * (1.0 + Andri.SLOW_SPD)) and slow_enemy.av > av_before_slow,
 		"Lento: VEL -30%, e a vez do inimigo demora mais")
-	checar(frio.estados.is_empty() and frio.estados_ao_acertar().is_empty(), "o Manto se consome nesse golpe")
-	for i in Andri.DURACAO_LENTO:
-		inimigo_lento.passar_turno()
-	checar(is_equal_approx(inimigo_lento.vel(), 100.0), "Lento expira depois de %d turnos do inimigo" % Andri.DURACAO_LENTO)
+	check(cold.status_effects.is_empty() and cold.on_hit_statuses().is_empty(), "o Manto se consome nesse golpe")
+	for i in Andri.SLOW_DURATION:
+		slow_enemy.pass_turn()
+	check(is_equal_approx(slow_enemy.spd(), 100.0), "Lento expira depois de %d turnos do inimigo" % Andri.SLOW_DURATION)
 
-	var vitima := Inimigo.new("V", "", 550, 60, 40, 100)
-	var portador := Combatente.new("P", true, 1000, 100, 0, 100)
-	a.usar_artefato("loken", portador)
-	var aplicados := portador.estados_ao_acertar()
-	checar(aplicados.size() == 1 and aplicados[0].id == "enganado", "Sussurro de Loken: os golpes do portador aplicam Enganado")
-	var av_antes := vitima.av
-	vitima.aplicar_estado(aplicados[0])
-	checar(is_equal_approx(vitima.atq(), 60.0 * (1.0 + Andri.ATQ_ENGANADO)) and vitima.av > av_antes, "Enganado: ATQ -25% e a vez atrasa")
-	var av_depois := vitima.av
-	vitima.aplicar_estado(portador.estados_ao_acertar()[0])
-	checar(is_equal_approx(vitima.av, av_depois), "renovar o Enganado não atrasa de novo")
+	var victim := Enemy.new("V", "", 550, 60, 40, 100)
+	var bearer := Combatant.new("P", true, 1000, 100, 0, 100)
+	a.use_artifact("loken", bearer)
+	var applied := bearer.on_hit_statuses()
+	check(applied.size() == 1 and applied[0].id == "deceived", "Sussurro de Loken: os golpes do portador aplicam Enganado")
+	var av_before := victim.av
+	victim.apply_status(applied[0])
+	check(is_equal_approx(victim.atk(), 60.0 * (1.0 + Andri.DECEIVED_ATK)) and victim.av > av_before, "Enganado: ATQ -25% e a vez atrasa")
+	var av_after := victim.av
+	victim.apply_status(bearer.on_hit_statuses()[0])
+	check(is_equal_approx(victim.av, av_after), "renovar o Enganado não atrasa de novo")
 
-	var robusto := Combatente.new("Rob", true, 1000, 100, 50, 100)
-	robusto.hp = 800
-	a.usar_artefato("archaedas", robusto)
-	checar(robusto.hp_max == 1300 and robusto.hp == 1100, "Cinturão de Archaedas: HP máximo +30% (e o HP atual sobe junto)")
-	a.usar_artefato("archaedas", robusto)
-	checar(robusto.hp_max == 1300 and robusto.hp == 1100, "renovar o Cinturão não acumula")
-	robusto.receber_dano(50)
-	for i in Andri.DURACAO_ARTEFATO:
-		robusto.passar_turno()
-	checar(robusto.hp_max == 1000 and robusto.hp == 1000, "ao acabar, o HP máximo volta e o excedente é cortado")
+	var robust := Combatant.new("Rob", true, 1000, 100, 50, 100)
+	robust.hp = 800
+	a.use_artifact("archaedas", robust)
+	check(robust.max_hp == 1300 and robust.hp == 1100, "Cinturão de Archaedas: HP máximo +30% (e o HP atual sobe junto)")
+	a.use_artifact("archaedas", robust)
+	check(robust.max_hp == 1300 and robust.hp == 1100, "renovar o Cinturão não acumula")
+	robust.take_damage(50)
+	for i in Andri.ARTIFACT_DURATION:
+		robust.pass_turn()
+	check(robust.max_hp == 1000 and robust.hp == 1000, "ao acabar, o HP máximo volta e o excedente é cortado")
 
-	var r_portador := Combatente.new("R", true, 1000, 100, 0, 100)
-	a.trocar_lente(Tipos.GELO)
-	a.usar_artefato("ra", r_portador)
-	a.trocar_lente(Tipos.FOGO)
-	var ra := r_portador.golpes_extras(1.0)
-	checar(ra.size() == 1 and ra[0].tipo == Tipos.GELO and ra[0].mult == Andri.MULT_RA,
+	var r_bearer := Combatant.new("R", true, 1000, 100, 0, 100)
+	a.switch_lens(Types.ICE)
+	a.use_artifact("ra", r_bearer)
+	a.switch_lens(Types.FIRE)
+	var ra := r_bearer.extra_strikes(1.0)
+	check(ra.size() == 1 and ra[0].type == Types.ICE and ra[0].mult == Andri.RA_MULT,
 		"Lança de Rá: o próximo golpe ganha dano do elemento da lente na hora da entrega (Gelo)")
-	checar(_hab(a, "ult", 1).opcoes[7].descricao.contains("Fogo"), "a descrição dos artefatos de dano mostra o elemento atual da lente")
-	checar(r_portador.golpes_extras(1.0).is_empty() and r_portador.estados.is_empty(), "a Lança se consome no primeiro golpe")
+	check(_skill_data(a, "ult", 1).options[7].description.contains("Fogo"), "a descrição dos artefatos de dano mostra o elemento atual da lente")
+	check(r_bearer.extra_strikes(1.0).is_empty() and r_bearer.status_effects.is_empty(), "a Lança se consome no primeiro golpe")
 
-	var ferido := Shumi.new()
-	ferido.hp = 500
-	ferido.aplicar_estado(Andri.fraqueza(Tipos.FOGO))
-	ferido.turnos_exaustao = 2
-	checar(a.motivo_invalido("ult", "freya", ferido) == "", "Raiz de Freya aceita aliado ferido")
-	var r := a.usar_artefato("freya", ferido)
-	checar(r.cura == 360 and ferido.hp == 860, "Raiz de Freya: cura 30% do HP máximo")
-	checar(r.limpos == 1 and ferido.estados.is_empty(), "e remove os debuffs")
-	checar(ferido.turnos_exaustao == 2, "a exaustão do Kaioken é custo do kit, não debuff: continua")
-	var cheio := Shumi.new()
-	checar(a.usar_artefato("freya", cheio).cura == 0, "a cura não passa do HP máximo")
+	var wounded := Shumi.new()
+	wounded.hp = 500
+	wounded.apply_status(Andri.weakness(Types.FIRE))
+	wounded.exhaustion_turns = 2
+	check(a.invalid_reason("ult", "freya", wounded) == "", "Raiz de Freya aceita aliado ferido")
+	var r := a.use_artifact("freya", wounded)
+	check(r.heal == 360 and wounded.hp == 860, "Raiz de Freya: cura 30% do HP máximo")
+	check(r.cleared == 1 and wounded.status_effects.is_empty(), "e remove os debuffs")
+	check(wounded.exhaustion_turns == 2, "a exaustão do Kaioken é custo do kit, não debuff: continua")
+	var full := Shumi.new()
+	check(a.use_artifact("freya", full).heal == 0, "a cura não passa do HP máximo")
 
 
-func _teste_descricao_interface() -> void:
+func _test_interface_description() -> void:
 	print("descrição para a interface")
 	var s := Shumi.new()
-	var estados := func(pontos: int) -> Array:
-		return s.habilidades(pontos).map(func(h: Dictionary) -> String: return h.estado)
-	checar(s.habilidades(0).map(func(h: Dictionary) -> String: return h.tecla) == ["Q", "E", "W", "R", ""], "barra na ordem básico, skill, skill 2, ult e a passiva por último")
-	checar(estados.call(0) == ["pronta", "sem_recurso", "sem_recurso", "sem_recurso", "pronta"], "sem pontos e sem energia: só o Corte (e a passiva)")
-	checar(not s.pode_usar("skill", 0) and s.pode_usar("skill", 1), "Engo-ji precisa de 1 ponto")
-	s.energia = 120
-	checar(estados.call(1) == ["pronta", "pronta", "pronta", "pronta", "pronta"], "com ponto e energia: tudo pronto")
-	checar(_hab(s, "ult", 1).custo_energia == 120 and _hab(s, "ult", 1).selo == "x2", "Kaioken mostra custo 120 e próximo nível x2")
-	checar(s.efeitos().is_empty(), "sem efeitos fora do Kaioken")
-	s.ultar()
-	checar(s.efeitos()[0].id == "kaioken" and s.efeitos()[0].turnos == Shumi.DURACAO, "Kaioken aparece como efeito com os turnos")
-	checar(_hab(s, "ult", 1).custo_energia == 80, "subir de nível custa 80")
-	s.nivel = 2
-	checar(_hab(s, "skill", 1).alvo == "todos" and _hab(s, "skill", 1).nome == "Engo-ji Beam: Devastação", "Engo-ji no x10 vira Devastação e atravessa todos")
-	s.nivel = 3
-	s.energia = 120
-	checar(_hab(s, "ult", 1).estado == "bloqueada" and not s.pode_usar("ult", 1), "no x20 o Kaioken fica bloqueado")
-	s.turnos_kaioken = 1
-	s.fim_turno()
-	var ids: Array = s.efeitos().map(func(e: Dictionary) -> String: return e.id)
-	checar(ids == ["exaustao", "perde_turno"], "depois do x20: exausta e perde o turno")
-	var g := Inimigo.new("G", "", 100, 1, 0, 100, 2)
-	checar(g.efeitos().is_empty(), "Guardião sem aviso antes da hora")
-	g.registrar_acao()
-	checar(g.efeitos()[0].tipo == "alerta", "aviso de Golpe Pesado na ação anterior a ele")
+	var status_effects := func(points: int) -> Array:
+		return s.skills(points).map(func(h: Dictionary) -> String: return h.state)
+	check(s.skills(0).map(func(h: Dictionary) -> String: return h.key) == ["Q", "E", "W", "R", ""], "barra na ordem básico, skill, skill 2, ult e a passiva por último")
+	check(status_effects.call(0) == ["ready", "no_resource", "no_resource", "no_resource", "ready"], "sem pontos e sem energia: só o Corte (e a passiva)")
+	check(not s.can_use("skill", 0) and s.can_use("skill", 1), "Engo-ji precisa de 1 ponto")
+	s.energy = 120
+	check(status_effects.call(1) == ["ready", "ready", "ready", "ready", "ready"], "com ponto e energia: tudo pronto")
+	check(_skill_data(s, "ult", 1).energy_cost == 120 and _skill_data(s, "ult", 1).badge == "x2", "Kaioken mostra custo 120 e próximo nível x2")
+	check(s.effects().is_empty(), "sem efeitos fora do Kaioken")
+	s.use_ult()
+	check(s.effects()[0].id == "kaioken" and s.effects()[0].turns == Shumi.DURATION, "Kaioken aparece como efeito com os turnos")
+	check(_skill_data(s, "ult", 1).energy_cost == 80, "subir de nível custa 80")
+	s.level = 2
+	check(_skill_data(s, "skill", 1).target == "all" and _skill_data(s, "skill", 1).name == "Engo-ji Beam: Devastação", "Engo-ji no x10 vira Devastação e atravessa todos")
+	s.level = 3
+	s.energy = 120
+	check(_skill_data(s, "ult", 1).state == "blocked" and not s.can_use("ult", 1), "no x20 o Kaioken fica bloqueado")
+	s.kaioken_turns = 1
+	s.end_turn()
+	var ids: Array = s.effects().map(func(e: Dictionary) -> String: return e.id)
+	check(ids == ["exhaustion", "loses_turn"], "depois do x20: exausta e perde o turno")
+	var g := Enemy.new("G", "", 100, 1, 0, 100, 2)
+	check(g.effects().is_empty(), "Guardião sem aviso antes da hora")
+	g.count_action()
+	check(g.effects()[0].type == "alert", "aviso de Golpe Pesado na ação anterior a ele")
 
 
-func _teste_equipe() -> void:
+func _test_team() -> void:
 	print("equipe")
-	Elenco.definir_equipe([])
-	checar(Elenco.equipe() == ["shumi"], "sem escolha, a equipe padrão é a Shumi")
-	Elenco.definir_equipe(["andri"])
-	checar(Elenco.equipe() == ["shumi"], "quem ainda não chegou à Torre não entra na equipe")
-	Progressao.desbloquear("andri")
-	Elenco.definir_equipe(["shumi", "ninguem", "shumi", "andri", "andri"])
-	checar(Elenco.equipe() == ["shumi", "andri"], "repetidos e desconhecidos saem da equipe")
-	Elenco.definir_equipe(["ninguem"])
-	checar(Elenco.equipe() == ["shumi"], "ids desconhecidos são ignorados")
-	Elenco.definir_equipe([])
-	for id in Elenco.IDS:
-		var d := Elenco.dados(id)
-		checar(Elenco.criar(id).aliado and d.acoes != null and d.sprite.has("png") and d.get("universo", "") != "", "%s cadastrado completo" % id)
-		var passivas := Elenco.criar(id).habilidades(1).filter(func(h: Dictionary) -> bool: return h.get("passiva", false))
-		checar(not passivas.is_empty() and passivas.all(func(h: Dictionary) -> bool:
-				return h.tecla == "" and h.get("icone", "") != "" and h.descricao != ""),
+	Roster.set_team([])
+	check(Roster.team() == ["shumi"], "sem escolha, a equipe padrão é a Shumi")
+	Roster.set_team(["andri"])
+	check(Roster.team() == ["shumi"], "quem ainda não chegou à Torre não entra na equipe")
+	Progression.unlock("andri")
+	Roster.set_team(["shumi", "nobody", "shumi", "andri", "andri"])
+	check(Roster.team() == ["shumi", "andri"], "repetidos e desconhecidos saem da equipe")
+	Roster.set_team(["nobody"])
+	check(Roster.team() == ["shumi"], "ids desconhecidos são ignorados")
+	Roster.set_team([])
+	for id in Roster.IDS:
+		var d := Roster.data(id)
+		check(Roster.create(id).ally and d.actions != null and d.sprite.has("png") and d.get("universe", "") != "", "%s cadastrado completo" % id)
+		var passives := Roster.create(id).skills(1).filter(func(h: Dictionary) -> bool: return h.get("passive", false))
+		check(not passives.is_empty() and passives.all(func(h: Dictionary) -> bool:
+				return h.key == "" and h.get("icon", "") != "" and h.description != ""),
 			"%s explica as passivas na barra, no mesmo padrão dos outros" % id)
-		var kit := Elenco.criar(id).habilidades(1)
-		checar(kit.size() == 5 and kit[0].acao == "basico" and kit[1].acao == "skill" and kit[3].acao == "ult" and kit[4].get("passiva", false)
-			and (kit[2].acao == "skill2" or kit[2].get("passiva", false)), "%s segue a ordem: básico, skill, skill 2, ult e passiva" % id)
-	var gerador: GDScript = load("res://tools/generate_character_readmes.gd")
-	for id in Elenco.IDS:
-		var readme := FileAccess.get_file_as_string(gerador.arquivo(id))
-		checar(readme == gerador.com_trecho(readme, gerador.trecho(id)),
+		var kit := Roster.create(id).skills(1)
+		check(kit.size() == 5 and kit[0].action == "basic" and kit[1].action == "skill" and kit[3].action == "ult" and kit[4].get("passive", false)
+			and (kit[2].action == "skill2" or kit[2].get("passive", false)), "%s segue a ordem: básico, skill, skill 2, ult e passiva" % id)
+	var generator: GDScript = load("res://tools/generate_character_readmes.gd")
+	for id in Roster.IDS:
+		var readme := FileAccess.get_file_as_string(generator.file(id))
+		check(readme == generator.with_snippet(readme, generator.leg(id)),
 			"README de %s em dia com o kit (rode tools/generate_character_readmes.gd)" % id)
-	checar(Elenco.dados("shumi").universo == "Dragon Ball New Age" and Elenco.dados("andri").universo == "Tales of Azeroth",
+	check(Roster.data("shumi").universe == "Dragon Ball New Age" and Roster.data("andri").universe == "Tales of Azeroth",
 		"cada personagem diz de onde vem")
-	var a := Combatente.new("A", true, 100, 1, 0, 100)
-	var b := Combatente.new("B", true, 100, 1, 0, 100)
-	var ini := Inimigo.new("I", "", 100, 1, 0, 100)
-	checar(ini.escolher_alvo([a, b], 0.0) == a and ini.escolher_alvo([a, b], 0.99) == b, "inimigo sorteia entre os aliados")
+	var a := Combatant.new("A", true, 100, 1, 0, 100)
+	var b := Combatant.new("B", true, 100, 1, 0, 100)
+	var ini := Enemy.new("I", "", 100, 1, 0, 100)
+	check(ini.choose_target([a, b], 0.0) == a and ini.choose_target([a, b], 0.99) == b, "inimigo sorteia entre os aliados")
 	a.hp = 0
-	checar(ini.escolher_alvo([a, b], 0.0) == b, "inimigo não ataca quem já caiu")
+	check(ini.choose_target([a, b], 0.0) == b, "inimigo não ataca quem já caiu")
 	b.hp = 0
-	checar(ini.escolher_alvo([a, b], 0.5) == null, "sem aliados vivos, sem alvo")
+	check(ini.choose_target([a, b], 0.5) == null, "sem aliados vivos, sem alvo")
 	var s := Shumi.new()
-	var livres := s.habilidades(1).filter(func(h: Dictionary) -> bool: return h.get("livre", false))
-	checar(livres.size() == 1 and livres[0].acao == "ult", "só o Kaioken não gasta o turno")
-	checar(Elenco.equipe() == ["shumi"] and "andri" in Elenco.IDS, "Andri está no elenco")
+	var free := s.skills(1).filter(func(h: Dictionary) -> bool: return h.get("free", false))
+	check(free.size() == 1 and free[0].action == "ult", "só o Kaioken não gasta o turno")
+	check(Roster.team() == ["shumi"] and "andri" in Roster.IDS, "Andri está no elenco")
 
 
-func _teste_askara_fragmentos() -> void:
+func _test_askara_fragments() -> void:
 	print("askara: fragmentos d'alma")
 	var a := Askara.new()
-	checar(a.fragmentos == Askara.FRAGMENTOS_INICIAIS and a.energia_max == 0.0, "começa com 2 fragmentos e sem energia")
-	checar(a.ganhar_fragmentos(10) == Askara.FRAGMENTOS_MAX - 2 and a.fragmentos == Askara.FRAGMENTOS_MAX, "fragmentos param no máximo (8)")
-	checar(a.ao_inimigo_cair() == "", "no máximo, um inimigo caído não dá nada")
-	a.fragmentos = 3
-	checar(a.ao_inimigo_cair() != "" and a.fragmentos == 4, "inimigo caído dá 1 fragmento")
-	var ini := Inimigo.new("I", "", 1000, 100, 0, 100)
-	var dano := Combatente.calcular_dano(a, ini, Askara.MULT_SETA, 0.5)
-	checar(dano == roundi(125 * 0.6), "Seta Vil: 0,6x do ATQ (75)")
-	checar(a.habilidades(0).map(func(h: Dictionary) -> String: return h.tecla) == ["Q", "E", "", "R", ""], "barra na mesma ordem, com o Último Ato (passiva) no lugar da skill 2")
-	checar(a.habilidades(0)[0].ganho_pontos == 1, "Seta Vil gera ponto de skill")
-	checar(a.efeitos()[0].id == "fragmentos" and a.efeitos()[0].curto == "4", "fragmentos aparecem nos efeitos")
+	check(a.fragments == Askara.STARTING_FRAGMENTS and a.max_energy == 0.0, "começa com 2 fragmentos e sem energia")
+	check(a.gain_fragments(10) == Askara.MAX_FRAGMENTS - 2 and a.fragments == Askara.MAX_FRAGMENTS, "fragmentos param no máximo (8)")
+	check(a.on_enemy_fallen() == "", "no máximo, um inimigo caído não dá nada")
+	a.fragments = 3
+	check(a.on_enemy_fallen() != "" and a.fragments == 4, "inimigo caído dá 1 fragmento")
+	var ini := Enemy.new("I", "", 1000, 100, 0, 100)
+	var damage := Combatant.calculate_damage(a, ini, Askara.ARROW_MULT, 0.5)
+	check(damage == roundi(125 * 0.6), "Seta Vil: 0,6x do ATQ (75)")
+	check(a.skills(0).map(func(h: Dictionary) -> String: return h.key) == ["Q", "E", "", "R", ""], "barra na mesma ordem, com o Último Ato (passiva) no lugar da skill 2")
+	check(a.skills(0)[0].point_gain == 1, "Seta Vil gera ponto de skill")
+	check(a.effects()[0].id == "fragments" and a.effects()[0].short == "4", "fragmentos aparecem nos efeitos")
 
 
-func _teste_askara_invocacao() -> void:
+func _test_askara_summon() -> void:
 	print("askara: invocação")
 	var a := Askara.new()
-	a.aplicar_nivel(5, Progressao.atributos(a.atributos_nv1(), Elenco.dados("askara").crescimento, 5))
-	a.fragmentos = 0
-	checar(not a.pode_usar("skill", 3), "sem fragmentos, sem invocação")
-	checar(_hab(a, "skill", 3).estado == "sem_recurso" and _hab(a, "skill", 3).falta.begins_with("Faltam"), "a barra explica o que falta")
-	a.fragmentos = 1
-	checar(not a.pode_usar("skill", 0) and a.pode_usar("skill", 1), "invocar custa 1 ponto de skill")
-	checar(a.motivo_invalido("skill", "shivara", a) != "" and a.motivo_invalido("skill", "diabrete", a) == "", "cada invocação tem seu custo")
-	var r := a.invocar("diabrete")
-	var dia: Invocacao = r.invocacao
-	checar(r.nova and a.fragmentos == 0 and a.em_campo() == [dia], "Diabrete custa 1 e entra em campo")
-	checar(dia.aliado and dia.invocador == a and dia.tipo == Tipos.TREVAS, "invocação é aliada, de Trevas, e sabe quem a chamou")
-	checar(dia.hp_max == roundi(a.hp_max * 0.25) and is_equal_approx(dia.vel_base, a.vel_base * 1.25),
+	a.apply_level(5, Progression.stats(a.level_1_stats(), Roster.data("askara").growth, 5))
+	a.fragments = 0
+	check(not a.can_use("skill", 3), "sem fragmentos, sem invocação")
+	check(_skill_data(a, "skill", 3).state == "no_resource" and _skill_data(a, "skill", 3).missing_reason.begins_with("Faltam"), "a barra explica o que falta")
+	a.fragments = 1
+	check(not a.can_use("skill", 0) and a.can_use("skill", 1), "invocar custa 1 ponto de skill")
+	check(a.invalid_reason("skill", "shivara", a) != "" and a.invalid_reason("skill", "imp", a) == "", "cada invocação tem seu custo")
+	var r := a.summon("imp")
+	var day: Summon = r.summon
+	check(r.is_new and a.fragments == 0 and a.on_field() == [day], "Diabrete custa 1 e entra em campo")
+	check(day.ally and day.summoner == a and day.type == Types.DARKNESS, "invocação é aliada, de Trevas, e sabe quem a chamou")
+	check(day.max_hp == roundi(a.max_hp * 0.25) and is_equal_approx(day.base_spd, a.base_spd * 1.25),
 		"atributos em fração dos da Askara no nível atual")
-	dia.hp = 1
-	dia.turnos = 1
-	a.fragmentos = 8
-	r = a.invocar("diabrete")
-	checar(not r.nova and r.invocacao == dia and dia.hp == dia.hp_max and dia.turnos == dia.turnos_max and a.fragmentos == 7,
+	day.hp = 1
+	day.turns = 1
+	a.fragments = 8
+	r = a.summon("imp")
+	check(not r.is_new and r.summon == day and day.hp == day.max_hp and day.turns == day.max_turns and a.fragments == 7,
 		"invocar a mesma renova HP e vezes (e cobra)")
-	var emi: Invocacao = a.invocar("emissario").invocacao
-	r = a.invocar("shivara")
-	checar(r.sai == dia and not dia.em_campo and a.em_campo() == [emi, r.invocacao], "sem vaga, a mais antiga sai")
-	checar(emi.peso_alvo() == 1.0 + Askara.PROVOCACAO_EMISSARIO, "Emissário do Caos provoca")
-	checar(not emi.passar_vez() and not emi.passar_vez() and emi.passar_vez(), "vai embora depois de 3 vezes")
-	var lil: Invocacao = Askara.new().invocar("lilith").invocacao
-	var e: Estado = lil.debuff.call()
-	checar(e.tipo == "debuff" and is_equal_approx(e.mods.atq, -0.2) and is_equal_approx(e.mods.def, -0.2), "Lilith encanta: ATQ e DEF -20%")
+	var emi: Summon = a.summon("emissary").summon
+	r = a.summon("shivara")
+	check(r.replaced == day and not day.on_field and a.on_field() == [emi, r.summon], "sem vaga, a mais antiga sai")
+	check(emi.target_weight() == 1.0 + Askara.EMISSARY_TAUNT, "Emissário do Caos provoca")
+	check(not emi.consume_turn() and not emi.consume_turn() and emi.consume_turn(), "vai embora depois de 3 vezes")
+	var lil: Summon = Askara.new().summon("lilith").summon
+	var e: StatusEffect = lil.debuff.call()
+	check(e.type == "debuff" and is_equal_approx(e.mods.atk, -0.2) and is_equal_approx(e.mods.def, -0.2), "Lilith encanta: ATQ e DEF -20%")
 
 
-func _teste_askara_lorde() -> void:
+func _test_askara_lord() -> void:
 	print("askara: lorde demônio")
 	var a := Askara.new()
-	a.fragmentos = 5
-	checar(a.custo_lorde() == 6 and not a.pode_usar("ult", 0), "o Lorde custa 6 fragmentos")
-	a.fragmentos = 8
-	a.invocar("diabrete")
-	a.invocar("emissario")
-	checar(a.custo_lorde() == 4 and _hab(a, "ult", 1).selo == "4 FRA", "cada invocação em campo desconta 1")
-	a.fragmentos = 4
-	var r := a.invocar_lorde(0.5)
-	var lorde: Invocacao = r.invocacao
-	checar(r.apagadas.size() == 2 and a.em_campo() == [lorde] and a.fragmentos == 0, "o Lorde apaga as invocações e fica sozinho")
-	checar(lorde.id == "lorde_demonio" and not r.raro and lorde.golpe_entrada.alcance == "todos", "Lorde Demônio, com golpe de chegada em todos")
-	a.fragmentos = 8
-	checar(not a.pode_usar("skill", 3) and a.motivo_invalido("skill", "diabrete", a).begins_with("O Lorde"), "com o Lorde em campo, o E fica bloqueado")
-	checar(_hab(a, "skill", 3).estado == "bloqueada" and not a.pode_usar("ult", 3), "e não dá para chamar outro Lorde")
-	lorde.em_campo = false
-	checar(a.pode_usar("skill", 3), "quando ele vai embora, o E volta")
-	r = a.invocar_lorde(0.005)
-	var luz: Invocacao = r.invocacao
-	checar(r.raro and luz.id == "lorde_luz" and luz.tipo == Tipos.LUZ, "sorteio abaixo da chance (15%): vem o Lorde da Luz")
-	var ini := Inimigo.new("I", "", 1000, 100, 0, 100)
-	var comum := Combatente.new("C", true, 1000, 1, 0, 100)
-	checar(Combatente.calcular_dano(ini, luz, 1.0) == roundi(Combatente.calcular_dano(ini, comum, 1.0) * 0.5 * 100.0 / (100.0 + luz.defesa())),
+	a.fragments = 5
+	check(a.lord_cost() == 6 and not a.can_use("ult", 0), "o Lorde custa 6 fragmentos")
+	a.fragments = 8
+	a.summon("imp")
+	a.summon("emissary")
+	check(a.lord_cost() == 4 and _skill_data(a, "ult", 1).badge == "4 FRA", "cada invocação em campo desconta 1")
+	a.fragments = 4
+	var r := a.summon_lord(0.5)
+	var lord: Summon = r.summon
+	check(r.dismissed.size() == 2 and a.on_field() == [lord] and a.fragments == 0, "o Lorde apaga as invocações e fica sozinho")
+	check(lord.id == "demon_lord" and not r.rare and lord.entrance_strike.reach == "all", "Lorde Demônio, com golpe de chegada em todos")
+	a.fragments = 8
+	check(not a.can_use("skill", 3) and a.invalid_reason("skill", "imp", a).begins_with("O Lorde"), "com o Lorde em campo, o E fica bloqueado")
+	check(_skill_data(a, "skill", 3).state == "blocked" and not a.can_use("ult", 3), "e não dá para chamar outro Lorde")
+	lord.on_field = false
+	check(a.can_use("skill", 3), "quando ele vai embora, o E volta")
+	r = a.summon_lord(0.005)
+	var light: Summon = r.summon
+	check(r.rare and light.id == "light_lord" and light.type == Types.LIGHT, "sorteio abaixo da chance (15%): vem o Lorde da Luz")
+	var ini := Enemy.new("I", "", 1000, 100, 0, 100)
+	var common := Combatant.new("C", true, 1000, 1, 0, 100)
+	check(Combatant.calculate_damage(ini, light, 1.0) == roundi(Combatant.calculate_damage(ini, common, 1.0) * 0.5 * 100.0 / (100.0 + light.defense())),
 		"Lorde da Luz resiste a todo dano (-50%)")
 
 
-func _teste_invocacao_alvos_e_provocacao() -> void:
+func _test_summon_targets_and_taunt() -> void:
 	print("invocação: alvos e provocação")
 	var a := Askara.new()
-	var inv := Invocacao.new("x", "X", a, 100, 10, 0, 100, Tipos.TREVAS, 3)
-	var i1 := Inimigo.new("A", "", 100, 10, 0, 100)
-	var i2 := Inimigo.new("B", "", 100, 50, 0, 100)
-	var i3 := Inimigo.new("C", "", 100, 20, 0, 100)
+	var inv := Summon.new("x", "X", a, 100, 10, 0, 100, Types.DARKNESS, 3)
+	var i1 := Enemy.new("A", "", 100, 10, 0, 100)
+	var i2 := Enemy.new("B", "", 100, 50, 0, 100)
+	var i3 := Enemy.new("C", "", 100, 20, 0, 100)
 	var ini := [i1, i2, i3]
-	var alvos := inv.alvos({"mult": 0.9, "alcance": "vizinhos", "mult_vizinhos": 0.45}, ini, 0)
-	checar(alvos == [[i1, 0.9], [i2, 0.45]], "vizinhos: o marcado e o do lado")
-	alvos = inv.alvos({"mult": 0.3, "mira": "mais_forte"}, ini, 0)
-	checar(alvos == [[i2, 0.3]], "mira no mais forte (maior ATQ)")
-	checar(inv.alvos({"mult": 1.0, "alcance": "todos"}, ini, 2).size() == 3, "todos")
-	var c := Combatente.new("C", true, 100, 1, 0, 100)
-	var p := Estado.new("provocacao", "P", "P", "buff", -1)
-	p.provocacao = 2.0
-	inv.aplicar_estado(p)
+	var targets := inv.targets({"mult": 0.9, "reach": "neighbors", "neighbor_mult": 0.45}, ini, 0)
+	check(targets == [[i1, 0.9], [i2, 0.45]], "vizinhos: o marcado e o do lado")
+	targets = inv.targets({"mult": 0.3, "aim": "strongest"}, ini, 0)
+	check(targets == [[i2, 0.3]], "mira no mais forte (maior ATQ)")
+	check(inv.targets({"mult": 1.0, "reach": "all"}, ini, 2).size() == 3, "all")
+	var c := Combatant.new("C", true, 100, 1, 0, 100)
+	var p := StatusEffect.new("taunt", "P", "P", "buff", -1)
+	p.taunt = 2.0
+	inv.apply_status(p)
 	# pesos 1 + 3: o sorteio abaixo de 1/4 cai no comum, o resto no provocador
-	checar(i1.escolher_alvo([c, inv], 0.2) == c and i1.escolher_alvo([c, inv], 0.3) == inv, "provocação pesa no sorteio do inimigo")
+	check(i1.choose_target([c, inv], 0.2) == c and i1.choose_target([c, inv], 0.3) == inv, "provocação pesa no sorteio do inimigo")
 
 
 ## Askara numa batalha de verdade (andar 3): invocações entram na fila e no
 ## lado aliado, saem quando caem, o Lorde ataca todos e as invocações não
 ## seguram a derrota. Os inimigos não agem (a vez deles fica longe).
-func _teste_askara_na_batalha() -> void:
+func _test_askara_in_battle() -> void:
 	print("askara na batalha")
-	Progressao.apagar()
+	Progression.delete()
 	for n in range(1, 3):
-		Progressao.marcar_andar_vencido(n)
-	Andares.escolher(3)
-	Elenco.definir_equipe(["askara"])
-	var b: Batalha = (load("res://combat/battle.tscn") as PackedScene).instantiate()
+		Progression.mark_floor_cleared(n)
+	Floors.choose(3)
+	Roster.set_team(["askara"])
+	var b: Battle = (load("res://combat/battle.tscn") as PackedScene).instantiate()
 	root.add_child(b)
 	current_scene = b
 	await process_frame
-	for ini in b.inimigos:
+	for ini in b.enemies:
 		ini.av = 1e9
-	var a := b.equipe[0] as Askara
-	checar(a != null, "a Askara entra na batalha pelo Elenco")
-	a.fragmentos = 8
-	var emi: Invocacao = a.invocar("emissario").invocacao
-	await b.adicionar_invocacao(emi)
-	checar(emi in b.lutadores and b.aliados_em_campo() == [a, emi] and b.aliados_vivos() == [a],
+	var a := b.team[0] as Askara
+	check(a != null, "a Askara entra na batalha pelo Elenco")
+	a.fragments = 8
+	var emi: Summon = a.summon("emissary").summon
+	await b.add_summon(emi)
+	check(emi in b.fighters and b.allies_on_field() == [a, emi] and b.living_allies() == [a],
 		"a invocação entra na fila e no campo, mas não na equipe")
-	checar(b.inimigos[0].escolher_alvo(b.aliados_em_campo(), 0.5) == emi, "os inimigos podem mirar nela (e o Emissário provoca)")
-	var ini: Inimigo = b.inimigos_vivos()[0]
-	var hp_antes := ini.hp
-	await b.golpe_invocacao(emi, emi.golpe)
-	checar(ini.hp < hp_antes, "o golpe da invocação machuca o inimigo marcado")
+	check(b.enemies[0].choose_target(b.allies_on_field(), 0.5) == emi, "os inimigos podem mirar nela (e o Emissário provoca)")
+	var ini: Enemy = b.living_enemies()[0]
+	var hp_before := ini.hp
+	await b.summon_strike(emi, emi.strike)
+	check(ini.hp < hp_before, "o golpe da invocação machuca o inimigo marcado")
 	emi.hp = 1
-	await b.aplicar_dano(ini, emi, 5.0)
-	checar(not emi.em_campo and emi not in b.lutadores and b.invocacoes.is_empty() and not b.acabou, "invocação que cai sai de campo; a luta segue")
-	checar(a.estado("escudo_emissario") != null and a.escudo() == roundi(emi.hp_max * 0.08),
+	await b.apply_damage(ini, emi, 5.0)
+	check(not emi.on_field and emi not in b.fighters and b.summons.is_empty() and not b.over, "invocação que cai sai de campo; a luta segue")
+	check(a.state("shield_emissary") != null and a.shield() == roundi(emi.max_hp * 0.08),
 		"ao cair, o Emissário deixa a Muralha do Caos em quem tem menos HP")
-	var dia: Invocacao = a.invocar("diabrete").invocacao
-	await b.adicionar_invocacao(dia)
-	var lil: Invocacao = a.invocar("lilith").invocacao
-	await b.adicionar_invocacao(lil)
-	checar(b.invocacoes.size() == 2 and b.visual(dia).position != b.visual(lil).position, "duas invocações, em vagas diferentes")
-	b.alvo = 0
-	var hps_antes := b.inimigos_vivos().map(func(i: Inimigo) -> int: return i.hp)
-	dia.hp = 1
-	await b.aplicar_dano(b.inimigos_vivos()[0], dia, 5.0)
-	var depois := b.inimigos.map(func(i: Inimigo) -> int: return i.hp)
-	checar(not dia.em_campo and dia not in b.lutadores and b.invocacoes == [lil], "o Diabrete caiu e saiu de campo")
-	checar(depois[0] < hps_antes[0] and (hps_antes.size() < 2 or depois[1] < hps_antes[1]),
+	var day: Summon = a.summon("imp").summon
+	await b.add_summon(day)
+	var lil: Summon = a.summon("lilith").summon
+	await b.add_summon(lil)
+	check(b.summons.size() == 2 and b.visual(day).position != b.visual(lil).position, "duas invocações, em vagas diferentes")
+	b.target = 0
+	var hps_before := b.living_enemies().map(func(i: Enemy) -> int: return i.hp)
+	day.hp = 1
+	await b.apply_damage(b.living_enemies()[0], day, 5.0)
+	var after := b.enemies.map(func(i: Enemy) -> int: return i.hp)
+	check(not day.on_field and day not in b.fighters and b.summons == [lil], "o Diabrete caiu e saiu de campo")
+	check(after[0] < hps_before[0] and (hps_before.size() < 2 or after[1] < hps_before[1]),
 		"ao cair, a Explosão Vil acerta o alvo e o inimigo ao lado")
-	dia = a.invocar("diabrete").invocacao
-	await b.adicionar_invocacao(dia)
-	a.fragmentos = 8
-	var r := a.invocar_lorde(0.5)
-	for x: Invocacao in r.apagadas:
-		b.remover_invocacao(x)
-	var lorde: Invocacao = r.invocacao
-	await b.adicionar_invocacao(lorde)
-	var hps := b.inimigos_vivos().map(func(i: Inimigo) -> int: return i.hp)
-	await b.golpe_invocacao(lorde, lorde.golpe_entrada)
-	var vivos := b.inimigos_vivos()
-	var todos_levaram := true
-	for i in vivos.size():
-		todos_levaram = todos_levaram and vivos[i].hp < hps[i]
-	checar(b.invocacoes == [lorde] and todos_levaram, "o Lorde apaga as outras e acerta todos ao chegar")
-	var frag := a.fragmentos
-	var alvo: Inimigo = b.inimigos_vivos()[0]
-	alvo.hp = 1
-	await b.aplicar_dano(a, alvo, 1.0)
-	checar(a.fragmentos == frag + 1, "inimigo caído dá fragmento à Askara")
+	day = a.summon("imp").summon
+	await b.add_summon(day)
+	a.fragments = 8
+	var r := a.summon_lord(0.5)
+	for x: Summon in r.dismissed:
+		b.remove_summon(x)
+	var lord: Summon = r.summon
+	await b.add_summon(lord)
+	var hps := b.living_enemies().map(func(i: Enemy) -> int: return i.hp)
+	await b.summon_strike(lord, lord.entrance_strike)
+	var alive := b.living_enemies()
+	var all_took := true
+	for i in alive.size():
+		all_took = all_took and alive[i].hp < hps[i]
+	check(b.summons == [lord] and all_took, "o Lorde apaga as outras e acerta todos ao chegar")
+	var frag := a.fragments
+	var target: Enemy = b.living_enemies()[0]
+	target.hp = 1
+	await b.apply_damage(a, target, 1.0)
+	check(a.fragments == frag + 1, "inimigo caído dá fragmento à Askara")
 	a.hp = 1
-	await b.aplicar_dano(b.inimigos_vivos()[0], a, 50.0)
-	checar(b.acabou and b.invocacoes.is_empty(), "a Askara caiu: as invocações somem e a luta acaba (elas não seguram a derrota)")
+	await b.apply_damage(b.living_enemies()[0], a, 50.0)
+	check(b.over and b.summons.is_empty(), "a Askara caiu: as invocações somem e a luta acaba (elas não seguram a derrota)")
 	b.queue_free()
 	await process_frame
 
 
-func _teste_recarga() -> void:
+func _test_cooldown() -> void:
 	print("recarga")
 	var s := Shumi.new()
-	checar(s.recarga("skill2") == 0 and s.pode_usar("skill2", 1), "sem uso, a skill 2 está pronta")
-	s.iniciar_recarga("skill2", 3)
-	var h := _hab(s, "skill2")
-	checar(not s.pode_usar("skill2", 1) and h.estado == "recarga" and h.recarga_restante == 3 and h.falta.begins_with("Recarga"),
+	check(s.cooldown("skill2") == 0 and s.can_use("skill2", 1), "sem uso, a skill 2 está pronta")
+	s.start_cooldown("skill2", 3)
+	var h := _skill_data(s, "skill2")
+	check(not s.can_use("skill2", 1) and h.state == "cooldown" and h.cooldown_remaining == 3 and h.missing_reason.begins_with("Recarga"),
 		"usada, entra em recarga e a barra mostra quanto falta")
-	s.passar_turno()
-	s.passar_turno()
-	checar(s.recarga("skill2") == 1 and not s.pode_usar("skill2", 1), "a recarga conta os turnos do dono")
-	s.passar_turno()
-	checar(s.pode_usar("skill2", 1) and _hab(s, "skill2").estado == "pronta", "recarga 3: volta 3 turnos depois do uso")
+	s.pass_turn()
+	s.pass_turn()
+	check(s.cooldown("skill2") == 1 and not s.can_use("skill2", 1), "a recarga conta os turnos do dono")
+	s.pass_turn()
+	check(s.can_use("skill2", 1) and _skill_data(s, "skill2").state == "ready", "recarga 3: volta 3 turnos depois do uso")
 
 
-func _teste_shumi_bang() -> void:
+func _test_shumi_bang() -> void:
 	print("shumi: bang!")
 	var s := Shumi.new()
-	var ini := Inimigo.new("Alvo", "", 1000, 10, 0, 100)
-	var h := _hab(s, "skill2")
-	checar(h.tecla == "W" and h.custo_pontos == 1 and h.recarga == Shumi.RECARGA_BANG and h.alvo == "unico", "Bang! na tecla W, custa 1 ponto e tem recarga")
+	var ini := Enemy.new("Alvo", "", 1000, 10, 0, 100)
+	var h := _skill_data(s, "skill2")
+	check(h.key == "W" and h.point_cost == 1 and h.cooldown == Shumi.BANG_COOLDOWN and h.target == "single", "Bang! na tecla W, custa 1 ponto e tem recarga")
 	var andri := Andri.new()
-	checar(s.atacar_junto(andri, ini).is_empty(), "sem o Bang!, não ataca junto")
-	s.aplicar_estado(Shumi.estado_bang())
-	checar(s.atacar_junto(s, ini).is_empty(), "o próprio ataque dela não puxa outro")
-	var antes := s.energia
-	var g := s.atacar_junto(andri, ini)
-	checar(g.nome == "Finger Beam" and is_equal_approx(g.mult, 0.4) and s.energia == antes + Shumi.ENERGIA_JUNTO,
+	check(s.follow_up(andri, ini).is_empty(), "sem o Bang!, não ataca junto")
+	s.apply_status(Shumi.bang_status())
+	check(s.follow_up(s, ini).is_empty(), "o próprio ataque dela não puxa outro")
+	var before := s.energy
+	var g := s.follow_up(andri, ini)
+	check(g.name == "Finger Beam" and is_equal_approx(g.mult, 0.4) and s.energy == before + Shumi.FOLLOW_UP_ENERGY,
 		"com o Bang!: Finger Beam de 0,4x e +4 de energia por ataque junto")
-	s.nivel = 3
-	checar(is_equal_approx(s.atacar_junto(andri, ini).mult, 1.1), "no x20 o Finger Beam vai a 1,1x")
-	s.nivel = -1
-	s.iniciar_recarga("skill2", Shumi.RECARGA_BANG)
-	for i in Shumi.DURACAO_BANG:
-		s.passar_turno()
-	checar(s.estado("bang") == null and s.atacar_junto(andri, ini).is_empty(), "o Bang! acaba depois da duração")
-	checar(not s.pode_usar("skill2", 1), "quando o Bang! acaba, a recarga ainda segura um turno sem ele")
-	s.passar_turno()
-	checar(s.pode_usar("skill2", 1), "e no turno seguinte ele volta")
+	s.level = 3
+	check(is_equal_approx(s.follow_up(andri, ini).mult, 1.1), "no x20 o Finger Beam vai a 1,1x")
+	s.level = -1
+	s.start_cooldown("skill2", Shumi.BANG_COOLDOWN)
+	for i in Shumi.BANG_DURATION:
+		s.pass_turn()
+	check(s.state("bang") == null and s.follow_up(andri, ini).is_empty(), "o Bang! acaba depois da duração")
+	check(not s.can_use("skill2", 1), "quando o Bang! acaba, a recarga ainda segura um turno sem ele")
+	s.pass_turn()
+	check(s.can_use("skill2", 1), "e no turno seguinte ele volta")
 
-func _teste_andri_protocolo() -> void:
+func _test_andri_protocol() -> void:
 	print("andri: protocolo MOMC")
 	var a := Andri.new()
-	var ini := Inimigo.new("Alvo", "", 1000, 10, 0, 100)
-	var h := _hab(a, "skill2")
-	checar(h.tecla == "W" and h.opcoes.map(func(o: Dictionary) -> String: return o.id) == ["sobrecarga", "escudo"]
-		and h.opcoes[1].alvo == "aliado" and h.opcoes[0].alvo == "unico", "duas ordens, cada uma com o próprio alvo")
-	checar(a.motivo_invalido("skill2", "escudo", a) == "" and a.motivo_invalido("skill2", "escudo", ini) != "", "o Escudo vai num aliado")
-	checar(a.motivo_invalido("skill2", "sobrecarga", ini) == "" and a.motivo_invalido("skill2", "sobrecarga", a) != "", "a Sobrecarga vai num inimigo")
-	checar(Andri.escudo_momc(a).escudo == roundi(a.hp_max * Andri.ESCUDO_MOMC) and Andri.ESCUDO_MOMC < Andri.ESCUDO_TYR,
+	var ini := Enemy.new("Alvo", "", 1000, 10, 0, 100)
+	var h := _skill_data(a, "skill2")
+	check(h.key == "W" and h.options.map(func(o: Dictionary) -> String: return o.id) == ["overload", "shield"]
+		and h.options[1].target == "ally" and h.options[0].target == "single", "duas ordens, cada uma com o próprio alvo")
+	check(a.invalid_reason("skill2", "shield", a) == "" and a.invalid_reason("skill2", "shield", ini) != "", "o Escudo vai num aliado")
+	check(a.invalid_reason("skill2", "overload", ini) == "" and a.invalid_reason("skill2", "overload", a) != "", "a Sobrecarga vai num inimigo")
+	check(Andri.momc_shield(a).shield == roundi(a.max_hp * Andri.MOMC_SHIELD) and Andri.MOMC_SHIELD < Andri.TYR_SHIELD,
 		"o escudo do MOMC é menor que o da Mão de Tyr")
-	a.trocar_lente(Tipos.GELO)
-	var g := a.golpe_sobrecarga()
-	checar(g.tipo == Tipos.GELO and g.extra, "a Sobrecarga usa a lente e não encadeia")
+	a.switch_lens(Types.ICE)
+	var g := a.overload_strike()
+	check(g.type == Types.ICE and g.extra, "a Sobrecarga usa a lente e não encadeia")
 
 
-func _teste_askara_ultimo_ato() -> void:
+func _test_askara_last_act() -> void:
 	print("askara: último ato")
 	var a := Askara.new()
-	var passivas := a.habilidades(1).filter(func(h: Dictionary) -> bool: return h.get("passiva", false))
-	checar(passivas.map(func(h: Dictionary) -> String: return h.acao) == ["ultimo_ato", "fragmentos"] and not a.pode_usar("skill2", 3),
+	var passives := a.skills(1).filter(func(h: Dictionary) -> bool: return h.get("passive", false))
+	check(passives.map(func(h: Dictionary) -> String: return h.action) == ["last_act", "fragments"] and not a.can_use("skill2", 3),
 		"o Último Ato é passiva (sem W)")
-	a.fragmentos = 8
-	var dia: Invocacao = a.invocar("diabrete").invocacao
-	checar(dia.ultimo_ato.nome == "Explosão Vil" and Askara.INVOCACOES.all(func(d: Dictionary) -> bool: return d.has("ultimo_ato")),
+	a.fragments = 8
+	var day: Summon = a.summon("imp").summon
+	check(day.last_act.name == "Explosão Vil" and Askara.SUMMONS.all(func(d: Dictionary) -> bool: return d.has("last_act")),
 		"cada demônio tem último ato")
-	var inimigos: Array = [Inimigo.new("A", "", 100, 1, 0, 100), Inimigo.new("B", "", 100, 1, 0, 100), Inimigo.new("C", "", 100, 1, 0, 100)]
-	var dupla := func(alvo: int) -> Array:
-		return dia.alvos(dia.ultimo_ato, inimigos, alvo).map(func(par: Array) -> Combatente: return par[0])
-	checar(dupla.call(0) == [inimigos[0], inimigos[1]] and dupla.call(2) == [inimigos[2], inimigos[1]], "a Explosão Vil pega o alvo e o de trás (ou o da frente, no último)")
-	var emi: Invocacao = a.invocar("emissario").invocacao
+	var enemies: Array = [Enemy.new("A", "", 100, 1, 0, 100), Enemy.new("B", "", 100, 1, 0, 100), Enemy.new("C", "", 100, 1, 0, 100)]
+	var pair := func(target: int) -> Array:
+		return day.targets(day.last_act, enemies, target).map(func(pair: Array) -> Combatant: return pair[0])
+	check(pair.call(0) == [enemies[0], enemies[1]] and pair.call(2) == [enemies[2], enemies[1]], "a Explosão Vil pega o alvo e o de trás (ou o da frente, no último)")
+	var emi: Summon = a.summon("emissary").summon
 	var shumi := Shumi.new()
 	shumi.hp = 100
-	checar(emi.alvo_escudo([a, emi, shumi]) == shumi, "a Muralha do Caos vai em quem tem a menor fração de HP")
-	a.fragmentos = 8
-	var lorde: Invocacao = a.invocar_lorde(0.5).invocacao
-	checar(lorde.ultimo_ato.is_empty(), "os Lordes não têm último ato")
+	check(emi.shield_target([a, emi, shumi]) == shumi, "a Muralha do Caos vai em quem tem a menor fração de HP")
+	a.fragments = 8
+	var lord: Summon = a.summon_lord(0.5).summon
+	check(lord.last_act.is_empty(), "os Lordes não têm último ato")
 
 
-func _teste_bang_na_batalha() -> void:
+func _test_bang_in_battle() -> void:
 	print("bang! na batalha")
-	Progressao.apagar()
-	Andares.escolher(1)
+	Progression.delete()
+	Floors.choose(1)
 	for n in range(1, 3):
-		Progressao.marcar_andar_vencido(n)
-	Progressao.desbloquear("andri")
-	Andares.escolher(3)
-	Elenco.definir_equipe(["shumi", "andri"])
-	var b: Batalha = (load("res://combat/battle.tscn") as PackedScene).instantiate()
+		Progression.mark_floor_cleared(n)
+	Progression.unlock("andri")
+	Floors.choose(3)
+	Roster.set_team(["shumi", "andri"])
+	var b: Battle = (load("res://combat/battle.tscn") as PackedScene).instantiate()
 	root.add_child(b)
 	current_scene = b
 	await process_frame
-	for ini in b.inimigos:
+	for ini in b.enemies:
 		ini.av = 1e9
-	var s := b.equipe[0] as Shumi
-	var andri := b.equipe[1]
-	s.aplicar_estado(Shumi.estado_bang())
-	var ini: Inimigo = b.inimigos_vivos()[0]
-	var energia_antes := s.energia
-	b._primeiro_atingido = null
-	await b.aplicar_dano(andri, ini, 0.1)
-	var hp_antes := ini.hp
-	await b._ataques_em_conjunto(andri)
-	checar(ini.hp < hp_antes and is_equal_approx(s.energia, minf(s.energia_max, energia_antes + Shumi.ENERGIA_JUNTO)),
+	var s := b.team[0] as Shumi
+	var andri := b.team[1]
+	s.apply_status(Shumi.bang_status())
+	var ini: Enemy = b.living_enemies()[0]
+	var energy_before := s.energy
+	b._first_hit = null
+	await b.apply_damage(andri, ini, 0.1)
+	var hp_before := ini.hp
+	await b._follow_up_attacks(andri)
+	check(ini.hp < hp_before and is_equal_approx(s.energy, minf(s.max_energy, energy_before + Shumi.FOLLOW_UP_ENERGY)),
 		"o Andri acerta e a Shumi ataca junto o mesmo inimigo (+4 de energia)")
-	b._primeiro_atingido = null
-	await b.aplicar_dano(s, ini, 0.1)
-	hp_antes = ini.hp
-	await b._ataques_em_conjunto(s)
-	checar(ini.hp == hp_antes, "o ataque dela mesma não puxa um ataque junto")
-	b._primeiro_atingido = null
-	await b.aplicar_dano(ini, s, 0.1)
-	await b._ataques_em_conjunto(ini)
-	checar(b._primeiro_atingido == null, "golpe de inimigo não conta")
-	var acoes := b._acoes[s] as AcoesShumi
+	b._first_hit = null
+	await b.apply_damage(s, ini, 0.1)
+	hp_before = ini.hp
+	await b._follow_up_attacks(s)
+	check(ini.hp == hp_before, "o ataque dela mesma não puxa um ataque junto")
+	b._first_hit = null
+	await b.apply_damage(ini, s, 0.1)
+	await b._follow_up_attacks(ini)
+	check(b._first_hit == null, "golpe de inimigo não conta")
+	var actions := b._actions[s] as ShumiActions
 	var normal := b.visual(s).frames()
-	s.remover_estado("bang")
-	acoes.executar("skill2")  # sem await: confere o visual no meio do tiro
+	s.remove_status("bang")
+	actions.execute("skill2")  # sem await: confere o visual no meio do tiro
 	await process_frame
-	checar(b.visual(s).frames() != normal, "o Finger Beam do Bang! sai no visual Kokoro")
+	check(b.visual(s).frames() != normal, "o Finger Beam do Bang! sai no visual Kokoro")
 	for i in 600:
-		if s.estado("bang"):
+		if s.state("bang"):
 			break
 		await process_frame
-	checar(s.estado("bang") != null and b.visual(s).frames() == normal, "depois do tiro, volta ao visual normal (o Bang! continua)")
+	check(s.state("bang") != null and b.visual(s).frames() == normal, "depois do tiro, volta ao visual normal (o Bang! continua)")
 	b.queue_free()
 	await process_frame
 
 
-func _teste_ultimo_recurso() -> void:
+func _test_last_resort() -> void:
 	print("último recurso dos inimigos (Ferro Negro)")
-	var ini := Inimigo.new("G", "", 1000, 100, 0, 100)
-	ini.ultimo_recurso = Andares.FERRO_NEGRO
+	var ini := Enemy.new("G", "", 1000, 100, 0, 100)
+	ini.last_resort = Floors.BLACK_IRON
 	ini.hp = 400
-	checar(ini.ativar_ultimo_recurso() == null, "acima de 30% do HP, nada")
+	check(ini.activate_last_resort() == null, "acima de 30% do HP, nada")
 	ini.hp = 290
-	var e := ini.ativar_ultimo_recurso()
-	checar(e != null and e.nome == "Ferro Negro" and e.escudo == 250 and e.turnos == 3, "abaixo de 30%: escudo de 25% do HP máximo por 3 turnos")
-	ini.aplicar_estado(e)
-	checar(ini.escudo() == 250 and ini.efeitos().any(func(d: Dictionary) -> bool: return d.curto == "FN"), "o escudo aparece nos efeitos")
+	var e := ini.activate_last_resort()
+	check(e != null and e.name == "Ferro Negro" and e.shield == 250 and e.turns == 3, "abaixo de 30%: escudo de 25% do HP máximo por 3 turnos")
+	ini.apply_status(e)
+	check(ini.shield() == 250 and ini.effects().any(func(d: Dictionary) -> bool: return d.short == "FN"), "o escudo aparece nos efeitos")
 	ini.hp = 100
-	checar(ini.ativar_ultimo_recurso() == null, "uma vez por luta")
-	var caido := Inimigo.new("G", "", 1000, 100, 0, 100)
-	caido.ultimo_recurso = Andares.FERRO_NEGRO
-	caido.hp = 0
-	checar(caido.ativar_ultimo_recurso() == null, "quem já caiu não ativa")
-	var comum := Inimigo.new("S", "", 1000, 100, 0, 100)
-	comum.hp = 10
-	checar(comum.ativar_ultimo_recurso() == null, "inimigo sem último recurso nunca ativa")
+	check(ini.activate_last_resort() == null, "uma vez por luta")
+	var fallen := Enemy.new("G", "", 1000, 100, 0, 100)
+	fallen.last_resort = Floors.BLACK_IRON
+	fallen.hp = 0
+	check(fallen.activate_last_resort() == null, "quem já caiu não ativa")
+	var common := Enemy.new("S", "", 1000, 100, 0, 100)
+	common.hp = 10
+	check(common.activate_last_resort() == null, "inimigo sem último recurso nunca ativa")
 
 
-func _teste_ferro_negro_na_batalha() -> void:
+func _test_black_iron_in_battle() -> void:
 	print("ferro negro na batalha")
-	Progressao.apagar()
+	Progression.delete()
 	for n in range(1, 5):
-		Progressao.marcar_andar_vencido(n)
-	Progressao.desbloquear("andri")
-	Progressao.desbloquear("askara")
-	Andares.escolher(5)
-	Elenco.definir_equipe(["shumi", "andri", "askara"])
-	var b: Batalha = (load("res://combat/battle.tscn") as PackedScene).instantiate()
+		Progression.mark_floor_cleared(n)
+	Progression.unlock("andri")
+	Progression.unlock("askara")
+	Floors.choose(5)
+	Roster.set_team(["shumi", "andri", "askara"])
+	var b: Battle = (load("res://combat/battle.tscn") as PackedScene).instantiate()
 	root.add_child(b)
 	current_scene = b
 	await process_frame
-	for c in b.lutadores:
+	for c in b.fighters:
 		c.av = 1e9
-	checar(b.andar == 5 and b.equipe.size() == 3 and b.inimigos[1].nome == "Golem de Pedra", "andar 5: a equipe de três contra o Golem e os elementais")
-	var golem: Inimigo = b.inimigos[1]
-	var s := b.equipe[0]
-	golem.hp = ceili(golem.hp_max * 0.3) + 1  # qualquer golpe o deixa abaixo de 30%
-	await b.aplicar_dano(s, golem, 0.6)
-	checar(golem.vivo() and golem.escudo() == roundi(golem.hp_max * 0.25), "o golpe que deixa o Golem abaixo de 30% ativa o Ferro Negro")
-	checar(b.hud._anuncio.text == "Ferro Negro ativado", "o anúncio \"Ferro Negro ativado\" aparece na tela")
-	var escudo := golem.escudo()
+	check(b.floor_number == 5 and b.team.size() == 3 and b.enemies[1].name == "Golem de Pedra", "andar 5: a equipe de três contra o Golem e os elementais")
+	var golem: Enemy = b.enemies[1]
+	var s := b.team[0]
+	golem.hp = ceili(golem.max_hp * 0.3) + 1  # qualquer golpe o deixa abaixo de 30%
+	await b.apply_damage(s, golem, 0.6)
+	check(golem.is_alive() and golem.shield() == roundi(golem.max_hp * 0.25), "o golpe que deixa o Golem abaixo de 30% ativa o Ferro Negro")
+	check(b.hud._announcement.text == "Ferro Negro ativado", "o anúncio \"Ferro Negro ativado\" aparece na tela")
+	var shield := golem.shield()
 	var hp := golem.hp
-	await b.aplicar_dano(s, golem, 0.3)
-	checar(golem.hp == hp and golem.escudo() < escudo, "o escudo absorve os golpes seguintes")
+	await b.apply_damage(s, golem, 0.3)
+	check(golem.hp == hp and golem.shield() < shield, "o escudo absorve os golpes seguintes")
 	# escudo de aliado na HUD: contorno na barra e o valor ao lado do HP
-	var esc := Estado.new("escudo", "Escudo", "E", "buff", 2)
-	esc.escudo = 150
-	s.aplicar_estado(esc)
-	b.ativo = s
-	b.atualizar()
-	checar(is_equal_approx(b.hud._barra_hp.escudo, 150.0) and b.hud._texto_escudo.visible and b.hud._texto_escudo.text == "+150",
+	var esc := StatusEffect.new("shield", "Escudo", "E", "buff", 2)
+	esc.shield = 150
+	s.apply_status(esc)
+	b.active = s
+	b.refresh()
+	check(is_equal_approx(b.hud._hp_bar.shield, 150.0) and b.hud._shield_text.visible and b.hud._shield_text.text == "+150",
 		"o escudo do aliado aparece na barra de HP e ao lado do valor")
-	s.remover_estado("escudo")
-	b.atualizar()
-	checar(is_zero_approx(b.hud._barra_hp.escudo) and not b.hud._texto_escudo.visible, "sem escudo, a barra volta ao normal")
+	s.remove_status("shield")
+	b.refresh()
+	check(is_zero_approx(b.hud._hp_bar.shield) and not b.hud._shield_text.visible, "sem escudo, a barra volta ao normal")
 	b.queue_free()
 	await process_frame

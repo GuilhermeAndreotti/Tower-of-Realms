@@ -63,7 +63,7 @@
         }
       ]
     },
-    "disparo": {
+    "shot": {
       "row": 2,
       "frame_duration_ms": 90,
       "frames": [
@@ -93,7 +93,7 @@
         }
       ]
     },
-    "analise": {
+    "analysis": {
       "row": 3,
       "frame_duration_ms": 140,
       "frames": [

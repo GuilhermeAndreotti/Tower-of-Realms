@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://l6eh65p3suto"
-path="res://.godot/imported/lorde_demonio.png-63b4809586f1b65302408f56a2fc625d.ctex"
+uid="uid://ftbgxx40uh64"
+path="res://.godot/imported/brazier.png-626d0128980e1a3659c98d4cebc76d24.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://characters/askara/lorde_demonio.png"
-dest_files=["res://.godot/imported/lorde_demonio.png-63b4809586f1b65302408f56a2fc625d.ctex"]
+source_file="res://lobby/art/brazier.png"
+dest_files=["res://.godot/imported/brazier.png-626d0128980e1a3659c98d4cebc76d24.ctex"]
 
 [params]
 

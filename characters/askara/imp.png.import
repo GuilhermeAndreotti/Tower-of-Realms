@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ftbgxx40uh64"
-path="res://.godot/imported/braseiro.png-1f241014afe16b1e7c8be596795039ab.ctex"
+uid="uid://b1s7f06tssk8l"
+path="res://.godot/imported/imp.png-8d8648e8b1d335da9dbc510f4c80a916.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://lobby/art/braseiro.png"
-dest_files=["res://.godot/imported/braseiro.png-1f241014afe16b1e7c8be596795039ab.ctex"]
+source_file="res://characters/askara/imp.png"
+dest_files=["res://.godot/imported/imp.png-8d8648e8b1d335da9dbc510f4c80a916.ctex"]
 
 [params]
 

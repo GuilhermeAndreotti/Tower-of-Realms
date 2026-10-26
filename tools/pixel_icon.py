@@ -12,23 +12,23 @@ transparente) e usam icone() daqui. Rode-os a partir da pasta Torre.
 """
 from PIL import Image
 
-LADO = 15
-DESENHO = 11
+SIDE = 15
+DRAWING = 11
 
 
-def desenho(paleta, linhas):
+def drawing(paleta, lines):
     """Só o desenho 11x11, sem a folga (para usar como sprite na arena)."""
-    assert len(linhas) == DESENHO and all(len(l) == DESENHO for l in linhas), "ícone precisa de 11x11"
-    img = Image.new("RGBA", (DESENHO, DESENHO), (0, 0, 0, 0))
-    for y, linha in enumerate(linhas):
-        for x, ch in enumerate(linha):
+    assert len(lines) == DRAWING and all(len(l) == DRAWING for l in lines), "ícone precisa de 11x11"
+    img = Image.new("RGBA", (DRAWING, DRAWING), (0, 0, 0, 0))
+    for y, line in enumerate(lines):
+        for x, ch in enumerate(line):
             if ch != ".":
                 img.putpixel((x, y), paleta[ch])
     return img
 
 
-def icone(paleta, linhas):
+def icon(paleta, lines):
     """Ícone 15x15 no padrão: o desenho centrado no fundo transparente."""
-    img = Image.new("RGBA", (LADO, LADO), (0, 0, 0, 0))
-    img.alpha_composite(desenho(paleta, linhas), (2, 2))
+    img = Image.new("RGBA", (SIDE, SIDE), (0, 0, 0, 0))
+    img.alpha_composite(drawing(paleta, lines), (2, 2))
     return img

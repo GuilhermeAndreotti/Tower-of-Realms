@@ -1,58 +1,58 @@
-class_name Eventos
+class_name StoryEvents
 extends RefCounted
 ## Eventos de história. Um evento tem efeito (aplicado na hora, e salvo) e
 ## apresentação (mostrada no saguão, na ordem, quando o jogador volta).
 ## Vêm de dois lugares:
-##  - "ao_vencer" de um andar (Andares), na primeira vitória;
-##  - falas de uma conversa (Conversas): "evento": "tipo:id", ex.
-##    "desbloquear:andri".
+##  - "on_win" de um andar (Floors), na primeira vitória;
+##  - falas de uma conversa (Conversations): "event": "type:id", ex.
+##    "unlock:andri".
 ##
 ## Tipos:
-##  {"tipo": "desbloquear", "id": <id do Elenco>}
-##      efeito: libera o personagem (Progressao.desbloquear, no nível médio
+##  {"type": "unlock", "id": <id do Roster>}
+##      efeito: libera o personagem (Progression.unlock, no nível médio
 ##      da equipe). Saguão: ele aparece com destaque e um anúncio.
-##  {"tipo": "conversa", "id": <id em Conversas>, "quem"?: <id de quem fala>}
+##  {"type": "conversation", "id": <id em Conversations>, "speaker"?: <id de quem fala>}
 ##      sem efeito. Saguão: abre a conversa (se ela já tiver falas).
 ##
-## Tipo novo: o efeito aqui em aplicar(), a apresentação em
-## Lobby._apresentar() e o texto do fim da batalha em resumo().
+## Tipo novo: o efeito aqui em apply(), a apresentação em
+## Lobby._present() e o texto do fim da batalha em summary().
 ##
 ## Evento que já não muda nada (desbloquear quem já está liberado) é
 ## descartado antes de aplicar: nem efeito, nem apresentação.
 
 
 ## Se `e` ainda muda alguma coisa.
-static func pendente(e: Dictionary) -> bool:
-	if e.get("tipo", "") == "desbloquear":
-		return not Progressao.desbloqueado(e.get("id", ""))
+static func pending(e: Dictionary) -> bool:
+	if e.get("type", "") == "unlock":
+		return not Progression.is_unlocked(e.get("id", ""))
 	return true
 
 
-static func aplicar(e: Dictionary) -> void:
-	match e.get("tipo", ""):
-		"desbloquear":
-			if e.get("id", "") in Elenco.IDS:
-				Progressao.desbloquear(e.id)
+static func apply(e: Dictionary) -> void:
+	match e.get("type", ""):
+		"unlock":
+			if e.get("id", "") in Roster.IDS:
+				Progression.unlock(e.id)
 			else:
 				push_error("evento desbloquear com id desconhecido: %s" % e)
-		"conversa":
+		"conversation":
 			pass
 		_:
 			push_error("tipo de evento desconhecido: %s" % e)
 
 
-## Lê o evento de uma fala ("tipo:id"). Vazio se o texto não for um evento
+## Lê o evento de uma fala ("type:id"). Vazio se o texto não for um evento
 ## de história (falas podem avisar outras coisas).
-static func de_texto(texto: String) -> Dictionary:
-	var partes := texto.split(":", true, 1)
-	if partes.size() != 2 or partes[0] not in ["desbloquear", "conversa"]:
+static func from_text(text: String) -> Dictionary:
+	var parts := text.split(":", true, 1)
+	if parts.size() != 2 or parts[0] not in ["unlock", "conversation"]:
 		return {}
-	return {"tipo": partes[0], "id": partes[1]}
+	return {"type": parts[0], "id": parts[1]}
 
 
 ## Linha para a tela de vitória ("" = nada a mostrar).
-static func resumo(e: Dictionary) -> String:
-	match e.get("tipo", ""):
-		"desbloquear":
-			return "%s chegou à Torre e espera no saguão." % Elenco.dados(e.id).nome
+static func summary(e: Dictionary) -> String:
+	match e.get("type", ""):
+		"unlock":
+			return "%s chegou à Torre e espera no saguão." % Roster.data(e.id).name
 	return ""

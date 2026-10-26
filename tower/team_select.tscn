@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://tower/team_select.gd" id="1_selecao"]
 
-[node name="SelecaoEquipe" type="Control"]
+[node name="TeamSelect" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://v0x37q7itr2e"
-path="res://.godot/imported/porta_runas.png-e37cac8ad43f3af7c6e62744063dd298.ctex"
+uid="uid://cg1555psookem"
+path="res://.godot/imported/light_lord.png-9b0180a29805e5b7247597fed3c6a8c6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://lobby/art/porta_runas.png"
-dest_files=["res://.godot/imported/porta_runas.png-e37cac8ad43f3af7c6e62744063dd298.ctex"]
+source_file="res://characters/askara/light_lord.png"
+dest_files=["res://.godot/imported/light_lord.png-9b0180a29805e5b7247597fed3c6a8c6.ctex"]
 
 [params]
 

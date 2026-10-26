@@ -10,104 +10,104 @@ import os
 
 from PIL import Image
 
-from pixel_icon import desenho, icone
+from pixel_icon import drawing, icon
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PASTA = os.path.join(RAIZ, "characters", "andri")
-ORIGINAL = os.path.join(PASTA, "andri-findavil.png")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FOLDER = os.path.join(ROOT, "characters", "andri")
+ORIGINAL = os.path.join(FOLDER, "andri-findavil.png")
 
 # No original o MOMC fica no canto de baixo, à esquerda dos pés do Andri.
-MOMC_CAIXA = (2, 29, 7, 35)  # x0, y0, x1, y1 (x1/y1 exclusivos)
+MOMC_BOX = (2, 29, 7, 35)  # x0, y0, x1, y1 (x1/y1 exclusivos)
 
-QUADRO = (32, 40)
-DESLOCAMENTO = (5, 2)  # onde o original entra no quadro
-DURACOES = {"idle": 250, "walk": 150, "disparo": 90, "analise": 140, "hurt": 150}
+FRAME = (32, 40)
+OFFSET = (5, 2)  # onde o original entra no quadro
+DURACOES = {"idle": 250, "walk": 150, "shot": 90, "analysis": 140, "hurt": 150}
 
 MANGA = (216, 216, 216, 255)
-MANGA_CLARA = (232, 232, 232, 255)
+MANGA_LIGHT = (232, 232, 232, 255)
 PELE = (249, 207, 127, 255)
 LUVA = (33, 27, 0, 255)
-DISPOSITIVO = (22, 107, 122, 255)
-DISPOSITIVO_ACESO = (90, 230, 255, 255)
+DEVICE = (22, 107, 122, 255)
+DEVICE_ACESO = (90, 230, 255, 255)
 
 
-def salvar(img, nome):
-    destino = os.path.join(PASTA, nome)
-    img.save(destino)
-    print("ok:", destino)
+def save(img, name):
+    destination = os.path.join(FOLDER, name)
+    img.save(destination)
+    print("ok:", destination)
 
 
 def separar(original):
-    corpo = original.copy()
-    momc = Image.new("RGBA", (MOMC_CAIXA[2] - MOMC_CAIXA[0] + 2, MOMC_CAIXA[3] - MOMC_CAIXA[1] + 1), (0, 0, 0, 0))
-    for y in range(MOMC_CAIXA[1], MOMC_CAIXA[3]):
-        for x in range(MOMC_CAIXA[0], MOMC_CAIXA[2]):
-            momc.putpixel((x - MOMC_CAIXA[0] + 1, y - MOMC_CAIXA[1]), original.getpixel((x, y)))
-            corpo.putpixel((x, y), (0, 0, 0, 0))
-    return corpo, momc
+    body = original.copy()
+    momc = Image.new("RGBA", (MOMC_BOX[2] - MOMC_BOX[0] + 2, MOMC_BOX[3] - MOMC_BOX[1] + 1), (0, 0, 0, 0))
+    for y in range(MOMC_BOX[1], MOMC_BOX[3]):
+        for x in range(MOMC_BOX[0], MOMC_BOX[2]):
+            momc.putpixel((x - MOMC_BOX[0] + 1, y - MOMC_BOX[1]), original.getpixel((x, y)))
+            body.putpixel((x, y), (0, 0, 0, 0))
+    return body, momc
 
 
-def no_quadro(corpo, dx=0, dy=0):
-    q = Image.new("RGBA", QUADRO, (0, 0, 0, 0))
-    q.alpha_composite(corpo, (DESLOCAMENTO[0] + dx, DESLOCAMENTO[1] + dy))
+def at_frame(body, dx=0, dy=0):
+    q = Image.new("RGBA", FRAME, (0, 0, 0, 0))
+    q.alpha_composite(body, (OFFSET[0] + dx, OFFSET[1] + dy))
     return q
 
 
-def respirando(corpo):
+def respirando(body):
     """Tronco (linhas 12-21) desce 1px; a cabeça fica parada (a lente não mexe)."""
-    c = corpo.copy()
+    c = body.copy()
     for y in range(21, 11, -1):
         for x in range(c.width):
-            c.putpixel((x, y + 1), corpo.getpixel((x, y)))
+            c.putpixel((x, y + 1), body.getpixel((x, y)))
     return c
 
 
-def braco_estendido(corpo, aceso=False):
+def braco_estendido(body, aceso=False):
     """Braço direito (o da frente, à direita) apontando o dispositivo para a frente."""
-    c = corpo.copy()
+    c = body.copy()
     for y in range(16, 22):
         for x in range(16, c.width):
             c.putpixel((x, y), (0, 0, 0, 0))
     for x in range(16, 20):
-        c.putpixel((x, 15), MANGA_CLARA)
+        c.putpixel((x, 15), MANGA_LIGHT)
         c.putpixel((x, 16), MANGA)
     c.putpixel((20, 15), PELE)
     c.putpixel((20, 16), LUVA)
-    disp = DISPOSITIVO_ACESO if aceso else DISPOSITIVO
+    disp = DEVICE_ACESO if aceso else DEVICE
     c.putpixel((21, 15), disp)
     c.putpixel((21, 16), disp)
     return c
 
 
-def gerar_folha(corpo):
-    estendido = braco_estendido(corpo)
-    aceso = braco_estendido(corpo, True)
+def gerar_sheet(body):
+    estendido = braco_estendido(body)
+    aceso = braco_estendido(body, True)
     anims = {
-        "idle": [no_quadro(corpo), no_quadro(corpo), no_quadro(respirando(corpo)), no_quadro(respirando(corpo))],
-        "walk": [no_quadro(corpo), no_quadro(corpo, dy=-1), no_quadro(corpo), no_quadro(corpo, dy=-1)],
-        "disparo": [no_quadro(estendido), no_quadro(aceso), no_quadro(aceso, dx=-1), no_quadro(estendido)],
-        "analise": [no_quadro(estendido), no_quadro(aceso), no_quadro(estendido), no_quadro(aceso)],
-        "hurt": [no_quadro(corpo, dx=-1), no_quadro(corpo)],
+        "idle": [at_frame(body), at_frame(body), at_frame(respirando(body)), at_frame(respirando(body))],
+        "walk": [at_frame(body), at_frame(body, dy=-1), at_frame(body), at_frame(body, dy=-1)],
+        "shot": [at_frame(estendido), at_frame(aceso), at_frame(aceso, dx=-1), at_frame(estendido)],
+        "analysis": [at_frame(estendido), at_frame(aceso), at_frame(estendido), at_frame(aceso)],
+        "hurt": [at_frame(body, dx=-1), at_frame(body)],
     }
-    colunas = max(len(f) for f in anims.values())
-    folha = Image.new("RGBA", (QUADRO[0] * colunas, QUADRO[1] * len(anims)), (0, 0, 0, 0))
-    dados = {"image": "andri_spritesheet.png", "frame_width": QUADRO[0], "frame_height": QUADRO[1], "animations": {}}
-    for linha, (nome, quadros) in enumerate(anims.items()):
-        lista = []
-        for col, q in enumerate(quadros):
-            folha.alpha_composite(q, (col * QUADRO[0], linha * QUADRO[1]))
-            lista.append({"x": col * QUADRO[0], "y": linha * QUADRO[1], "w": QUADRO[0], "h": QUADRO[1]})
-        dados["animations"][nome] = {"row": linha, "frame_duration_ms": DURACOES[nome], "frames": lista}
-    salvar(folha, "andri_spritesheet.png")
-    with open(os.path.join(PASTA, "andri_spritesheet.json"), "w") as f:
-        json.dump(dados, f, indent=2)
-    print("ok:", os.path.join(PASTA, "andri_spritesheet.json"))
+    columns = max(len(f) for f in anims.values())
+    sheet = Image.new("RGBA", (FRAME[0] * columns, FRAME[1] * len(anims)), (0, 0, 0, 0))
+    data = {"image": "andri_spritesheet.png", "frame_width": FRAME[0], "frame_height": FRAME[1], "animations": {}}
+    for line, (name, frames) in enumerate(anims.items()):
+        list = []
+        for col, q in enumerate(frames):
+            sheet.alpha_composite(q, (col * FRAME[0], line * FRAME[1]))
+            list.append({"x": col * FRAME[0], "y": line * FRAME[1], "w": FRAME[0], "h": FRAME[1]})
+        data["animations"][name] = {"row": line, "frame_duration_ms": DURACOES[name], "frames": list}
+    save(sheet, "andri_spritesheet.png")
+    with open(os.path.join(FOLDER, "andri_spritesheet.json"), "w") as f:
+        json.dump(data, f, indent=2)
+    print("ok:", os.path.join(FOLDER, "andri_spritesheet.json"))
 
 
 # ------------------------------------------------------------------ ícones
 # Desenhos 11x11 no padrão de tools/pixel_icon.py (sem moldura,
 # borda em tom escuro da própria cor); cada ícone tem sua paleta.
-ICONES = {
+ICONS = {
     # Disparo: bola de fogo indo para a direita, núcleo claro na frente.
     "shot": ({"d": (180, 30, 0, 255), "o": (255, 106, 0, 255), "y": (255, 216, 0, 255), "w": (255, 250, 200, 255)}, [
         "...........",
@@ -304,19 +304,19 @@ ICONES = {
 
 # Artefatos também voam na arena (Arsenal): esses saem também só com o
 # desenho, sem a folga do ícone.
-ARTEFATOS = ["odyn", "tyr", "loken", "freya", "hodir", "thorim", "archaedas", "ra"]
+ARTIFACTS = ["odyn", "tyr", "loken", "freya", "hodir", "thorim", "archaedas", "ra"]
 
 
-def gerar_icones():
-    for nome, (paleta, linhas) in ICONES.items():
-        salvar(icone(paleta, linhas), "icon_%s.png" % nome)
-        if nome in ARTEFATOS:
-            salvar(desenho(paleta, linhas), "artifact_%s.png" % nome)
+def gerar_icons():
+    for name, (paleta, lines) in ICONS.items():
+        save(icon(paleta, lines), "icon_%s.png" % name)
+        if name in ARTIFACTS:
+            save(drawing(paleta, lines), "artifact_%s.png" % name)
 
 
 if __name__ == "__main__":
     original = Image.open(ORIGINAL).convert("RGBA")
-    corpo, momc = separar(original)
-    gerar_folha(corpo)
-    salvar(momc, "momc.png")
-    gerar_icones()
+    body, momc = separar(original)
+    gerar_sheet(body)
+    save(momc, "momc.png")
+    gerar_icons()

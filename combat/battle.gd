@@ -1,809 +1,809 @@
-class_name Batalha
+class_name Battle
 extends Node2D
-## Batalha de um andar (Andares.atual()): a equipe escolhida no seletor
+## Batalha de um andar (Floors.current()): a equipe escolhida no seletor
 ## contra os inimigos do andar. Controles: as teclas da barra (Q/W/E/R),
 ## ←/→ ou clique troca o alvo. Terminado o andar (vitória ou derrota), o
-## resultado aparece e Enter, Esc ou clique voltam ao saguão. Ações com "opcoes" abrem um seletor
-## (lista na HUD ou, com "seletor": "radial", um anel no próprio lutador):
+## resultado aparece e Enter, Esc ou clique voltam ao saguão. Ações com "options" abrem um seletor
+## (lista na HUD ou, com "selector": "radial", um anel no próprio lutador):
 ## ↑/↓ ou 1-9 escolhem (no anel, ←/→ também giram), ←/→ trocam o alvo,
 ## Enter (ou a tecla da ação) confirma e Esc cancela. W e S não navegam no
 ## seletor: as teclas da barra têm prioridade (a lente do Andri abre sozinha
 ## e o W tem que continuar chamando a skill 2).
 ## A vez, os pontos de skill do time e o alvo ficam aqui; o que cada ação faz
-## na arena fica nas AcoesPersonagem de cada um; a HUD só mostra.
-## Invocações (Invocacao) entram na fila e no lado aliado, mas não são da
+## na arena fica nas CharacterActions de cada um; a HUD só mostra.
+## Invocações (Summon) entram na fila e no lado aliado, mas não são da
 ## equipe: agem sozinhas aqui e não contam para a derrota.
 
-signal acao_escolhida(acao: String)
+signal action_chosen(action: String)
 
-const PONTOS_MAX := 5
-const PONTOS_INICIAIS := 3
-const TAMANHO_FILA := 7
-const CENA_SAGUAO := "res://lobby/lobby.tscn"
+const MAX_POINTS := 5
+const STARTING_POINTS := 3
+const QUEUE_SIZE := 7
+const LOBBY_SCENE := "res://lobby/lobby.tscn"
 
 ## Onde ficam os aliados, por tamanho da equipe (o primeiro vai na frente).
-const POSICOES_ALIADOS := [
+const ALLY_POSITIONS := [
 	[Vector2(220, 430)],
 	[Vector2(250, 432), Vector2(160, 410)],
 	[Vector2(265, 434), Vector2(175, 410), Vector2(110, 436)],
 ]
 ## Onde ficam os inimigos, por quantidade (o do meio um pouco à frente).
-const POSICOES_INIMIGOS := [
+const ENEMY_POSITIONS := [
 	[Vector2(720, 430)],
 	[Vector2(650, 420), Vector2(800, 420)],
 	[Vector2(590, 410), Vector2(720, 430), Vector2(850, 410)],
 ]
 ## Onde ficam as invocações, à frente da equipe (por vaga).
-const POSICOES_INVOCACOES := [Vector2(345, 458), Vector2(440, 414)]
-const COR_INVESTIDA := Color(0.75, 0.65, 1.0)
+const SUMMON_POSITIONS := [Vector2(345, 458), Vector2(440, 414)]
+const CHARGE_COLOR := Color(0.75, 0.65, 1.0)
 
-var equipe: Array[Combatente] = []
-var inimigos: Array[Inimigo] = []
-var lutadores: Array[Combatente] = []
-var invocacoes: Array[Invocacao] = []  ## as que estão em campo
-var pontos := PONTOS_INICIAIS
-var esperando_jogador := false
-var acabou := false
-var ativo: Combatente  ## aliado da vez (ou o último que agiu)
-var alvo := 0  ## índice entre os inimigos vivos
-var aliado_alvo := 0  ## índice em aliados_em_campo() (ações com alvo "aliado")
-var opcao := ""  ## opção escolhida para a ação em execução (elemento, artefato...)
-var andar := 1  ## número do andar (Andares)
-var ids_equipe: Array[String] = []  ## ids do Elenco da equipe, na ordem de `equipe`
-## Resultado da vitória (Progressao.recompensar_vitoria), dado uma vez só.
-var recompensas: Array[Dictionary] = []
-## Andares.concluir() da vitória ({} até lá).
-var conclusao := {}
-var _recompensada := false
-var _saindo := false  ## já pediu a volta ao saguão (tecla e clique juntos)
+var team: Array[Combatant] = []
+var enemies: Array[Enemy] = []
+var fighters: Array[Combatant] = []
+var summons: Array[Summon] = []  ## as que estão em campo
+var points := STARTING_POINTS
+var waiting_for_player := false
+var over := false
+var active: Combatant  ## aliado da vez (ou o último que agiu)
+var target := 0  ## índice entre os inimigos vivos
+var ally_target := 0  ## índice em allies_on_field() (ações com alvo "ally")
+var option := ""  ## opção escolhida para a ação em execução (elemento, artefato...)
+var floor_number := 1  ## número do andar (Floors)
+var team_ids: Array[String] = []  ## ids do Roster da equipe, na ordem de `team`
+## Resultado da vitória (Progression.reward_victory), dado uma vez só.
+var rewards: Array[Dictionary] = []
+## Floors.complete() da vitória ({} até lá).
+var completion := {}
+var _rewarded := false
+var _leaving := false  ## já pediu a volta ao saguão (tecla e clique juntos)
 
-var mundo: Node2D
-var hud: HudBatalha
+var world: Node2D
+var hud: BattleHud
 
-var _visuais := {}  ## Combatente -> VisualLutador
-var _retratos := {}  ## Combatente -> Texture2D, para a HUD
-var _vagas := {}  ## Invocacao -> índice em POSICOES_INVOCACOES
-var _acoes := {}  ## aliado -> AcoesPersonagem
-var _foco := ""  ## habilidade com o mouse em cima (prévia de alvos)
-var _ator: Combatente
-var _escolhendo := ""  ## ação com o seletor de opções aberto
-var _indice_opcao := 0
-var _radial: SeletorRadial  ## o seletor em anel, quando a ação pede
+var _visuals := {}  ## Combatant -> FighterVisual
+var _portraits := {}  ## Combatant -> Texture2D, para a HUD
+var _summon_slots := {}  ## Summon -> índice em SUMMON_POSITIONS
+var _actions := {}  ## aliado -> CharacterActions
+var _focus := ""  ## habilidade com o mouse em cima (prévia de alvos)
+var _actor: Combatant
+var _choosing := ""  ## ação com o seletor de opções aberto
+var _option_index := 0
+var _radial: RadialSelector  ## o seletor em anel, quando a ação pede
 ## Primeiro inimigo que a ação de aliado em curso acertou (ver
-## _ataques_em_conjunto); zerado no começo de cada ação.
-var _primeiro_atingido: Combatente
+## _follow_up_attacks); zerado no começo de cada ação.
+var _first_hit: Combatant
 
 
 func _ready() -> void:
-	mundo = Node2D.new()
-	add_child(mundo)
-	var fundo := Sprite2D.new()
-	andar = Andares.atual()
-	var dados_andar := Andares.dados(andar)
-	fundo.texture = load(dados_andar.get("fundo", Andares.FUNDO_PADRAO))
-	fundo.centered = false
-	fundo.scale = Vector2(3, 3)
-	mundo.add_child(fundo)
+	world = Node2D.new()
+	add_child(world)
+	var background := Sprite2D.new()
+	floor_number = Floors.current()
+	var floor_data := Floors.data(floor_number)
+	background.texture = load(floor_data.get("background", Floors.DEFAULT_BACKGROUND))
+	background.centered = false
+	background.scale = Vector2(3, 3)
+	world.add_child(background)
 
-	ids_equipe = Elenco.equipe().slice(0, Andares.max_equipe(andar))
-	var ids := ids_equipe
-	var posicoes: Array = POSICOES_ALIADOS[ids.size() - 1]
+	team_ids = Roster.team().slice(0, Floors.max_team(floor_number))
+	var ids := team_ids
+	var positions: Array = ALLY_POSITIONS[ids.size() - 1]
 	# quem está mais ao fundo (y menor) é desenhado antes
-	var ordem := range(ids.size())
-	ordem.sort_custom(func(a: int, b: int) -> bool: return posicoes[a].y < posicoes[b].y)
-	var visuais_aliados := []
+	var order := range(ids.size())
+	order.sort_custom(func(a: int, b: int) -> bool: return positions[a].y < positions[b].y)
+	var ally_visuals := []
 	for i in ids.size():
-		var dados := Elenco.dados(ids[i])
-		var c := Elenco.criar(ids[i])
-		var vs := VisualLutador.new()
-		var sp: Dictionary = dados.sprite
-		vs.iniciar_animado(c, sp.png, sp.json, sp.pe, sp.altura, sp.rosto)
-		vs.position = posicoes[i]
-		equipe.append(c)
-		c.aliados_vivos = aliados_vivos
-		visuais_aliados.append(vs)
-		_visuais[c] = vs
-		_acoes[c] = (dados.acoes as GDScript).new(self, c, vs)
-	for i in ordem:
-		mundo.add_child(visuais_aliados[i])
-	ativo = equipe[0]
+		var data := Roster.data(ids[i])
+		var c := Roster.create(ids[i])
+		var vs := FighterVisual.new()
+		var sp: Dictionary = data.sprite
+		vs.setup_animated(c, sp.png, sp.json, sp.foot, sp.height, sp.face)
+		vs.position = positions[i]
+		team.append(c)
+		c.living_allies = living_allies
+		ally_visuals.append(vs)
+		_visuals[c] = vs
+		_actions[c] = (data.actions as GDScript).new(self, c, vs)
+	for i in order:
+		world.add_child(ally_visuals[i])
+	active = team[0]
 
-	inimigos = Andares.criar_inimigos(andar)
-	var pos_inimigos: Array = POSICOES_INIMIGOS[clampi(inimigos.size(), 1, POSICOES_INIMIGOS.size()) - 1]
-	for i in inimigos.size():
-		var vi := VisualLutador.new()
-		vi.iniciar_estatico(inimigos[i], inimigos[i].textura)
-		vi.position = pos_inimigos[i]
-		mundo.add_child(vi)
-		_visuais[inimigos[i]] = vi
+	enemies = Floors.create_enemies(floor_number)
+	var enemy_positions: Array = ENEMY_POSITIONS[clampi(enemies.size(), 1, ENEMY_POSITIONS.size()) - 1]
+	for i in enemies.size():
+		var vi := FighterVisual.new()
+		vi.setup_static(enemies[i], enemies[i].texture)
+		vi.position = enemy_positions[i]
+		world.add_child(vi)
+		_visuals[enemies[i]] = vi
 
-	lutadores.append_array(equipe)
-	lutadores.append_array(inimigos)
+	fighters.append_array(team)
+	fighters.append_array(enemies)
 
-	hud = HudBatalha.new()
+	hud = BattleHud.new()
 	add_child(hud)
-	hud.acao_pedida.connect(pedir_acao)
-	hud.foco_habilidade.connect(func(acao: String) -> void:
-		_foco = acao
-		atualizar())
-	hud.saguao_pedido.connect(_voltar_ao_saguao)
-	hud.opcao_clicada.connect(func(i: int) -> void:
-		if i == _indice_opcao:
-			confirmar_escolha()
+	hud.action_requested.connect(request_action)
+	hud.skill_focused.connect(func(action: String) -> void:
+		_focus = action
+		refresh())
+	hud.lobby_requested.connect(_back_to_lobby)
+	hud.option_clicked.connect(func(i: int) -> void:
+		if i == _option_index:
+			confirm_choice()
 		else:
-			selecionar_opcao(i))
-	for c in _visuais:
-		_retratos[c] = _visuais[c].retrato()
-	hud.definir_retratos(_retratos)
-	var nomes := ", ".join(equipe.map(func(c: Combatente) -> String: return HudBatalha.nome(c)))
-	hud.registrar("Andar %d, %s: %s %s os guardiões da Torre." % [andar, dados_andar.nome, nomes, "encontra" if equipe.size() == 1 else "encontram"])
-	atualizar()
-	_rodar.call_deferred()
+			select_option(i))
+	for c in _visuals:
+		_portraits[c] = _visuals[c].portrait()
+	hud.set_portraits(_portraits)
+	var names := ", ".join(team.map(func(c: Combatant) -> String: return BattleHud.fighter_name(c)))
+	hud.log_line("Andar %d, %s: %s %s os guardiões da Torre." % [floor_number, floor_data.name, names, "meets" if team.size() == 1 else "meet"])
+	refresh()
+	_run.call_deferred()
 
 
 # ---------------------------------------------------------------- entrada
-func pedir_acao(acao: String) -> void:
-	if not esperando_jogador:
+func request_action(action: String) -> void:
+	if not waiting_for_player:
 		return
-	if _escolhendo != "":
-		if acao == _escolhendo:
-			confirmar_escolha()
+	if _choosing != "":
+		if action == _choosing:
+			confirm_choice()
 			return
-		cancelar_escolha()
-	var h := _habilidade(ativo, acao)
-	if h.has("opcoes") and ativo.pode_usar(acao, pontos):
-		_escolhendo = acao
-		var ids: Array = h.opcoes.map(func(o: Dictionary) -> String: return o.id)
-		_indice_opcao = maxi(0, ids.find(h.get("opcao_padrao", "")))
-		if h.get("seletor", "") == "radial":
-			_abrir_radial(acao)
-		_atualizar_escolha()
-		atualizar()
+		cancel_choice()
+	var h := _skill(active, action)
+	if h.has("options") and active.can_use(action, points):
+		_choosing = action
+		var ids: Array = h.options.map(func(o: Dictionary) -> String: return o.id)
+		_option_index = maxi(0, ids.find(h.get("default_option", "")))
+		if h.get("selector", "") == "radial":
+			_open_radial(action)
+		_refresh_choice()
+		refresh()
 		return
-	_confirmar(acao, "")
+	_confirm(action, "")
 
 
 ## Manda a ação para o turno, se a regra do kit permitir. Devolve se foi.
-func _confirmar(acao: String, op: String) -> bool:
-	if ativo.pode_usar(acao, pontos):
-		var motivo := ativo.motivo_invalido(acao, op, alvo_da_acao(acao))
-		if motivo != "":
-			hud.avisar(motivo)
+func _confirm(action: String, op: String) -> bool:
+	if active.can_use(action, points):
+		var reason := active.invalid_reason(action, op, action_target(action))
+		if reason != "":
+			hud.warn(reason)
 			return false
-		hud.acionar(acao)
-	opcao = op
-	acao_escolhida.emit(acao)
+		hud.trigger(action)
+	option = op
+	action_chosen.emit(action)
 	return true
 
 
-func selecionar_opcao(i: int) -> void:
-	var opcoes: Array = _habilidade(ativo, _escolhendo).get("opcoes", [])
-	if i >= 0 and i < opcoes.size():
-		_indice_opcao = i
-		_atualizar_escolha()
-		atualizar()  # a opção pode mirar outro tipo de alvo
+func select_option(i: int) -> void:
+	var options: Array = _skill(active, _choosing).get("options", [])
+	if i >= 0 and i < options.size():
+		_option_index = i
+		_refresh_choice()
+		refresh()  # a opção pode mirar outro tipo de alvo
 
 
-func confirmar_escolha() -> bool:
-	var acao := _escolhendo
-	var opcoes: Array = _habilidade(ativo, acao).get("opcoes", [])
-	if acao == "" or opcoes.is_empty():
+func confirm_choice() -> bool:
+	var action := _choosing
+	var options: Array = _skill(active, action).get("options", [])
+	if action == "" or options.is_empty():
 		return false
-	if not _confirmar(acao, opcoes[_indice_opcao].id):
+	if not _confirm(action, options[_option_index].id):
 		return false
-	_fechar_escolha()
+	_close_choice()
 	return true
 
 
-func cancelar_escolha() -> void:
-	if _escolhendo != "":
-		_fechar_escolha()
-		atualizar()
+func cancel_choice() -> void:
+	if _choosing != "":
+		_close_choice()
+		refresh()
 
 
-func _fechar_escolha() -> void:
-	_escolhendo = ""
-	hud.fechar_opcoes()
+func _close_choice() -> void:
+	_choosing = ""
+	hud.close_options()
 	if is_instance_valid(_radial):
-		_radial.fechar()
+		_radial.close()
 	_radial = null
 
 
 ## Anel de opções preso ao lutador da vez, no ponto que as ações dele indicam.
-func _abrir_radial(acao: String) -> void:
-	_radial = SeletorRadial.new()
-	_radial.position = (_acoes[ativo] as AcoesPersonagem).ancora_seletor(acao)
-	_radial.opcao_focada.connect(selecionar_opcao)
-	_radial.opcao_clicada.connect(func(i: int) -> void:
-		selecionar_opcao(i)
-		confirmar_escolha())
-	_visuais[ativo].add_child(_radial)
+func _open_radial(action: String) -> void:
+	_radial = RadialSelector.new()
+	_radial.position = (_actions[active] as CharacterActions).selector_anchor(action)
+	_radial.option_focused.connect(select_option)
+	_radial.option_clicked.connect(func(i: int) -> void:
+		select_option(i)
+		confirm_choice())
+	_visuals[active].add_child(_radial)
 
 
 ## Mostra o seletor com o motivo de cada opção não servir no alvo atual.
-func _atualizar_escolha() -> void:
-	var h := _habilidade(ativo, _escolhendo)
-	var quem := alvo_da_acao(_escolhendo)
-	var motivos: Array[String] = []
-	for o: Dictionary in h.opcoes:
-		motivos.append(ativo.motivo_invalido(_escolhendo, o.id, quem))
+func _refresh_choice() -> void:
+	var h := _skill(active, _choosing)
+	var speaker := action_target(_choosing)
+	var reasons: Array[String] = []
+	for o: Dictionary in h.options:
+		reasons.append(active.invalid_reason(_choosing, o.id, speaker))
 	# escolha sobre si mesmo (a lente, por exemplo) não precisa mostrar alvo
-	var nome_alvo := quem.nome if quem and tipo_alvo(_escolhendo) != "proprio" else ""
+	var target_name := speaker.name if speaker and target_type(_choosing) != "self" else ""
 	if is_instance_valid(_radial):
-		_radial.mostrar(h.opcoes, _indice_opcao, motivos)
+		_radial.display(h.options, _option_index, reasons)
 	else:
-		hud.mostrar_opcoes(h, _indice_opcao, motivos, nome_alvo)
+		hud.show_options(h, _option_index, reasons, target_name)
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if acabou:
+	if over:
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_ESCAPE]:
-				_voltar_ao_saguao()
+				_back_to_lobby()
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
-		if _escolhendo != "":
-			var n: int = _habilidade(ativo, _escolhendo).get("opcoes", []).size()
-			var passo := 0
+		if _choosing != "":
+			var n: int = _skill(active, _choosing).get("options", []).size()
+			var step := 0
 			match event.keycode:
-				KEY_UP: passo = -1
-				KEY_DOWN: passo = 1
-				KEY_LEFT, KEY_A: passo = -1 if is_instance_valid(_radial) else 0
-				KEY_RIGHT, KEY_D: passo = 1 if is_instance_valid(_radial) else 0
-				KEY_ENTER, KEY_KP_ENTER, KEY_SPACE: confirmar_escolha()
-				KEY_ESCAPE: cancelar_escolha()
-			if passo != 0:
+				KEY_UP: step = -1
+				KEY_DOWN: step = 1
+				KEY_LEFT, KEY_A: step = -1 if is_instance_valid(_radial) else 0
+				KEY_RIGHT, KEY_D: step = 1 if is_instance_valid(_radial) else 0
+				KEY_ENTER, KEY_KP_ENTER, KEY_SPACE: confirm_choice()
+				KEY_ESCAPE: cancel_choice()
+			if step != 0:
 				# no anel, ←/→ giram o tambor em vez de trocar o alvo
-				selecionar_opcao(posmod(_indice_opcao + passo, n))
+				select_option(posmod(_option_index + step, n))
 				return
 			if event.keycode >= KEY_1 and event.keycode <= KEY_9:
-				selecionar_opcao(event.keycode - KEY_1)
+				select_option(event.keycode - KEY_1)
 		match event.keycode:
-			KEY_LEFT, KEY_A: _mudar_alvo(-1)
-			KEY_RIGHT, KEY_D: _mudar_alvo(1)
+			KEY_LEFT, KEY_A: _change_target(-1)
+			KEY_RIGHT, KEY_D: _change_target(1)
 			_:
 				# teclas das habilidades vêm do kit de quem está na vez
-				var tecla := OS.get_keycode_string(event.keycode)
-				for h in ativo.habilidades(pontos):
-					if h.tecla == tecla:
-						pedir_acao(h.acao)
+				var key := OS.get_keycode_string(event.keycode)
+				for h in active.skills(points):
+					if h.key == key:
+						request_action(h.action)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var em_aliado := _mirando_aliado()
-		var vivos: Array = aliados_em_campo() if em_aliado else inimigos_vivos()
-		for i in vivos.size():
-			var v: VisualLutador = _visuais[vivos[i]]
-			var area := Rect2(v.position.x - 60, v.position.y - v.altura - 20, 120, v.altura + 30)
+		var on_ally := _aiming_at_ally()
+		var alive: Array = allies_on_field() if on_ally else living_enemies()
+		for i in alive.size():
+			var v: FighterVisual = _visuals[alive[i]]
+			var area := Rect2(v.position.x - 60, v.position.y - v.height - 20, 120, v.height + 30)
 			if area.has_point(get_global_mouse_position()):
-				if em_aliado:
-					aliado_alvo = i
+				if on_ally:
+					ally_target = i
 				else:
-					alvo = i
-				_mudou_alvo()
+					target = i
+				_on_target_changed()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
-		cancelar_escolha()
+		cancel_choice()
 
 
 ## A ação em foco (ou no seletor) mira um aliado?
-func _mirando_aliado() -> bool:
-	var acao := _escolhendo if _escolhendo != "" else _foco
-	return tipo_alvo(acao) == "aliado"
+func _aiming_at_ally() -> bool:
+	var action := _choosing if _choosing != "" else _focus
+	return target_type(action) == "ally"
 
 
-## Tipo de alvo de `acao` do aliado da vez: o da opção marcada no seletor,
+## Tipo de alvo de `action` do aliado da vez: o da opção marcada no seletor,
 ## se ela tiver um, ou o da própria ação.
-func tipo_alvo(acao: String) -> String:
-	var h := _habilidade(ativo, acao)
-	if acao != "" and acao == _escolhendo:
-		var opcoes: Array = h.get("opcoes", [])
-		if _indice_opcao < opcoes.size() and (opcoes[_indice_opcao] as Dictionary).has("alvo"):
-			return opcoes[_indice_opcao].alvo
-	return h.get("alvo", "")
+func target_type(action: String) -> String:
+	var h := _skill(active, action)
+	if action != "" and action == _choosing:
+		var options: Array = h.get("options", [])
+		if _option_index < options.size() and (options[_option_index] as Dictionary).has("target"):
+			return options[_option_index].target
+	return h.get("target", "")
 
 
-func _mudar_alvo(direcao: int) -> void:
-	if _mirando_aliado():
-		var n := aliados_em_campo().size()
+func _change_target(direction: int) -> void:
+	if _aiming_at_ally():
+		var n := allies_on_field().size()
 		if n > 0:
-			aliado_alvo = posmod(aliado_alvo + direcao, n)
+			ally_target = posmod(ally_target + direction, n)
 	else:
-		var n := inimigos_vivos().size()
+		var n := living_enemies().size()
 		if n > 0:
-			alvo = posmod(alvo + direcao, n)
-	_mudou_alvo()
+			target = posmod(target + direction, n)
+	_on_target_changed()
 
 
-func _mudou_alvo() -> void:
-	if _escolhendo != "":
-		_atualizar_escolha()
-	atualizar()
+func _on_target_changed() -> void:
+	if _choosing != "":
+		_refresh_choice()
+	refresh()
 
 
 ## Volta ao saguão pela porta, onde os eventos de história pendentes rodam.
-func _voltar_ao_saguao() -> void:
-	if not acabou or _saindo:
+func _back_to_lobby() -> void:
+	if not over or _leaving:
 		return
-	_saindo = true
-	Engine.set_meta(Lobby.META_ENTRADA, "porta")
-	get_tree().change_scene_to_file(CENA_SAGUAO)
+	_leaving = true
+	Engine.set_meta(Lobby.ENTRANCE_META, "door")
+	get_tree().change_scene_to_file(LOBBY_SCENE)
 
 
 # ------------------------------------------------------------ fluxo da luta
-func inimigos_vivos() -> Array[Inimigo]:
-	return inimigos.filter(func(i: Inimigo) -> bool: return i.vivo())
+func living_enemies() -> Array[Enemy]:
+	return enemies.filter(func(i: Enemy) -> bool: return i.is_alive())
 
 
-func aliados_vivos() -> Array[Combatente]:
-	return equipe.filter(func(c: Combatente) -> bool: return c.vivo())
+func living_allies() -> Array[Combatant]:
+	return team.filter(func(c: Combatant) -> bool: return c.is_alive())
 
 
-## Quem os inimigos podem atacar e as ações "aliado" podem mirar: a equipe
+## Quem os inimigos podem atacar e as ações "ally" podem mirar: a equipe
 ## de pé e as invocações em campo.
-func aliados_em_campo() -> Array[Combatente]:
-	var lista := aliados_vivos()
-	for inv in invocacoes:
-		if inv.em_jogo():
-			lista.append(inv)
-	return lista
+func allies_on_field() -> Array[Combatant]:
+	var list := living_allies()
+	for inv in summons:
+		if inv.in_play():
+			list.append(inv)
+	return list
 
 
-func _rodar() -> void:
-	await esperar(0.6)
-	while not acabou:
-		_ator = FilaTurnos.proximo(lutadores)
-		FilaTurnos.avancar_ate(lutadores, _ator)
-		var invocado := _ator as Invocacao
-		if _ator.aliado and not invocado:
-			ativo = _ator
-		atualizar()
-		if invocado:
-			_primeiro_atingido = null
-			await golpe_invocacao(invocado, invocado.golpe)
-			await _ataques_em_conjunto(invocado)
-		elif _ator.aliado:
-			await _turno_aliado(_ator)
+func _run() -> void:
+	await wait(0.6)
+	while not over:
+		_actor = TurnQueue.next(fighters)
+		TurnQueue.advance_to(fighters, _actor)
+		var summoned := _actor as Summon
+		if _actor.ally and not summoned:
+			active = _actor
+		refresh()
+		if summoned:
+			_first_hit = null
+			await summon_strike(summoned, summoned.strike)
+			await _follow_up_attacks(summoned)
+		elif _actor.ally:
+			await _ally_turn(_actor)
 		else:
-			await _turno_inimigo(_ator as Inimigo)
-		_ator.reiniciar_av()
-		if _ator.vivo():
-			_passar_turno(_ator)
-		if invocado and invocado.em_jogo() and invocado.passar_vez():
-			hud.registrar("%s volta ao abismo." % HudBatalha.nome(invocado))
-			await ultimo_ato(invocado)
-			remover_invocacao(invocado)
-		_verificar_fim()
-		atualizar()
-		await esperar(0.25)
+			await _enemy_turn(_actor as Enemy)
+		_actor.reset_av()
+		if _actor.is_alive():
+			_pass_turn(_actor)
+		if summoned and summoned.in_play() and summoned.consume_turn():
+			hud.log_line("%s volta ao abismo." % BattleHud.fighter_name(summoned))
+			await last_act(summoned)
+			remove_summon(summoned)
+		_check_end()
+		refresh()
+		await wait(0.25)
 
 
-func _turno_aliado(a: Combatente) -> void:
-	var acoes: AcoesPersonagem = _acoes[a]
-	if not await acoes.inicio_turno():
-		if not a.vivo():
-			await _cair(a)
+func _ally_turn(a: Combatant) -> void:
+	var actions: CharacterActions = _actions[a]
+	if not await actions.start_turn():
+		if not a.is_alive():
+			await _fall(a)
 		return
 
-	aliado_alvo = maxi(0, aliados_em_campo().find(a))  # o próprio, por padrão
-	esperando_jogador = true
-	atualizar()
+	ally_target = maxi(0, allies_on_field().find(a))  # o próprio, por padrão
+	waiting_for_player = true
+	refresh()
 	# escolhas de começo de turno (ex.: a lente do Andri) abrem sozinhas;
 	# usar outra ação direto fecha o seletor e mantém a escolha anterior
-	for h in a.habilidades(pontos):
-		if h.get("ao_iniciar_turno", false) and a.pode_usar(h.acao, pontos):
-			pedir_acao(h.acao)
+	for h in a.skills(points):
+		if h.get("on_turn_start", false) and a.can_use(h.action, points):
+			request_action(h.action)
 			break
 	while true:
-		var acao: String = await acao_escolhida
-		if not a.pode_usar(acao, pontos):
+		var action: String = await action_chosen
+		if not a.can_use(action, points):
 			continue
-		var h := _habilidade(a, acao)
-		esperando_jogador = false
-		_foco = ""
-		pontos -= h.get("custo_pontos", 0)
-		atualizar()
-		_primeiro_atingido = null
-		await acoes.executar(acao)
-		await _ataques_em_conjunto(a)
-		pontos = mini(PONTOS_MAX, pontos + h.get("ganho_pontos", 0))
-		a.iniciar_recarga(acao, h.get("recarga", 0))
-		if acabou or not h.get("livre", false):
+		var h := _skill(a, action)
+		waiting_for_player = false
+		_focus = ""
+		points -= h.get("point_cost", 0)
+		refresh()
+		_first_hit = null
+		await actions.execute(action)
+		await _follow_up_attacks(a)
+		points = mini(MAX_POINTS, points + h.get("point_gain", 0))
+		a.start_cooldown(action, h.get("cooldown", 0))
+		if over or not h.get("free", false):
 			break
-		esperando_jogador = true
-		atualizar()
-	acoes.fim_turno()
+		waiting_for_player = true
+		refresh()
+	actions.end_turn()
 
 
-func _habilidade(a: Combatente, acao: String) -> Dictionary:
-	for h in a.habilidades(pontos):
-		if h.acao == acao:
+func _skill(a: Combatant, action: String) -> Dictionary:
+	for h in a.skills(points):
+		if h.action == action:
 			return h
 	return {}
 
 
-func _turno_inimigo(ini: Inimigo) -> void:
-	var vi: VisualLutador = _visuais[ini]
-	var golpe := ini.proximo_golpe()
-	var vitima := ini.escolher_alvo(aliados_em_campo())
-	ini.registrar_acao()
-	if golpe.pesado:
-		hud.registrar("%s concentra energia para um %s!" % [HudBatalha.nome(ini), HudBatalha.destaque("Golpe Pesado", EstiloUI.COR_TIPO_EFEITO.alerta)])
-		vi.piscar(Color(2.5, 0.8, 1.6))
-		EfeitosCombate.anel(mundo, vi.position + Vector2(0, -vi.altura * 0.5), EstiloUI.COR_TIPO_EFEITO.alerta, vi.altura * 0.7)
-		await esperar(0.5)
+func _enemy_turn(ini: Enemy) -> void:
+	var vi: FighterVisual = _visuals[ini]
+	var strike := ini.next_strike()
+	var victim := ini.choose_target(allies_on_field())
+	ini.count_action()
+	if strike.heavy:
+		hud.log_line("%s concentra energia para um %s!" % [BattleHud.fighter_name(ini), BattleHud.highlight("Golpe Pesado", UIStyle.EFFECT_TYPE_COLORS.alert)])
+		vi.flash(Color(2.5, 0.8, 1.6))
+		CombatEffects.ring(world, vi.position + Vector2(0, -vi.height * 0.5), UIStyle.EFFECT_TYPE_COLORS.alert, vi.height * 0.7)
+		await wait(0.5)
 	else:
-		hud.registrar("%s utilizou %s em %s." % [HudBatalha.nome(ini), golpe.nome, HudBatalha.nome(vitima)])
-	var origem := vi.position
-	var va: VisualLutador = _visuais[vitima]
-	await vi.mover_para(Vector2(va.position.x + 110, origem.y), 0.25)
-	EfeitosCombate.impacto(mundo, va.position + Vector2(10, -va.altura * 0.5),
-		EstiloUI.COR_TIPO_EFEITO.alerta if golpe.pesado else COR_INVESTIDA, 1.4 if golpe.pesado else 1.0)
-	await aplicar_dano(ini, vitima, golpe.mult, golpe.tipo)
-	vitima.ganhar_energia(vitima.energia_ao_apanhar)
-	if golpe.pesado:
-		tremer(8.0)
-	await esperar(0.15)
-	await vi.mover_para(origem, 0.3)
+		hud.log_line("%s utilizou %s em %s." % [BattleHud.fighter_name(ini), strike.name, BattleHud.fighter_name(victim)])
+	var origin := vi.position
+	var va: FighterVisual = _visuals[victim]
+	await vi.move_to(Vector2(va.position.x + 110, origin.y), 0.25)
+	CombatEffects.impact(world, va.position + Vector2(10, -va.height * 0.5),
+		UIStyle.EFFECT_TYPE_COLORS.alert if strike.heavy else CHARGE_COLOR, 1.4 if strike.heavy else 1.0)
+	await apply_damage(ini, victim, strike.mult, strike.type)
+	victim.gain_energy(victim.energy_on_hit)
+	if strike.heavy:
+		shake(8.0)
+	await wait(0.15)
+	await vi.move_to(origin, 0.3)
 
 
-## `tipo_ataque` é o tipo de dano (Tipos); "" = o tipo do atacante.
+## `attack_type` é o tipo de dano (Types); "" = o tipo do atacante.
 ## Um golpe: tipo, efetividade (com fraquezas), crítico e escudo. Depois,
 ## se não for `extra`, os estados de acerto e os golpes adicionais do
 ## atacante (cada adicional entra aqui com extra = true: não se encadeia).
-func aplicar_dano(atacante: Combatente, vitima: Combatente, mult: float, tipo_ataque := "", extra := false) -> void:
-	if not vitima.vivo():
+func apply_damage(attacker: Combatant, victim: Combatant, mult: float, attack_type := "", extra := false) -> void:
+	if not victim.is_alive():
 		return
-	if tipo_ataque == "":
-		tipo_ataque = atacante.tipo
-	var critico := not extra and randf() < atacante.chance_critico()
-	var dano := Combatente.calcular_dano(atacante, vitima, mult, randf(), tipo_ataque, critico)
-	var efetividade := vitima.efetividade_contra(tipo_ataque)
-	var absorvido := vitima.absorver(dano)
-	vitima.receber_dano(dano - absorvido)
-	if atacante.aliado and not vitima.aliado and not extra and _primeiro_atingido == null:
-		_primeiro_atingido = vitima
-	var v: VisualLutador = _visuais[vitima]
-	var tipo := "recebido" if vitima.aliado else ("dano" if mult >= 1.0 else "fraco")
-	if (efetividade > 1.0 or critico) and not vitima.aliado:
-		tipo = "critico"
+	if attack_type == "":
+		attack_type = attacker.type
+	var critical := not extra and randf() < attacker.crit_chance()
+	var damage := Combatant.calculate_damage(attacker, victim, mult, randf(), attack_type, critical)
+	var effectiveness := victim.effectiveness_against(attack_type)
+	var absorbed := victim.absorb(damage)
+	victim.take_damage(damage - absorbed)
+	if attacker.ally and not victim.ally and not extra and _first_hit == null:
+		_first_hit = victim
+	var v: FighterVisual = _visuals[victim]
+	var type := "taken" if victim.ally else ("damage" if mult >= 1.0 else "weak")
+	if (effectiveness > 1.0 or critical) and not victim.ally:
+		type = "critical"
 	if extra:
-		EfeitosCombate.impacto(mundo, v.position + Vector2(0, -v.altura * 0.5), Tipos.cor(tipo_ataque), 0.8)
-	if absorvido > 0:
-		EfeitosCombate.numero(mundo, v.topo() + Vector2(0, 20), "(%d)" % absorvido, "escudo")
-	if dano > absorvido:
-		EfeitosCombate.numero(mundo, v.topo(), str(dano - absorvido) + ("!" if critico else ""), tipo)
-	var aviso := ""
-	if efetividade > 1.0:
-		aviso = " " + HudBatalha.destaque("Super efetivo!", EstiloUI.DANO_CRITICO)
-		EfeitosCombate.numero(mundo, v.topo() + Vector2(0, -26), "SUPER EFETIVO", "efetivo")
-	elif efetividade < 1.0:
-		aviso = " " + HudBatalha.destaque("Pouco efetivo...", EstiloUI.TEXTO_FRACO)
-		EfeitosCombate.numero(mundo, v.topo() + Vector2(0, -26), "pouco efetivo", "pouco_efetivo")
-	if critico:
-		aviso += " " + HudBatalha.destaque("Crítico!", EstiloUI.DANO_CRITICO)
-	if absorvido > 0:
-		aviso += " O escudo absorveu %s." % HudBatalha.destaque(str(absorvido), EfeitosCombate.NUMEROS.escudo[0])
-	hud.registrar("%s recebeu %s de dano %s.%s" % [HudBatalha.nome(vitima),
-		HudBatalha.destaque(str(dano - absorvido), EfeitosCombate.NUMEROS[tipo][0]),
-		HudBatalha.destaque(Tipos.nome(tipo_ataque), Tipos.cor(tipo_ataque)), aviso])
-	if vitima.vivo():
-		v.levar_golpe()
+		CombatEffects.impact(world, v.position + Vector2(0, -v.height * 0.5), Types.color(attack_type), 0.8)
+	if absorbed > 0:
+		CombatEffects.number(world, v.top() + Vector2(0, 20), "(%d)" % absorbed, "shield")
+	if damage > absorbed:
+		CombatEffects.number(world, v.top(), str(damage - absorbed) + ("!" if critical else ""), type)
+	var notice := ""
+	if effectiveness > 1.0:
+		notice = " " + BattleHud.highlight("Super efetivo!", UIStyle.CRITICAL_DAMAGE)
+		CombatEffects.number(world, v.top() + Vector2(0, -26), "SUPER EFETIVO", "effective")
+	elif effectiveness < 1.0:
+		notice = " " + BattleHud.highlight("Pouco efetivo...", UIStyle.DIM_TEXT)
+		CombatEffects.number(world, v.top() + Vector2(0, -26), "pouco efetivo", "not_very_effective")
+	if critical:
+		notice += " " + BattleHud.highlight("Crítico!", UIStyle.CRITICAL_DAMAGE)
+	if absorbed > 0:
+		notice += " O escudo absorveu %s." % BattleHud.highlight(str(absorbed), CombatEffects.NUMBERS.shield[0])
+	hud.log_line("%s recebeu %s de dano %s.%s" % [BattleHud.fighter_name(victim),
+		BattleHud.highlight(str(damage - absorbed), CombatEffects.NUMBERS[type][0]),
+		BattleHud.highlight(Types.name(attack_type), Types.color(attack_type)), notice])
+	if victim.is_alive():
+		v.take_hit()
 	else:
-		await _cair(vitima)
-	alvo = clampi(alvo, 0, maxi(0, inimigos_vivos().size() - 1))
-	atualizar()
-	if vitima is Inimigo:
-		await _ultimo_recurso(vitima as Inimigo)
-	if extra or not vitima.vivo():
+		await _fall(victim)
+	target = clampi(target, 0, maxi(0, living_enemies().size() - 1))
+	refresh()
+	if victim is Enemy:
+		await _last_resort(victim as Enemy)
+	if extra or not victim.is_alive():
 		return
-	for e in atacante.estados_ao_acertar():
-		vitima.aplicar_estado(e)
-		hud.registrar("%s ficou %s." % [HudBatalha.nome(vitima), HudBatalha.destaque(e.nome, EstiloUI.cor_efeito(e.descricao()))])
-	for g in atacante.golpes_extras(mult):
-		await esperar(0.08)
-		hud.registrar("%s: dano extra de %s." % [g.fonte, HudBatalha.destaque(Tipos.nome(g.tipo), Tipos.cor(g.tipo))])
-		await aplicar_dano(atacante, vitima, g.mult, g.tipo, true)
+	for e in attacker.on_hit_statuses():
+		victim.apply_status(e)
+		hud.log_line("%s ficou %s." % [BattleHud.fighter_name(victim), BattleHud.highlight(e.name, UIStyle.effect_color(e.description()))])
+	for g in attacker.extra_strikes(mult):
+		await wait(0.08)
+		hud.log_line("%s: dano extra de %s." % [g.source, BattleHud.highlight(Types.name(g.type), Types.color(g.type))])
+		await apply_damage(attacker, victim, g.mult, g.type, true)
 
 
-## Último recurso do inimigo (Inimigo.ultimo_recurso), se o golpe o deixou
+## Último recurso do inimigo (Enemy.last_resort), se o golpe o deixou
 ## abaixo da fração: anúncio no meio da tela e o escudo nele.
-func _ultimo_recurso(ini: Inimigo) -> void:
-	var e := ini.ativar_ultimo_recurso()
+func _last_resort(ini: Enemy) -> void:
+	var e := ini.activate_last_resort()
 	if e == null:
 		return
-	ini.aplicar_estado(e)
-	var vi: VisualLutador = _visuais[ini]
-	hud.anunciar("%s ativado" % e.nome, Inimigo.COR_ULTIMO_RECURSO, 34)
-	vi.piscar(Color(2.0, 2.1, 2.6))
-	EfeitosCombate.anel(mundo, vi.position + Vector2(0, -vi.altura * 0.5), Inimigo.COR_ULTIMO_RECURSO, maxf(50.0, vi.altura * 0.6))
-	EfeitosCombate.numero(mundo, vi.topo() + Vector2(0, -10), "+%d" % e.escudo, "escudo")
-	hud.registrar("%s ativou %s: escudo de %s." % [HudBatalha.nome(ini), HudBatalha.destaque(e.nome, Inimigo.COR_ULTIMO_RECURSO),
-		HudBatalha.destaque(str(e.escudo), EfeitosCombate.NUMEROS.escudo[0])])
-	atualizar()
-	await esperar(0.35)
+	ini.apply_status(e)
+	var vi: FighterVisual = _visuals[ini]
+	hud.announce("%s ativado" % e.name, Enemy.LAST_RESORT_COLOR, 34)
+	vi.flash(Color(2.0, 2.1, 2.6))
+	CombatEffects.ring(world, vi.position + Vector2(0, -vi.height * 0.5), Enemy.LAST_RESORT_COLOR, maxf(50.0, vi.height * 0.6))
+	CombatEffects.number(world, vi.top() + Vector2(0, -10), "+%d" % e.shield, "shield")
+	hud.log_line("%s ativou %s: escudo de %s." % [BattleHud.fighter_name(ini), BattleHud.highlight(e.name, Enemy.LAST_RESORT_COLOR),
+		BattleHud.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
+	refresh()
+	await wait(0.35)
 
 
-## Ataque em conjunto (Combatente.atacar_junto): a ação de `ator` acertou um
+## Ataque em conjunto (Combatant.follow_up): a ação de `actor` acertou um
 ## inimigo, e quem da equipe tiver como ataca junto o primeiro atingido. Se
 ## ele já caiu, ninguém ataca.
-func _ataques_em_conjunto(ator: Combatente) -> void:
-	var quem := _primeiro_atingido
-	_primeiro_atingido = null
-	if quem == null:
+func _follow_up_attacks(actor: Combatant) -> void:
+	var speaker := _first_hit
+	_first_hit = null
+	if speaker == null:
 		return
-	for c in aliados_vivos():
-		if acabou or not quem.vivo():
+	for c in living_allies():
+		if over or not speaker.is_alive():
 			return
-		var g := c.atacar_junto(ator, quem)
+		var g := c.follow_up(actor, speaker)
 		if not g.is_empty():
-			await (_acoes[c] as AcoesPersonagem).atacar_junto(quem, g)
+			await (_actions[c] as CharacterActions).follow_up(speaker, g)
 
 
 ## Fim do turno de `c`: os estados genéricos perdem um turno.
-func _passar_turno(c: Combatente) -> void:
-	for e in c.passar_turno():
-		hud.registrar("%s de %s acabou." % [e.nome, HudBatalha.nome(c)])
+func _pass_turn(c: Combatant) -> void:
+	for e in c.pass_turn():
+		hud.log_line("%s de %s acabou." % [e.name, BattleHud.fighter_name(c)])
 
 
-func aliado_atual() -> Combatente:
-	var vivos := aliados_em_campo()
-	return vivos[clampi(aliado_alvo, 0, vivos.size() - 1)] if not vivos.is_empty() else null
+func current_ally() -> Combatant:
+	var alive := allies_on_field()
+	return alive[clampi(ally_target, 0, alive.size() - 1)] if not alive.is_empty() else null
 
 
-## Quem a ação `acao` do aliado da vez tem como alvo principal.
-func alvo_da_acao(acao: String) -> Combatente:
-	match tipo_alvo(acao):
-		"aliado": return aliado_atual()
-		"proprio": return ativo
-	var vivos := inimigos_vivos()
-	return vivos[alvo] if not vivos.is_empty() else null
+## Quem a ação `action` do aliado da vez tem como alvo principal.
+func action_target(action: String) -> Combatant:
+	match target_type(action):
+		"ally": return current_ally()
+		"self": return active
+	var alive := living_enemies()
+	return alive[target] if not alive.is_empty() else null
 
 
-func _cair(c: Combatente) -> void:
-	hud.registrar("%s foi derrotado." % HudBatalha.nome(c) if not c.aliado else "%s caiu." % HudBatalha.nome(c))
-	if c is Invocacao:
-		await ultimo_ato(c as Invocacao)
-		remover_invocacao(c as Invocacao)
+func _fall(c: Combatant) -> void:
+	hud.log_line("%s foi derrotado." % BattleHud.fighter_name(c) if not c.ally else "%s caiu." % BattleHud.fighter_name(c))
+	if c is Summon:
+		await last_act(c as Summon)
+		remove_summon(c as Summon)
 		return
-	_visuais[c].morrer()
-	if not c.aliado:
-		for a in aliados_vivos():
-			var ganho := a.ao_inimigo_cair()
-			if ganho != "":
-				hud.registrar("%s absorve %s." % [HudBatalha.nome(a), ganho])
+	_visuals[c].die()
+	if not c.ally:
+		for a in living_allies():
+			var gain := a.on_enemy_fallen()
+			if gain != "":
+				hud.log_line("%s absorve %s." % [BattleHud.fighter_name(a), gain])
 	else:
 		# quem invocou leva as invocações junto
-		for inv in invocacoes.duplicate():
-			if inv.invocador == c:
-				hud.registrar("%s se desfaz." % HudBatalha.nome(inv))
-				remover_invocacao(inv)
-	if c == ativo and not aliados_vivos().is_empty():
-		ativo = aliados_vivos()[0]
-	_verificar_fim()
+		for inv in summons.duplicate():
+			if inv.summoner == c:
+				hud.log_line("%s se desfaz." % BattleHud.fighter_name(inv))
+				remove_summon(inv)
+	if c == active and not living_allies().is_empty():
+		active = living_allies()[0]
+	_check_end()
 
 
-func _verificar_fim() -> void:
-	if acabou:
+func _check_end() -> void:
+	if over:
 		return
-	if inimigos_vivos().is_empty():
-		_terminar(true, "Andar %d concluído!" % andar)
-	elif aliados_vivos().is_empty():
-		_terminar(false, "%s caiu..." % equipe[0].nome if equipe.size() == 1 else "A equipe caiu...")
+	if living_enemies().is_empty():
+		_finish(true, "Andar %d concluído!" % floor_number)
+	elif living_allies().is_empty():
+		_finish(false, "%s caiu..." % team[0].name if team.size() == 1 else "A equipe caiu...")
 
 
-func _terminar(vitoria: bool, texto: String) -> void:
-	acabou = true
-	esperando_jogador = false
-	if vitoria:
-		_recompensar()
+func _finish(victory: bool, text: String) -> void:
+	over = true
+	waiting_for_player = false
+	if victory:
+		_reward()
 	var extras: Array[String] = []
-	if not conclusao.is_empty():
-		if conclusao.liberou > 0:
-			extras.append("Andar %d liberado: %s" % [conclusao.liberou, Andares.dados(conclusao.liberou).nome])
-			if conclusao.limite_depois > conclusao.limite_antes:
-				extras.append("Limite de nível: %d → %d" % [conclusao.limite_antes, conclusao.limite_depois])
-		elif conclusao.primeira and andar == Andares.total():
+	if not completion.is_empty():
+		if completion.unlocked_floor > 0:
+			extras.append("Andar %d liberado: %s" % [completion.unlocked_floor, Floors.data(completion.unlocked_floor).name])
+			if completion.limit_after > completion.limit_before:
+				extras.append("Limite de nível: %d → %d" % [completion.limit_before, completion.limit_after])
+		elif completion.first and floor_number == Floors.total():
 			extras.append("Você chegou ao topo da Torre, por enquanto.")
-		for e: Dictionary in conclusao.eventos:
-			var linha := Eventos.resumo(e)
-			if linha != "":
-				extras.append(linha)
-	hud.mostrar_fim(vitoria, texto, recompensas, extras)
-	atualizar()
+		for e: Dictionary in completion.events:
+			var line := StoryEvents.summary(e)
+			if line != "":
+				extras.append(line)
+	hud.show_end(victory, text, rewards, extras)
+	refresh()
 
 
 ## XP da vitória para toda a equipe que lutou (inclusive quem caiu). Uma vez
 ## por batalha: chamadas repetidas não dão de novo.
-func _recompensar() -> void:
-	if _recompensada:
+func _reward() -> void:
+	if _rewarded:
 		return
-	_recompensada = true
+	_rewarded = true
 	# XP antes do andar: quem chega pela história entra no nível já com a XP desta luta
-	recompensas = Progressao.recompensar_vitoria(ids_equipe, inimigos)
-	conclusao = Andares.concluir(andar)
-	for r in recompensas:
-		if not r.participou:
+	rewards = Progression.reward_victory(team_ids, enemies)
+	completion = Floors.complete(floor_number)
+	for r in rewards:
+		if not r.took_part:
 			continue
-		var c := equipe[ids_equipe.find(r.id)]
-		hud.registrar("%s recebeu %s." % [HudBatalha.nome(c), HudBatalha.destaque("%d XP" % r.xp_aproveitada, EstiloUI.XP)])
-		if r.no_limite and r.nivel == r.nivel_antes:
-			hud.registrar("%s está no limite de nível da Torre (%d)." % [HudBatalha.nome(c), r.limite])
-		if r.nivel > r.nivel_antes:
-			hud.registrar("%s subiu para o %s!" % [HudBatalha.nome(c), HudBatalha.destaque("nível %d" % r.nivel, EstiloUI.OURO)])
-			var v: VisualLutador = _visuais[c]
-			v.piscar(Color(2.2, 1.9, 0.9))
-			EfeitosCombate.numero(mundo, v.topo() + Vector2(0, -10), "NÍVEL %d!" % r.nivel, "nivel")
+		var c := team[team_ids.find(r.id)]
+		hud.log_line("%s recebeu %s." % [BattleHud.fighter_name(c), BattleHud.highlight("%d XP" % r.xp_gained, UIStyle.XP)])
+		if r.at_limit and r.level == r.level_before:
+			hud.log_line("%s está no limite de nível da Torre (%d)." % [BattleHud.fighter_name(c), r.limit])
+		if r.level > r.level_before:
+			hud.log_line("%s subiu para o %s!" % [BattleHud.fighter_name(c), BattleHud.highlight("nível %d" % r.level, UIStyle.GOLD)])
+			var v: FighterVisual = _visuals[c]
+			v.flash(Color(2.2, 1.9, 0.9))
+			CombatEffects.number(world, v.top() + Vector2(0, -10), "NÍVEL %d!" % r.level, "level")
 
 
 # ------------------------------------------------------------- invocações
 ## Põe `inv` em campo, na primeira vaga livre, surgindo num círculo da cor dela.
-func adicionar_invocacao(inv: Invocacao) -> void:
-	var vaga := 0
-	while _vagas.values().has(vaga):
-		vaga += 1
-	_vagas[inv] = vaga
-	var vi := VisualLutador.new()
-	vi.iniciar_estatico(inv, inv.textura)
-	vi.position = POSICOES_INVOCACOES[mini(vaga, POSICOES_INVOCACOES.size() - 1)]
+func add_summon(inv: Summon) -> void:
+	var slot := 0
+	while _summon_slots.values().has(slot):
+		slot += 1
+	_summon_slots[inv] = slot
+	var vi := FighterVisual.new()
+	vi.setup_static(inv, inv.texture)
+	vi.position = SUMMON_POSITIONS[mini(slot, SUMMON_POSITIONS.size() - 1)]
 	vi.modulate.a = 0.0
-	mundo.add_child(vi)
-	_visuais[inv] = vi
-	_retratos[inv] = vi.retrato()
-	invocacoes.append(inv)
-	lutadores.append(inv)
-	var aura := EfeitosCombate.aura(vi, [Color(inv.cor, 0.5), inv.cor.lightened(0.3), inv.cor.lightened(0.6)])
-	aura.nivel = 1
-	EfeitosCombate.carga(mundo, vi.position + Vector2(0, -vi.altura * 0.5), [inv.cor, Color.WHITE], 0.35, 90.0)
-	await esperar(0.3)
-	EfeitosCombate.anel(mundo, vi.position + Vector2(0, -8), inv.cor, maxf(50.0, vi.altura * 0.6))
-	vi.piscar(Color(1.0 + inv.cor.r, 1.0 + inv.cor.g, 1.0 + inv.cor.b))
+	world.add_child(vi)
+	_visuals[inv] = vi
+	_portraits[inv] = vi.portrait()
+	summons.append(inv)
+	fighters.append(inv)
+	var aura := CombatEffects.aura(vi, [Color(inv.color, 0.5), inv.color.lightened(0.3), inv.color.lightened(0.6)])
+	aura.level = 1
+	CombatEffects.charge(world, vi.position + Vector2(0, -vi.height * 0.5), [inv.color, Color.WHITE], 0.35, 90.0)
+	await wait(0.3)
+	CombatEffects.ring(world, vi.position + Vector2(0, -8), inv.color, maxf(50.0, vi.height * 0.6))
+	vi.flash(Color(1.0 + inv.color.r, 1.0 + inv.color.g, 1.0 + inv.color.b))
 	create_tween().tween_property(vi, "modulate:a", 1.0, 0.25)
-	atualizar()
-	await esperar(0.3)
+	refresh()
+	await wait(0.3)
 
 
 ## Tira `inv` de campo (tempo, queda, substituída): some da arena e da fila.
-func remover_invocacao(inv: Invocacao) -> void:
-	inv.em_campo = false
-	invocacoes.erase(inv)
-	lutadores.erase(inv)
-	_vagas.erase(inv)
-	var vi: VisualLutador = _visuais.get(inv)
+func remove_summon(inv: Summon) -> void:
+	inv.on_field = false
+	summons.erase(inv)
+	fighters.erase(inv)
+	_summon_slots.erase(inv)
+	var vi: FighterVisual = _visuals.get(inv)
 	if vi:
-		_visuais.erase(inv)
-		vi.morrer()
+		_visuals.erase(inv)
+		vi.die()
 		get_tree().create_timer(0.7).timeout.connect(vi.queue_free)
-	aliado_alvo = clampi(aliado_alvo, 0, maxi(0, aliados_em_campo().size() - 1))
-	atualizar()
+	ally_target = clampi(ally_target, 0, maxi(0, allies_on_field().size() - 1))
+	refresh()
 
 
-## `inv` usa o golpe `g` (Invocacao.golpe) a partir do inimigo marcado:
+## `inv` usa o golpe `g` (Summon.strike) a partir do inimigo marcado:
 ## avança ou atira e, se tiver, deixa o debuff no alvo principal.
-func golpe_invocacao(inv: Invocacao, g: Dictionary) -> void:
-	var alvos := inv.alvos(g, inimigos_vivos(), alvo)
-	if alvos.is_empty() or not _visuais.has(inv):
+func summon_strike(inv: Summon, g: Dictionary) -> void:
+	var targets := inv.targets(g, living_enemies(), target)
+	if targets.is_empty() or not _visuals.has(inv):
 		return
-	var vi: VisualLutador = _visuais[inv]
-	var principal: Combatente = alvos[0][0]
-	var com_debuff: Array = alvos.map(func(par: Array) -> Combatente: return par[0]) if g.get("debuff_em_todos", false) else [principal]
-	hud.registrar("%s utilizou %s." % [HudBatalha.nome(inv), HudBatalha.destaque(g.nome, inv.cor)])
-	if g.get("estilo", "projetil") == "investida":
+	var vi: FighterVisual = _visuals[inv]
+	var main: Combatant = targets[0][0]
+	var debuffed: Array = targets.map(func(pair: Array) -> Combatant: return pair[0]) if g.get("debuff_all", false) else [main]
+	hud.log_line("%s utilizou %s." % [BattleHud.fighter_name(inv), BattleHud.highlight(g.name, inv.color)])
+	if g.get("style", "projectile") == "charge":
 		# avança até cada alvo, do mais perto ao mais longe, e golpeia; o
 		# corte acompanha o tamanho da invocação
-		var origem := vi.position
-		var em_ordem := alvos.duplicate()
-		em_ordem.sort_custom(func(x: Array, y: Array) -> bool: return _visuais[x[0]].position.x < _visuais[y[0]].position.x)
-		var raio := maxf(46.0, vi.altura * 0.45)
-		for par: Array in em_ordem:
-			var va: VisualLutador = _visuais[par[0]]
-			await vi.mover_para(Vector2(va.position.x - 110, origem.y), 0.22 if par == em_ordem[0] else 0.14)
-			EfeitosCombate.corte(mundo, va.position + Vector2(0, -va.altura * 0.5), inv.cor, raio, randf_range(-0.6, 0.6))
-			EfeitosCombate.impacto(mundo, va.position + Vector2(0, -va.altura * 0.5), inv.cor, 1.2 if raio > 46.0 else 0.8)
-			if raio > 46.0:
-				tremer(3.0)
-			await aplicar_dano(inv, par[0], par[1])
-		await esperar(0.1)
-		await vi.mover_para(origem, 0.25)
+		var origin := vi.position
+		var in_order := targets.duplicate()
+		in_order.sort_custom(func(x: Array, y: Array) -> bool: return _visuals[x[0]].position.x < _visuals[y[0]].position.x)
+		var radius := maxf(46.0, vi.height * 0.45)
+		for pair: Array in in_order:
+			var va: FighterVisual = _visuals[pair[0]]
+			await vi.move_to(Vector2(va.position.x - 110, origin.y), 0.22 if pair == in_order[0] else 0.14)
+			CombatEffects.slash(world, va.position + Vector2(0, -va.height * 0.5), inv.color, radius, randf_range(-0.6, 0.6))
+			CombatEffects.impact(world, va.position + Vector2(0, -va.height * 0.5), inv.color, 1.2 if radius > 46.0 else 0.8)
+			if radius > 46.0:
+				shake(3.0)
+			await apply_damage(inv, pair[0], pair[1])
+		await wait(0.1)
+		await vi.move_to(origin, 0.25)
 	else:
-		vi.piscar(Color(1.0 + inv.cor.r, 1.0 + inv.cor.g, 1.0 + inv.cor.b))
-		var de := vi.position + Vector2(18, -vi.altura * 0.6)
-		var voo := 0.0
-		for par: Array in alvos:
-			var va: VisualLutador = _visuais[par[0]]
-			voo = maxf(voo, EfeitosCombate.projetil(mundo, de, va.position + Vector2(0, -va.altura * 0.5), inv.tipo, 1000.0, 1.1))
-		await esperar(voo)
-		for par: Array in alvos:
-			var va: VisualLutador = _visuais[par[0]]
-			EfeitosCombate.impacto_elemental(mundo, va.position + Vector2(0, -va.altura * 0.5), inv.tipo, 1.0)
-			await aplicar_dano(inv, par[0], par[1])
-	for quem: Combatente in com_debuff:
-		if not inv.debuff.is_valid() or not quem.vivo():
+		vi.flash(Color(1.0 + inv.color.r, 1.0 + inv.color.g, 1.0 + inv.color.b))
+		var from := vi.position + Vector2(18, -vi.height * 0.6)
+		var flight := 0.0
+		for pair: Array in targets:
+			var va: FighterVisual = _visuals[pair[0]]
+			flight = maxf(flight, CombatEffects.projectile(world, from, va.position + Vector2(0, -va.height * 0.5), inv.type, 1000.0, 1.1))
+		await wait(flight)
+		for pair: Array in targets:
+			var va: FighterVisual = _visuals[pair[0]]
+			CombatEffects.elemental_impact(world, va.position + Vector2(0, -va.height * 0.5), inv.type, 1.0)
+			await apply_damage(inv, pair[0], pair[1])
+	for speaker: Combatant in debuffed:
+		if not inv.debuff.is_valid() or not speaker.is_alive():
 			continue
-		var e: Estado = inv.debuff.call()
-		quem.aplicar_estado(e)
-		EfeitosCombate.anel(mundo, _visuais[quem].position + Vector2(0, -_visuais[quem].altura * 0.5), EstiloUI.cor_efeito(e.descricao()), 40.0)
-		hud.registrar("%s ficou %s." % [HudBatalha.nome(quem), HudBatalha.destaque(e.nome, EstiloUI.cor_efeito(e.descricao()))])
-	atualizar()
+		var e: StatusEffect = inv.debuff.call()
+		speaker.apply_status(e)
+		CombatEffects.ring(world, _visuals[speaker].position + Vector2(0, -_visuals[speaker].height * 0.5), UIStyle.effect_color(e.description()), 40.0)
+		hud.log_line("%s ficou %s." % [BattleHud.fighter_name(speaker), BattleHud.highlight(e.name, UIStyle.effect_color(e.description()))])
+	refresh()
 
 
-## Último ato de `inv` (Invocacao.ultimo_ato). Chame antes de tirar de
+## Último ato de `inv` (Summon.last_act). Chame antes de tirar de
 ## campo: o golpe sai do visual dela.
-func ultimo_ato(inv: Invocacao) -> void:
-	var g := inv.ultimo_ato
-	if g.is_empty() or not _visuais.has(inv) or acabou:
+func last_act(inv: Summon) -> void:
+	var g := inv.last_act
+	if g.is_empty() or not _visuals.has(inv) or over:
 		return
 	if g.has("mult"):
-		await golpe_invocacao(inv, g)
+		await summon_strike(inv, g)
 	else:
-		hud.registrar("%s utilizou %s." % [HudBatalha.nome(inv), HudBatalha.destaque(g.nome, inv.cor)])
-	if g.has("escudo"):
-		var quem := inv.alvo_escudo(aliados_em_campo())
-		if quem:
-			var e := inv.escudo_ultimo_ato(g)
-			quem.aplicar_estado(e)
-			var vq: VisualLutador = _visuais[quem]
-			EfeitosCombate.linha(mundo, _visuais[inv].position + Vector2(0, -_visuais[inv].altura * 0.5), vq.position + Vector2(0, -vq.altura * 0.5), inv.cor, 0.5)
-			EfeitosCombate.anel(mundo, vq.position + Vector2(0, -vq.altura * 0.5), inv.cor, 50.0)
-			vq.piscar(Color(1.0 + inv.cor.r, 1.0 + inv.cor.g, 1.0 + inv.cor.b))
-			hud.registrar("%s recebe um escudo de %s." % [HudBatalha.nome(quem), HudBatalha.destaque(str(e.escudo), EfeitosCombate.NUMEROS.escudo[0])])
-			atualizar()
-			await esperar(0.4)
+		hud.log_line("%s utilizou %s." % [BattleHud.fighter_name(inv), BattleHud.highlight(g.name, inv.color)])
+	if g.has("shield"):
+		var speaker := inv.shield_target(allies_on_field())
+		if speaker:
+			var e := inv.last_act_shield(g)
+			speaker.apply_status(e)
+			var vq: FighterVisual = _visuals[speaker]
+			CombatEffects.line(world, _visuals[inv].position + Vector2(0, -_visuals[inv].height * 0.5), vq.position + Vector2(0, -vq.height * 0.5), inv.color, 0.5)
+			CombatEffects.ring(world, vq.position + Vector2(0, -vq.height * 0.5), inv.color, 50.0)
+			vq.flash(Color(1.0 + inv.color.r, 1.0 + inv.color.g, 1.0 + inv.color.b))
+			hud.log_line("%s recebe um escudo de %s." % [BattleHud.fighter_name(speaker), BattleHud.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
+			refresh()
+			await wait(0.4)
 
 
 # ------------------------------------------------------------------ apoio
-func visual(c: Combatente) -> VisualLutador:
-	return _visuais[c]
+func visual(c: Combatant) -> FighterVisual:
+	return _visuals[c]
 
 
-func alvo_atual() -> Inimigo:
-	return inimigos_vivos()[alvo]
+func current_target() -> Enemy:
+	return living_enemies()[target]
 
 
-## Quem a ação `acao` do aliado da vez atingiria, pelo tipo de alvo dela.
-func _previstos(acao: String) -> Array:
-	var vivos := inimigos_vivos()
-	var do_kit := ativo.alvos_previstos(acao, vivos, alvo)
-	if not do_kit.is_empty():
-		return do_kit
-	match tipo_alvo(acao):
-		"aliado": return [aliado_atual()]
-		"unico": return [vivos[alvo]]
-		"vizinhos": return vivos.slice(maxi(0, alvo - 1), alvo + 2)
-		"todos": return vivos
-		"proprio": return [ativo]
+## Quem a ação `action` do aliado da vez atingiria, pelo tipo de alvo dela.
+func _predicted(action: String) -> Array:
+	var alive := living_enemies()
+	var from_kit := active.predicted_targets(action, alive, target)
+	if not from_kit.is_empty():
+		return from_kit
+	match target_type(action):
+		"ally": return [current_ally()]
+		"single": return [alive[target]]
+		"neighbors": return alive.slice(maxi(0, target - 1), target + 2)
+		"all": return alive
+		"self": return [active]
 	return []
 
 
-func atualizar() -> void:
-	var vivos := inimigos_vivos()
-	var em_aliado := _mirando_aliado()
-	for i in inimigos.size():
-		_visuais[inimigos[i]].marcado = esperando_jogador and not em_aliado and inimigos[i].vivo() and vivos.find(inimigos[i]) == alvo
-	var mirado := aliado_atual() if esperando_jogador and em_aliado else null
-	for c in equipe:
-		_visuais[c].marcado = c == mirado
-	for c in invocacoes:
-		_visuais[c].marcado = c == mirado
+func refresh() -> void:
+	var alive := living_enemies()
+	var on_ally := _aiming_at_ally()
+	for i in enemies.size():
+		_visuals[enemies[i]].marked = waiting_for_player and not on_ally and enemies[i].is_alive() and alive.find(enemies[i]) == target
+	var aimed := current_ally() if waiting_for_player and on_ally else null
+	for c in team:
+		_visuals[c].marked = c == aimed
+	for c in summons:
+		_visuals[c].marked = c == aimed
 	# prévia: quem a habilidade em foco (ou no seletor) atingiria
-	var acao := _escolhendo if _escolhendo != "" else _foco
-	# lista sem tipo: _previstos pode devolver a de inimigos (tipada), e
+	var action := _choosing if _choosing != "" else _focus
+	# lista sem tipo: _predicted pode devolver a de inimigos (tipada), e
 	# perguntar por um aliado nela dá erro
-	var atingidos: Array = []
-	if esperando_jogador and not vivos.is_empty():
-		atingidos.append_array(_previstos(acao))
-	for c in lutadores:
-		_visuais[c].realce = c in atingidos
-	for c in equipe:
-		_visuais[c].da_vez = c == _ator and equipe.size() > 1
-	var fila := FilaTurnos.previsao(lutadores, TAMANHO_FILA)
-	hud.atualizar(ativo, equipe, pontos, PONTOS_MAX, fila, _ator, esperando_jogador)
-	hud.definir_objetivo("Andar %d  ·  Derrote os guardiões  ·  %d/%d restantes" % [andar, vivos.size(), inimigos.size()])
+	var hit_targets: Array = []
+	if waiting_for_player and not alive.is_empty():
+		hit_targets.append_array(_predicted(action))
+	for c in fighters:
+		_visuals[c].highlighted = c in hit_targets
+	for c in team:
+		_visuals[c].acting = c == _actor and team.size() > 1
+	var queue := TurnQueue.forecast(fighters, QUEUE_SIZE)
+	hud.refresh(active, team, points, MAX_POINTS, queue, _actor, waiting_for_player)
+	hud.set_objective("Andar %d  ·  Derrote os guardiões  ·  %d/%d restantes" % [floor_number, alive.size(), enemies.size()])
 
 
-func esperar(segundos: float) -> void:
-	await get_tree().create_timer(segundos).timeout
+func wait(seconds: float) -> void:
+	await get_tree().create_timer(seconds).timeout
 
 
-func tremer(forca: float) -> void:
+func shake(strength: float) -> void:
 	var t := create_tween()
 	for i in 6:
-		t.tween_property(mundo, "position", Vector2(randf_range(-forca, forca), randf_range(-forca, forca)), 0.04)
-	t.tween_property(mundo, "position", Vector2.ZERO, 0.05)
+		t.tween_property(world, "position", Vector2(randf_range(-strength, strength), randf_range(-strength, strength)), 0.04)
+	t.tween_property(world, "position", Vector2.ZERO, 0.05)

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c5vm3q7oxv438"
-path="res://.godot/imported/mesa.png-cd2b79bed1eeeebd291687047672c5f1.ctex"
+uid="uid://ce3tv17u8s2pn"
+path="res://.godot/imported/small_table.png-a099e749fca2516d36c55d6e3e32eddc.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://lobby/art/mesa.png"
-dest_files=["res://.godot/imported/mesa.png-cd2b79bed1eeeebd291687047672c5f1.ctex"]
+source_file="res://lobby/art/small_table.png"
+dest_files=["res://.godot/imported/small_table.png-a099e749fca2516d36c55d6e3e32eddc.ctex"]
 
 [params]
 

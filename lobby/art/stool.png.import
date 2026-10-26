@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bpyeb5i2l8f8v"
-path="res://.godot/imported/porta_dungeon.png-e9a594b6215a3c76082cffc021696291.ctex"
+uid="uid://b52senbxkm8r6"
+path="res://.godot/imported/stool.png-79a7fbb1ae3d3c86e4afeedf7f71630c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://lobby/art/porta_dungeon.png"
-dest_files=["res://.godot/imported/porta_dungeon.png-e9a594b6215a3c76082cffc021696291.ctex"]
+source_file="res://lobby/art/stool.png"
+dest_files=["res://.godot/imported/stool.png-79a7fbb1ae3d3c86e4afeedf7f71630c.ctex"]
 
 [params]
 

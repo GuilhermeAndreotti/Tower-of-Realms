@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://byr47kgc27rw2"
-path="res://.godot/imported/caixote.png-c47f753e49145bdb425bc31398dbc21c.ctex"
+path="res://.godot/imported/crate.png-ebadab30af651d080bb7b270a00ddaf9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://lobby/art/caixote.png"
-dest_files=["res://.godot/imported/caixote.png-c47f753e49145bdb425bc31398dbc21c.ctex"]
+source_file="res://lobby/art/crate.png"
+dest_files=["res://.godot/imported/crate.png-ebadab30af651d080bb7b270a00ddaf9.ctex"]
 
 [params]
 

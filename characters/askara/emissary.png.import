@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dygc3hlsmkt86"
-path="res://.godot/imported/vaso.png-bbc3d5ba85fb119bddd6e9a260a726fa.ctex"
+uid="uid://0nooibqw8rwk"
+path="res://.godot/imported/emissary.png-7907964fca17d7aac5061267d9e9601e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://lobby/art/vaso.png"
-dest_files=["res://.godot/imported/vaso.png-bbc3d5ba85fb119bddd6e9a260a726fa.ctex"]
+source_file="res://characters/askara/emissary.png"
+dest_files=["res://.godot/imported/emissary.png-7907964fca17d7aac5061267d9e9601e.ctex"]
 
 [params]
 

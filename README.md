@@ -119,9 +119,9 @@ Cada ida à dungeon é um andar. Você vence e volta ao saguão. Vencer o andar 
 
 Os andares ficam em `tower/floors.gd`. Para criar um andar novo, basta acrescentar um item na lista.
 
-**Eventos de história** (`tower/story_events.gd`): o efeito vale na hora e fica salvo. A apresentação acontece no saguão, na volta. Por exemplo, o personagem surge com um anúncio, ou uma conversa se abre. Os eventos vêm do `ao_vencer` de um andar ou de uma fala de conversa (`"evento": "desbloquear:andri"`). Os tipos atuais:
-- `desbloquear`: libera um personagem.
-- `conversa`: abre uma conversa de `Conversas`. Ainda não há conversas escritas.
+**Eventos de história** (`tower/story_events.gd`): o efeito vale na hora e fica salvo. A apresentação acontece no saguão, na volta. Por exemplo, o personagem surge com um anúncio, ou uma conversa se abre. Os eventos vêm do `on_win` de um andar ou de uma fala de conversa (`"event": "unlock:andri"`). Os tipos atuais:
+- `unlock`: libera um personagem.
+- `conversation`: abre uma conversa de `Conversations`. Ainda não há conversas escritas.
 
 ---
 
@@ -136,7 +136,7 @@ Cada personagem tem nível e XP próprios. As regras ficam em `progression/progr
   - **Derrota:** ninguém ganha XP.
 - **Curva:** para ir do nível *n* ao *n+1* são necessários `100 + 50 × (n − 1)` de XP: 100, 150, 200, 250, 300… Do 1 ao 9 são 2.200 de XP.
 - **Limite da Torre:** o limite de nível é o do andar mais alto liberado: 3, 5, 7, 9 e 11. No limite, a XP fica em 0 e o excedente se perde, então liberar um andar não dá vários níveis de uma vez. Personagens acima do limite, por causa de um save antigo, não perdem nível. O nível máximo do jogo continua sendo 20.
-- **Crescimento:** os atributos do kit valem para o nível 1. Cada nível soma o `crescimento` do personagem, definido em `Elenco.dados()`:
+- **Crescimento:** os atributos do kit valem para o nível 1. Cada nível soma o `growth` do personagem, definido em `Roster.data()`:
 
 | Por nível | HP | ATQ | DEF | VEL |
 |---|---|---|---|---|
@@ -173,7 +173,7 @@ Cada personagem tem uma página própria com atributos e habilidades. Lá, o tex
 
 **Ferro Negro:** os inimigos do andar 5, quando o HP cai abaixo de 30%, ativam o Ferro Negro uma vez por luta: "Ferro Negro ativado" aparece na tela e eles ganham um escudo de 25% do HP máximo por 3 turnos.
 
-Os status de cada um mudam por andar (ver `Andares.LISTA`). A arte ainda é provisória.
+Os status de cada um mudam por andar (ver `Floors.LIST`). A arte ainda é provisória.
 
 ---
 
@@ -200,7 +200,7 @@ godot --headless --path . -s tests/test_menu.gd         # menu inicial e slots d
 ### Ferramentas
 | Script | O que faz |
 |---|---|
-| `tools/simulate_floors.gd` | Simula os andares com a batalha de verdade e um piloto automático, e mostra as vitórias, os turnos e o HP restante em cada nível: `godot --headless --path . -s tools/simulate_floors.gd -- [rodadas] [andar:nível ...] [equipe=askara,shumi]` |
+| `tools/simulate_floors.gd` | Simula os andares com a batalha de verdade e um piloto automático, e mostra as vitórias, os turnos e o HP restante em cada nível: `godot --headless --path . -s tools/simulate_floors.gd -- [rodadas] [andar:nível ...] [team=askara,shumi]` |
 | `tools/capture_demo.gd` | Joga uma batalha sozinho e salva capturas de tela: `godot --path . -s tools/capture_demo.gd -- <pasta> shumi andri` |
 | `tools/generate_character_readmes.gd` | Atualiza os atributos e as habilidades no README de cada personagem, com o texto do jogo: `godot --headless --path . -s tools/generate_character_readmes.gd` |
 | `tools/generate_andri.py` | Gera a spritesheet, o MOMC e os ícones do Andri a partir do sprite original (precisa do Pillow) |
@@ -226,7 +226,7 @@ tools/               scripts de captura, simulação e geração de assets
 docs/                documentação técnica
 ```
 
-As **regras** (`Combatente`) ficam separadas das **animações** (`AcoesPersonagem`) e da **interface** (`HudBatalha`). Por isso a lógica pode ser testada sem abrir o jogo.
+As **regras** (`Combatant`) ficam separadas das **animações** (`CharacterActions`) e da **interface** (`BattleHud`). Por isso a lógica pode ser testada sem abrir o jogo.
 
 ---
 

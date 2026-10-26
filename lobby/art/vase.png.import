@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bcwaflsfjjwpx"
-path="res://.godot/imported/lorde_demonio.png-b337598d216ba628a320e2dc2e0c1d7c.ctex"
+uid="uid://dygc3hlsmkt86"
+path="res://.godot/imported/vase.png-b2645a0a3763c74e6b85f48ea60cd77a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://characters/askara/originals/lorde_demonio.png"
-dest_files=["res://.godot/imported/lorde_demonio.png-b337598d216ba628a320e2dc2e0c1d7c.ctex"]
+source_file="res://lobby/art/vase.png"
+dest_files=["res://.godot/imported/vase.png-b2645a0a3763c74e6b85f48ea60cd77a.ctex"]
 
 [params]
 

@@ -1,154 +1,154 @@
-class_name SeletorRadial
+class_name RadialSelector
 extends Node2D
 ## Seletor de opções em anel em volta de um lutador: faz parte do personagem
 ## na arena (é filho do visual dele), não da HUD. O anel gira como um tambor
 ## e a opção em foco fica sempre no topo. A batalha diz as opções, qual está
 ## em foco e o motivo de cada uma não servir; o mouse volta por sinais.
 
-signal opcao_focada(indice: int)
-signal opcao_clicada(indice: int)
+signal option_focused(index: int)
+signal option_clicked(index: int)
 
-const RAIO := 57.0
-const LADO := 21.0  ## gema de cada opção, na grade de 3 px
-const PIXEL := EfeitosCombate.PIXEL
+const RADIUS := 57.0
+const SIDE := 21.0  ## gema de cada opção, na grade de 3 px
+const PIXEL := CombatEffects.PIXEL
 
-var _opcoes: Array = []
-var _indice := 0
-var _motivos: Array[String] = []
-var _abertura := 0.0  ## 0 = recolhido na âncora, 1 = anel aberto
-var _giro := 0.0  ## ângulo do tambor, animado até deixar a opção em foco no topo
-var _tempo := 0.0
+var _options: Array = []
+var _index := 0
+var _reasons: Array[String] = []
+var _opening := 0.0  ## 0 = recolhido na âncora, 1 = anel aberto
+var _spin := 0.0  ## ângulo do tambor, animado até deixar a opção em foco no topo
+var _time := 0.0
 
 
 func _ready() -> void:
 	z_index = 10  # por cima dos lutadores vizinhos
-	create_tween().tween_property(self, "_abertura", 1.0, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	create_tween().tween_property(self, "_opening", 1.0, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
-func mostrar(opcoes: Array, indice: int, motivos: Array[String]) -> void:
-	var primeira := _opcoes.is_empty()
-	_opcoes = opcoes
-	_indice = indice
-	_motivos = motivos
-	if primeira:
-		_giro = _giro_alvo()
+func display(options: Array, index: int, reasons: Array[String]) -> void:
+	var first := _options.is_empty()
+	_options = options
+	_index = index
+	_reasons = reasons
+	if first:
+		_spin = _target_spin()
 
 
 ## Recolhe as gemas para a âncora e some.
-func fechar() -> void:
+func close() -> void:
 	set_process_unhandled_input(false)
 	var t := create_tween()
-	t.tween_property(self, "_abertura", 0.0, 0.14).set_ease(Tween.EASE_IN)
+	t.tween_property(self, "_opening", 0.0, 0.14).set_ease(Tween.EASE_IN)
 	t.tween_callback(queue_free)
 
 
-func _giro_alvo() -> float:
-	return TAU * _indice / maxf(1, _opcoes.size())
+func _target_spin() -> float:
+	return TAU * _index / maxf(1, _options.size())
 
 
-func _posicao(i: int) -> Vector2:
-	var angulo := -PI / 2 + TAU * i / _opcoes.size() - _giro
-	return (Vector2.from_angle(angulo) * RAIO * _abertura / PIXEL).round() * PIXEL
+func _position(i: int) -> Vector2:
+	var angle := -PI / 2 + TAU * i / _options.size() - _spin
+	return (Vector2.from_angle(angle) * RADIUS * _opening / PIXEL).round() * PIXEL
 
 
 func _process(delta: float) -> void:
-	_tempo += delta
-	_giro = lerp_angle(_giro, _giro_alvo(), minf(1.0, delta * 14.0))
+	_time += delta
+	_spin = lerp_angle(_spin, _target_spin(), minf(1.0, delta * 14.0))
 	queue_redraw()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _opcoes.is_empty() or _abertura < 0.9:
+	if _options.is_empty() or _opening < 0.9:
 		return
-	var sob := _opcao_sob(get_local_mouse_position())
-	if sob < 0:
+	var under := _option_under(get_local_mouse_position())
+	if under < 0:
 		return
-	if event is InputEventMouseMotion and sob != _indice:
-		opcao_focada.emit(sob)
+	if event is InputEventMouseMotion and under != _index:
+		option_focused.emit(under)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		get_viewport().set_input_as_handled()
-		opcao_clicada.emit(sob)
+		option_clicked.emit(under)
 
 
-func _opcao_sob(ponto: Vector2) -> int:
-	for i in _opcoes.size():
-		if ponto.distance_to(_posicao(i)) < LADO * 0.7:
+func _option_under(point: Vector2) -> int:
+	for i in _options.size():
+		if point.distance_to(_position(i)) < SIDE * 0.7:
 			return i
 	return -1
 
 
 func _draw() -> void:
-	if _opcoes.is_empty():
+	if _options.is_empty():
 		return
-	var a := _abertura
-	var foco: Dictionary = _opcoes[_indice]
-	var cor_foco: Color = foco.get("cor", EstiloUI.OURO)
+	var a := _opening
+	var focus: Dictionary = _options[_index]
+	var focus_color: Color = focus.get("color", UIStyle.GOLD)
 	# disco escuro para dar leitura sobre o cenário, e o trilho do tambor
-	draw_circle(Vector2.ZERO, (RAIO + LADO) * a, Color(0.03, 0.02, 0.06, 0.45 * a))
-	draw_arc(Vector2.ZERO, RAIO * a, 0, TAU, 24, Color(EstiloUI.OURO, 0.25 * a), 1.0)
+	draw_circle(Vector2.ZERO, (RADIUS + SIDE) * a, Color(0.03, 0.02, 0.06, 0.45 * a))
+	draw_arc(Vector2.ZERO, RADIUS * a, 0, TAU, 24, Color(UIStyle.GOLD, 0.25 * a), 1.0)
 	# feixe tracejado da lente até a gema em foco
-	var topo := _posicao(_indice)
-	var passo := 9.0
-	var d := fposmod(_tempo * 30.0, passo)
-	while d < topo.length() - LADO * 0.6:
-		draw_line(topo.normalized() * d, topo.normalized() * (d + 4.0), Color(cor_foco, 0.8 * a), 2.0)
-		d += passo
+	var top := _position(_index)
+	var step := 9.0
+	var d := fposmod(_time * 30.0, step)
+	while d < top.length() - SIDE * 0.6:
+		draw_line(top.normalized() * d, top.normalized() * (d + 4.0), Color(focus_color, 0.8 * a), 2.0)
+		d += step
 	# o miolo: a própria lente, na cor da opção em foco
-	draw_arc(Vector2.ZERO, 7.0 * a, 0, TAU, 12, Color(cor_foco, a), 2.0)
-	draw_circle(Vector2.ZERO, 3.0 * a, Color(cor_foco.lightened(0.4), a))
+	draw_arc(Vector2.ZERO, 7.0 * a, 0, TAU, 12, Color(focus_color, a), 2.0)
+	draw_circle(Vector2.ZERO, 3.0 * a, Color(focus_color.lightened(0.4), a))
 
-	for i in _opcoes.size():
-		if i != _indice:
-			_gema(i, false)
-	_gema(_indice, true)  # por último, por cima das outras
+	for i in _options.size():
+		if i != _index:
+			_gem(i, false)
+	_gem(_index, true)  # por último, por cima das outras
 
 	if a < 0.9:
 		return
 	# nome e efeito acima da gema do topo; motivo em vermelho se não servir
-	var f := EstiloUI.fonte()
-	var largura := 230.0
-	var y := topo.y - LADO * 0.9
-	var motivo := _motivos[_indice] if _indice < _motivos.size() else ""
-	var texto: String = motivo if motivo != "" else foco.get("descricao", "")
-	var cor_texto := EstiloUI.DANO_RECEBIDO if motivo != "" else EstiloUI.TEXTO
-	var altura_texto := f.get_multiline_string_size(texto, HORIZONTAL_ALIGNMENT_CENTER, largura, 9).y
-	var y_texto := y - altura_texto
-	draw_multiline_string_outline(f, Vector2(-largura / 2, y_texto + 6), texto, HORIZONTAL_ALIGNMENT_CENTER, largura, 9, -1, 3, Color.BLACK)
-	draw_multiline_string(f, Vector2(-largura / 2, y_texto + 6), texto, HORIZONTAL_ALIGNMENT_CENTER, largura, 9, -1, cor_texto)
-	EstiloUI.texto(self, Vector2(-largura / 2, y_texto - 6), foco.nome, 13, cor_foco.lightened(0.3), largura, HORIZONTAL_ALIGNMENT_CENTER)
-	EstiloUI.texto(self, Vector2(-largura / 2, RAIO + LADO + 6), "←→ girar · Enter escolher · Q/E/R agir", 9, EstiloUI.TEXTO_FRACO, largura, HORIZONTAL_ALIGNMENT_CENTER)
+	var f := UIStyle.source()
+	var width := 230.0
+	var y := top.y - SIDE * 0.9
+	var reason := _reasons[_index] if _index < _reasons.size() else ""
+	var text: String = reason if reason != "" else focus.get("description", "")
+	var text_color := UIStyle.DAMAGE_TAKEN if reason != "" else UIStyle.TEXT
+	var text_height := f.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, width, 9).y
+	var text_y := y - text_height
+	draw_multiline_string_outline(f, Vector2(-width / 2, text_y + 6), text, HORIZONTAL_ALIGNMENT_CENTER, width, 9, -1, 3, Color.BLACK)
+	draw_multiline_string(f, Vector2(-width / 2, text_y + 6), text, HORIZONTAL_ALIGNMENT_CENTER, width, 9, -1, text_color)
+	UIStyle.text(self, Vector2(-width / 2, text_y - 6), focus.name, 13, focus_color.lightened(0.3), width, HORIZONTAL_ALIGNMENT_CENTER)
+	UIStyle.text(self, Vector2(-width / 2, RADIUS + SIDE + 6), "←→ girar · Enter escolher · Q/E/R agir", 9, UIStyle.DIM_TEXT, width, HORIZONTAL_ALIGNMENT_CENTER)
 
 
 ## Gema octogonal da opção `i`, com a sigla; a em foco é maior e tem
 ## contorno dourado; a atual leva um pontinho; as inválidas ficam apagadas.
-func _gema(i: int, em_foco: bool) -> void:
-	var o: Dictionary = _opcoes[i]
-	var valida := i >= _motivos.size() or _motivos[i] == ""
-	var cor: Color = o.get("cor", EstiloUI.TEXTO)
-	if not valida:
-		cor = cor.darkened(0.55).lerp(Color(0.4, 0.4, 0.45), 0.5)
-	var c := _posicao(i)
-	var l := (LADO + (PIXEL * 2 if em_foco else 0.0)) / 2.0 * _abertura
-	if em_foco:
-		l += PIXEL * 0.5 * sin(_tempo * 6.0)
+func _gem(i: int, focused: bool) -> void:
+	var o: Dictionary = _options[i]
+	var valid := i >= _reasons.size() or _reasons[i] == ""
+	var color: Color = o.get("color", UIStyle.TEXT)
+	if not valid:
+		color = color.darkened(0.55).lerp(Color(0.4, 0.4, 0.45), 0.5)
+	var c := _position(i)
+	var l := (SIDE + (PIXEL * 2 if focused else 0.0)) / 2.0 * _opening
+	if focused:
+		l += PIXEL * 0.5 * sin(_time * 6.0)
 	var k := PIXEL
 	if l < k * 2:
 		# abrindo/recolhendo: pequena demais para o octógono, vira um ponto
-		draw_rect(Rect2(c - Vector2(k, k), Vector2(k * 2, k * 2)), cor)
+		draw_rect(Rect2(c - Vector2(k, k), Vector2(k * 2, k * 2)), color)
 		return
 	var oct := func(m: float) -> PackedVector2Array:
 		var r := l + m
 		return PackedVector2Array([c + Vector2(-r + k, -r), c + Vector2(r - k, -r), c + Vector2(r, -r + k), c + Vector2(r, r - k),
 			c + Vector2(r - k, r), c + Vector2(-r + k, r), c + Vector2(-r, r - k), c + Vector2(-r, -r + k)])
-	if em_foco:
-		draw_colored_polygon(oct.call(k + 2.0), EstiloUI.OURO)
+	if focused:
+		draw_colored_polygon(oct.call(k + 2.0), UIStyle.GOLD)
 	draw_colored_polygon(oct.call(2.0), Color.BLACK)
-	draw_colored_polygon(oct.call(0.0), cor.darkened(0.35))
-	draw_colored_polygon(oct.call(-k), cor)
+	draw_colored_polygon(oct.call(0.0), color.darkened(0.35))
+	draw_colored_polygon(oct.call(-k), color)
 	draw_rect(Rect2(c + Vector2(-l + k * 2, -l + k), Vector2(maxf(0, l * 2 - k * 4), k)), Color(1, 1, 1, 0.35))  # brilho
-	if o.get("atual", false):
+	if o.get("current", false):
 		draw_rect(Rect2(c + Vector2(l - k, -l - k), Vector2(k * 2, k * 2)), Color.BLACK)
-		draw_rect(Rect2(c + Vector2(l - k * 0.5, -l - k * 0.5), Vector2(k, k)), EstiloUI.OURO)
-	if _abertura > 0.6:
-		var sigla: String = o.get("sigla", String(o.nome).left(3).to_upper())
-		EstiloUI.texto(self, c + Vector2(-l, 3), sigla, 8, Color.WHITE if valida else EstiloUI.TEXTO_FRACO, l * 2, HORIZONTAL_ALIGNMENT_CENTER)
+		draw_rect(Rect2(c + Vector2(l - k * 0.5, -l - k * 0.5), Vector2(k, k)), UIStyle.GOLD)
+	if _opening > 0.6:
+		var abbr: String = o.get("abbr", String(o.name).left(3).to_upper())
+		UIStyle.text(self, c + Vector2(-l, 3), abbr, 8, Color.WHITE if valid else UIStyle.DIM_TEXT, l * 2, HORIZONTAL_ALIGNMENT_CENTER)

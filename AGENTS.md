@@ -2,11 +2,12 @@
 
 ## Regras obrigatórias
 
-- Documentação, mensagens de commit e textos do jogo em pt-BR. O código também usa nomes em português (classes, funções, variáveis), como o resto do projeto.
+- Documentação, comentários, mensagens de commit e textos do jogo em pt-BR. O código usa nomes em inglês: pastas, arquivos, classes, funções, variáveis, sinais e chaves de dicionário. A exceção são as seções e chaves do save (`ConfigFile`), que continuam em português para saves antigos abrirem.
+- Pastas por feature: a cena, o script e a arte de uma feature ficam juntos na pasta dela; só o que várias telas usam vai para `ui/` ([visão geral](docs/arquitetura/visao-geral.md#pastas)).
 - GDScript com tipagem estática: tipos explícitos ou inferidos (`:=`), sem desligar avisos de tipo para contornar erro.
 - Siga o estilo do arquivo que estiver editando: comentários `##` curtos explicando o porquê, mesma densidade de comentários e os mesmos nomes de conceito.
 - Não adicione plugins, autoloads nem dependências sem necessidade clara.
-- Nunca leia, escreva ou apague os saves do jogador (`user://progresso*.cfg`) em testes e ferramentas; use um `Progressao.arquivo` (e, para slots, um `Progressao.prefixo_slots`) próprio.
+- Nunca leia, escreva ou apague os saves do jogador (`user://progresso*.cfg`) em testes e ferramentas; use um `Progression.file` (e, para slots, um `Progression.slots_prefix`) próprio.
 - Mudança que o jogador percebe entra no [`CHANGELOG.md`](CHANGELOG.md) no mesmo commit ([regras](docs/entrega/changelog-e-commits.md)).
 
 ## Antes de alterar código
@@ -19,9 +20,9 @@ Não crie documento novo sem verificar se o assunto já tem um. Mudou uma regra?
 
 ## Invariantes essenciais
 
-- Regras, animações e interface ficam separadas: `Combatente` e subclasses não tocam em nós de cena; `AcoesPersonagem` não decide dano; a HUD não tem regra ([visão geral](docs/arquitetura/visao-geral.md#camadas)).
-- Batalha, HUD e progressão não têm condicionais por personagem: tudo vem de `Elenco.dados()` e do kit ([personagens](docs/jogo/personagens.md)).
-- Fórmulas de XP e nível só em `Progressao`; o limite de nível só em `Andares.limite_nivel()` ([progressão](docs/jogo/progressao.md)).
+- Regras, animações e interface ficam separadas: `Combatant` e subclasses não tocam em nós de cena; `CharacterActions` não decide dano; a HUD não tem regra ([visão geral](docs/arquitetura/visao-geral.md#camadas)).
+- Batalha, HUD e progressão não têm condicionais por personagem: tudo vem de `Roster.data()` e do kit ([personagens](docs/jogo/personagens.md)).
+- Fórmulas de XP e nível só em `Progression`; o limite de nível só em `Floors.level_limit()` ([progressão](docs/jogo/progressao.md)).
 - Atributos de nível são sempre recalculados a partir do nível 1; modificadores temporários nunca são somados nos campos base.
 - A recompensa de uma vitória é dada uma vez só, e só na vitória.
 - Eventos de história: efeito aplicado e salvo na hora; apresentação na fila, removida só depois de apresentada ([Torre e andares](docs/jogo/torre-e-andares.md#eventos-de-história)).

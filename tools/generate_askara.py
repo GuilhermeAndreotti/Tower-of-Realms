@@ -11,77 +11,77 @@ import os
 
 from PIL import Image
 
-from pixel_icon import icone
+from pixel_icon import icon
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PASTA = os.path.join(RAIZ, "characters", "askara")
-ORIGINAL = os.path.join(PASTA, "askara.png")
-ORIGINAIS = os.path.join(PASTA, "originals")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FOLDER = os.path.join(ROOT, "characters", "askara")
+ORIGINAL = os.path.join(FOLDER, "askara.png")
+ORIGINAIS = os.path.join(FOLDER, "originals")
 
-QUADRO = (32, 40)
-DESLOCAMENTO = (3, 3)  # onde o original entra no quadro: pés em (16, 38)
+FRAME = (32, 40)
+OFFSET = (3, 3)  # onde o original entra no quadro: pés em (16, 38)
 CABECA = (2, 12)  # linhas da cabeça (chifres ao queixo) no original
-DURACOES = {"idle": 280, "walk": 200, "conjurar": 90, "hurt": 150}
+DURACOES = {"idle": 280, "walk": 200, "cast": 90, "hurt": 150}
 
 # Orbe vil que se forma ao lado dela ao conjurar (coordenadas do quadro).
-ORBE = (27, 20)
-ORBE_ESCURO = (120, 40, 180, 255)
-ORBE_MEIO = (200, 120, 255, 255)
-ORBE_CLARO = (255, 230, 255, 255)
-CONTORNO = (28, 16, 36, 255)
+ORB = (27, 20)
+ORB_DARK = (120, 40, 180, 255)
+ORB_MIDDLE = (200, 120, 255, 255)
+ORB_LIGHT = (255, 230, 255, 255)
+OUTLINE = (28, 16, 36, 255)
 
 # Invocações: altura final em pixels de sprite (a arena multiplica por 3) e
 # se a arte precisa ser espelhada para olhar para os inimigos (direita).
-INVOCACOES = {
-    "diabrete": {"altura": 26, "espelhar": False},
-    "emissario": {"altura": 26, "espelhar": False},
-    "lilith": {"altura": 40, "espelhar": False},
-    "shivara": {"altura": 42, "espelhar": False},
-    "lorde_demonio": {"altura": 48, "espelhar": False},
-    "lorde_luz": {"altura": 50, "espelhar": True},
+SUMMONS = {
+    "imp": {"height": 26, "mirror": False},
+    "emissary": {"height": 26, "mirror": False},
+    "lilith": {"height": 40, "mirror": False},
+    "shivara": {"height": 42, "mirror": False},
+    "demon_lord": {"height": 48, "mirror": False},
+    "light_lord": {"height": 50, "mirror": True},
 }
 
 
-def salvar(img, nome):
-    destino = os.path.join(PASTA, nome)
-    img.save(destino)
-    print("ok:", destino)
+def save(img, name):
+    destination = os.path.join(FOLDER, name)
+    img.save(destination)
+    print("ok:", destination)
 
 
 # ----------------------------------------------------------------- folha
-def no_quadro(corpo, dx=0, dy=0):
-    q = Image.new("RGBA", QUADRO, (0, 0, 0, 0))
-    q.alpha_composite(corpo, (DESLOCAMENTO[0] + dx, DESLOCAMENTO[1] + dy))
+def at_frame(body, dx=0, dy=0):
+    q = Image.new("RGBA", FRAME, (0, 0, 0, 0))
+    q.alpha_composite(body, (OFFSET[0] + dx, OFFSET[1] + dy))
     return q
 
 
-def respirando(corpo):
+def respirando(body):
     """A cabeça desce 1px sobre a gola; o manto fica parado."""
-    c = corpo.copy()
-    topo, base = CABECA
-    for y in range(base, topo - 1, -1):
+    c = body.copy()
+    top, base = CABECA
+    for y in range(base, top - 1, -1):
         for x in range(c.width):
-            p = corpo.getpixel((x, y))
+            p = body.getpixel((x, y))
             if p[3] or y + 1 <= base:
                 c.putpixel((x, y + 1), p)
     for x in range(c.width):
-        c.putpixel((x, topo), (0, 0, 0, 0))
+        c.putpixel((x, top), (0, 0, 0, 0))
     return c
 
 
-def orbe(quadro, raio):
+def orb(frame, radius):
     """Losango de energia vil em ORBE, do tamanho `raio` (0 = um ponto)."""
-    cx, cy = ORBE
-    for dy in range(-raio - 1, raio + 2):
-        for dx in range(-raio - 1, raio + 2):
+    cx, cy = ORB
+    for dy in range(-radius - 1, radius + 2):
+        for dx in range(-radius - 1, radius + 2):
             d = abs(dx) + abs(dy)
-            if d > raio + 1:
+            if d > radius + 1:
                 continue
-            cor = ORBE_CLARO if d == 0 else ORBE_MEIO if d <= raio else ORBE_ESCURO
+            color = ORB_LIGHT if d == 0 else ORB_MIDDLE if d <= radius else ORB_DARK
             x, y = cx + dx, cy + dy
-            if 0 <= x < QUADRO[0] and 0 <= y < QUADRO[1]:
-                quadro.putpixel((x, y), cor)
-    return quadro
+            if 0 <= x < FRAME[0] and 0 <= y < FRAME[1]:
+                frame.putpixel((x, y), color)
+    return frame
 
 
 def clarear(img, quanto):
@@ -95,46 +95,46 @@ def clarear(img, quanto):
     return c
 
 
-def gerar_folha(corpo):
+def gerar_sheet(body):
     anims = {
-        "idle": [no_quadro(corpo), no_quadro(corpo), no_quadro(respirando(corpo)), no_quadro(respirando(corpo))],
+        "idle": [at_frame(body), at_frame(body), at_frame(respirando(body)), at_frame(respirando(body))],
         # o manto arrasta no chão: o corpo não pula, só a cabeça balança
-        "walk": [no_quadro(corpo), no_quadro(respirando(corpo)), no_quadro(corpo), no_quadro(respirando(corpo))],
+        "walk": [at_frame(body), at_frame(respirando(body)), at_frame(body), at_frame(respirando(body))],
         # ela se ergue e a orbe cresce até estourar
-        "conjurar": [orbe(no_quadro(corpo, dy=-1), 0), orbe(no_quadro(corpo, dy=-1), 1),
-                     orbe(no_quadro(corpo, dy=-1), 2), no_quadro(corpo)],
-        "hurt": [no_quadro(clarear(corpo, 60), dx=-1), no_quadro(corpo)],
+        "cast": [orb(at_frame(body, dy=-1), 0), orb(at_frame(body, dy=-1), 1),
+                     orb(at_frame(body, dy=-1), 2), at_frame(body)],
+        "hurt": [at_frame(clarear(body, 60), dx=-1), at_frame(body)],
     }
-    colunas = max(len(f) for f in anims.values())
-    folha = Image.new("RGBA", (QUADRO[0] * colunas, QUADRO[1] * len(anims)), (0, 0, 0, 0))
-    dados = {"image": "askara_spritesheet.png", "frame_width": QUADRO[0], "frame_height": QUADRO[1], "animations": {}}
-    for linha, (nome, quadros) in enumerate(anims.items()):
-        lista = []
-        for col, q in enumerate(quadros):
-            folha.alpha_composite(q, (col * QUADRO[0], linha * QUADRO[1]))
-            lista.append({"x": col * QUADRO[0], "y": linha * QUADRO[1], "w": QUADRO[0], "h": QUADRO[1]})
-        dados["animations"][nome] = {"row": linha, "frame_duration_ms": DURACOES[nome], "frames": lista}
-    salvar(folha, "askara_spritesheet.png")
-    with open(os.path.join(PASTA, "askara_spritesheet.json"), "w") as f:
-        json.dump(dados, f, indent=2)
-    print("ok:", os.path.join(PASTA, "askara_spritesheet.json"))
+    columns = max(len(f) for f in anims.values())
+    sheet = Image.new("RGBA", (FRAME[0] * columns, FRAME[1] * len(anims)), (0, 0, 0, 0))
+    data = {"image": "askara_spritesheet.png", "frame_width": FRAME[0], "frame_height": FRAME[1], "animations": {}}
+    for line, (name, frames) in enumerate(anims.items()):
+        list = []
+        for col, q in enumerate(frames):
+            sheet.alpha_composite(q, (col * FRAME[0], line * FRAME[1]))
+            list.append({"x": col * FRAME[0], "y": line * FRAME[1], "w": FRAME[0], "h": FRAME[1]})
+        data["animations"][name] = {"row": line, "frame_duration_ms": DURACOES[name], "frames": list}
+    save(sheet, "askara_spritesheet.png")
+    with open(os.path.join(FOLDER, "askara_spritesheet.json"), "w") as f:
+        json.dump(data, f, indent=2)
+    print("ok:", os.path.join(FOLDER, "askara_spritesheet.json"))
 
 
 # ------------------------------------------------------------ invocações
-def reduzir(nome, altura, espelhar):
+def reduzir(name, height, espelhar):
     """Recorta a arte, reduz para `altura` px, deixa o alfa binário (pixel
     art) e contorna de escuro para a silhueta ler sobre o cenário."""
-    img = Image.open(os.path.join(ORIGINAIS, nome + ".png")).convert("RGBA")
+    img = Image.open(os.path.join(ORIGINAIS, name + ".png")).convert("RGBA")
     img = img.crop(img.getbbox())
-    largura = max(1, round(img.width * altura / img.height))
-    img = img.resize((largura, altura), Image.LANCZOS)
+    width = max(1, round(img.width * height / img.height))
+    img = img.resize((width, height), Image.LANCZOS)
     if espelhar:
         img = img.transpose(Image.FLIP_LEFT_RIGHT)
     # 1px de folga em volta para o contorno
-    final = Image.new("RGBA", (largura + 2, altura + 2), (0, 0, 0, 0))
+    final = Image.new("RGBA", (width + 2, height + 2), (0, 0, 0, 0))
     px = img.load()
-    for y in range(altura):
-        for x in range(largura):
+    for y in range(height):
+        for x in range(width):
             r, g, b, a = px[x, y]
             if a >= 110:
                 final.putpixel((x + 1, y + 1), (r, g, b, 255))
@@ -146,15 +146,15 @@ def reduzir(nome, altura, espelhar):
             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < final.width and 0 <= ny < final.height and opaco[ny][nx]:
-                    final.putpixel((x, y), CONTORNO)
+                    final.putpixel((x, y), OUTLINE)
                     break
-    salvar(final, nome + ".png")
+    save(final, name + ".png")
 
 
 # ------------------------------------------------------------------ ícones
 # Desenhos 11x11 no padrão de tools/pixel_icon.py (sem moldura,
 # borda em tom escuro da própria cor); cada ícone tem sua paleta.
-ICONES = {
+ICONS = {
     # Seta Vil: haste roxa com ponta e penas de fogo vil verde.
     "arrow": ({"d": (95, 40, 140, 255), "p": (150, 70, 210, 255), "l": (205, 150, 245, 255), "g": (90, 190, 50, 255),
               "y": (220, 255, 160, 255)}, [
@@ -232,13 +232,13 @@ ICONES = {
 }
 
 
-def gerar_icones():
-    for nome, (paleta, linhas) in ICONES.items():
-        salvar(icone(paleta, linhas), "icon_%s.png" % nome)
+def gerar_icons():
+    for name, (paleta, lines) in ICONS.items():
+        save(icon(paleta, lines), "icon_%s.png" % name)
 
 
 if __name__ == "__main__":
-    gerar_folha(Image.open(ORIGINAL).convert("RGBA"))
-    for nome, cfg in INVOCACOES.items():
-        reduzir(nome, cfg["altura"], cfg["espelhar"])
-    gerar_icones()
+    gerar_sheet(Image.open(ORIGINAL).convert("RGBA"))
+    for name, cfg in SUMMONS.items():
+        reduzir(name, cfg["height"], cfg["mirror"])
+    gerar_icons()
