@@ -1002,11 +1002,11 @@ func _test_clairin_frenzy() -> void:
 	check(c.can_use("ult", 0) and _skill_data(c, "basic", 1).target == "single", "fora da ult, a Bola de Fogo é num alvo só")
 	c.use_ult()
 	check(c.in_flaming_head() and c.frenzy == Clairin.FRENZY_HEAD and c.energy == 0.0 and not c.can_use("ult", 0),
-		"Cabeça Flamejante: entra com +30 de Frenesi")
+		"Lorde da Chama Frenética: entra com +30 de Frenesi")
 	check(_skill_data(c, "basic", 1).target == "all" and _skill_data(c, "ult", 1).get("free", false),
-		"na Cabeça Flamejante, a Bola de Fogo atinge todos; a ult não gasta o turno")
+		"como Lorde da Chama Frenética, a Bola de Fogo atinge todos; a ult não gasta o turno")
 	c.gain_frenzy(100)
-	check(c.overflow().burst, "na Cabeça Flamejante, o estouro queima também os inimigos")
+	check(c.overflow().burst, "como Lorde da Chama Frenética, o estouro queima também os inimigos")
 	check(not c.end_turn() and not c.end_turn() and c.end_turn() and not c.in_flaming_head(), "dura 3 turnos dele")
 	check(c.effects()[0].id == "frenzy", "o Frenesi aparece nos efeitos")
 
@@ -1047,7 +1047,7 @@ func _test_clairin_in_battle() -> void:
 	await _until(func() -> bool: return b.waiting_for_player or b.over)
 	check(range(3).all(func(i: int) -> bool: return b.enemies[i].hp < hps[i] or not b.enemies[i].is_alive())
 		and b.hud._log_lines.any(func(l: String) -> bool: return "alcança os inimigos" in l),
-		"na Cabeça Flamejante, a Bola de Fogo pega todos e o estouro queima os inimigos")
+		"como Lorde da Chama Frenética, a Bola de Fogo pega todos e o estouro queima os inimigos")
 	b.queue_free()
 	await process_frame
 

@@ -54,7 +54,7 @@ Sem cenários, roda cada andar um nível abaixo do recomendado, no recomendado e
 | `tools/generate_caoimhe.py`       | gera a spritesheet da Caoimhe a partir do sprite parado                          |
 | `tools/pixel_icon.py`             | padrão dos ícones de habilidade (15x15, desenho 11x11 centrado, sem moldura), usado pelos geradores |
 | `tools/generate_askara.py`        | gera a spritesheet e os ícones da Àskara e reduz as invocações (originais em `characters/askara/originals/`) |
-| `tools/generate_clairin.py`    | gera as duas spritesheets do Clairin (normal e Cabeça Flamejante) e os ícones, a partir de `characters/clairin/originals/` (a folha original tem um quadro deslocado; o gerador alinha pelos pés) |
+| `tools/generate_clairin.py`    | gera as duas spritesheets do Clairin (normal e Lorde da Chama Frenética) e os ícones, a partir de `characters/clairin/originals/` (a folha original tem um quadro deslocado; o gerador alinha pelos pés) |
 | `tools/generate_logo.py`          | gera a logo do jogo (`logo.png`), usada no menu inicial e no README              |
 | `tools/generate_placeholder_art.py` | gera a arte provisória (inimigos, inclusive o Golem de Pedra e o Elemental de Fogo, cenário, onda do Engo-ji) e os ícones da passiva e do Bang! da Shumi |
 | `../Shumi/gerar_spritesheet.py`   | fora do projeto: gera a spritesheet da Shumi a partir de `Shumi.png` e, com `kokoro.png shumi_kokoro`, a do visual Kokoro (usado no Bang!); copie o PNG e o JSON de `spritesheet/` para `characters/shumi/` |

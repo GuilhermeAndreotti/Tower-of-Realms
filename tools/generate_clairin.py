@@ -1,7 +1,7 @@
 """Gera os assets do Clairin a partir dos originais em characters/clairin/originals/:
-duas folhas de animações + JSON (mesmo formato dos outros), a normal e a da
-Cabeça Flamejante (trocada na ult, como o visual Kokoro da Shumi), e os
-ícones das habilidades (padrão de pixel_icon.py).
+duas folhas de animações + JSON (mesmo formato dos outros), a normal e a do
+Lorde da Chama Frenética, com a cabeça em chamas (trocada na ult, como o
+visual Kokoro da Shumi), e os ícones das habilidades (padrão de pixel_icon.py).
 
 A folha original tem 8 quadros de 24x36: parado, dois de braços erguidos,
 dois da cabeça pegando fogo e três da cabeça em chamas. O último está 4px à
@@ -114,11 +114,11 @@ def generate_sheets():
     build_sheet("clairin_spritesheet", {
         "idle": [at_frame(still), at_frame(still), at_frame(breathing(still)), at_frame(breathing(still))],
         "cast": [at_frame(arms_a), at_frame(arms_b), at_frame(arms_b), at_frame(arms_a)],
-        # a cabeça pega fogo; a ação troca para a folha da Cabeça Flamejante no fim
+        # a cabeça pega fogo; a ação troca para a folha do Lorde da Chama Frenética no fim
         "ignite": [at_frame(arms_a), at_frame(spark_a), at_frame(spark_b), at_frame(fire_a)],
         "hurt": [at_frame(lighten(still, 60), dx=-1), at_frame(still)],
     }, DURATIONS)
-    # na Cabeça Flamejante os braços ficam erguidos e o fogo tremula sempre
+    # como Lorde da Chama Frenética os braços ficam erguidos e o fogo tremula sempre
     build_sheet("clairin_frenzy_spritesheet", {
         "idle": [at_frame(fire_a), at_frame(fire_b), at_frame(fire_c), at_frame(fire_b)],
         "cast": [at_frame(fire_b), at_frame(fire_c), at_frame(fire_c), at_frame(fire_a)],
@@ -174,7 +174,7 @@ ICONS = {
         ".d...o...d.",
         ".....d.....",
     ]),
-    # Cabeça Flamejante: a cabeça vira chama, com o olho escuro no meio.
+    # Lorde da Chama Frenética: a cabeça vira chama, com o olho escuro no meio.
     "flaming_head": (dict(FLAME, k=(45, 20, 5, 255), c=(110, 85, 20, 255), s=(225, 225, 215, 255)), [
         "..y.y..y...",
         ".yoyoyyoy..",

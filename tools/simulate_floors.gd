@@ -18,8 +18,8 @@ extends SceneTree
 ##    quem estiver abaixo de 50%, se não Lança de Rá em quem bate mais;
 ##  - Askara: Lorde assim que der; se não, com ponto e vaga, Shivara (3
 ##    fragmentos) ou, sem nada em campo, Emissário (2); se não, Seta Vil;
-##  - Clairin: Cabeça Flamejante com a barra até 40; Descarga com 70+ (na
-##    Cabeça Flamejante e com HP acima de 50%, deixa estourar nos inimigos);
+##  - Clairin: Lorde da Chama Frenética com a barra até 40; Descarga com 70+ (como
+##    Lorde da Chama Frenética e com HP acima de 50%, deixa estourar nos inimigos);
 ##    Onda Frenética com ponto e 2+ inimigos; se não, Bola de Fogo.
 
 const SPEED := 40.0  ## Engine.time_scale durante a simulação

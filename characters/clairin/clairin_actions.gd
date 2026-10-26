@@ -38,7 +38,7 @@ func end_turn() -> void:
 	if c.end_turn():
 		v.swap_frames(_frames_normal)
 		v.flash(Color(1.6, 1.4, 1.1))
-		b.log_line("A %s de %s se apaga." % [UIStyle.highlight("Cabeça Flamejante", Clairin.FRENZY_COLOR), UIStyle.fighter_name(c)])
+		b.log_line("%s deixa de ser o %s." % [UIStyle.fighter_name(c), UIStyle.highlight("Lorde da Chama Frenética", Clairin.FRENZY_COLOR)])
 
 
 func _cast() -> void:
@@ -51,7 +51,7 @@ func _hand() -> Vector2:
 
 
 # ----------------------------------------------------------- Bola de Fogo
-## Uma bola no alvo; na Cabeça Flamejante, uma em cada inimigo.
+## Uma bola no alvo; como Lorde da Chama Frenética, uma em cada inimigo.
 func _fireball() -> void:
 	var targets: Array = b.living_enemies() if c.in_flaming_head() else [b.current_target()]
 	b.log_line("%s utilizou %s!" % [UIStyle.fighter_name(c), UIStyle.highlight("Bola de Fogo", Clairin.FRENZY_COLOR)])
@@ -125,7 +125,7 @@ func _discharge() -> void:
 	await b.wait(0.3)
 
 
-# ----------------------------------------------------- Cabeça Flamejante
+# ----------------------------------------------------- Lorde da Chama Frenética
 func _flaming_head() -> void:
 	c.use_ult()
 	v.play("ignite")
@@ -139,16 +139,16 @@ func _flaming_head() -> void:
 	CombatEffects.ring(b.world, head, Clairin.FRENZY_COLOR, 80.0)
 	CombatEffects.impact(b.world, head, FIRE_COLORS[2], 1.6)
 	CombatEffects.veil(b.world, Color(1.0, 0.75, 0.2, 0.25), 0.35)
-	b.announce("CABEÇA FLAMEJANTE", Clairin.FRENZY_COLOR, 34)
-	b.log_line("%s acende a %s por %d turnos." % [UIStyle.fighter_name(c),
-		UIStyle.highlight("Cabeça Flamejante", Clairin.FRENZY_COLOR), Clairin.HEAD_DURATION])
+	b.announce("LORDE DA CHAMA FRENÉTICA", Clairin.FRENZY_COLOR, 30)
+	b.log_line("%s desperta como %s por %d turnos." % [UIStyle.fighter_name(c),
+		UIStyle.highlight("Lorde da Chama Frenética", Clairin.FRENZY_COLOR), Clairin.HEAD_DURATION])
 	b.shake(5.0)
 	b.refresh()
 	await b.wait(0.7)
 
 
 # --------------------------------------------------------------- estouro
-## A Chama Frenética encheu: estoura nele e, na Cabeça Flamejante, também
+## A Chama Frenética encheu: estoura nele e, como Lorde da Chama Frenética, também
 ## em todos os inimigos.
 func _check_overflow() -> void:
 	var r := c.overflow()

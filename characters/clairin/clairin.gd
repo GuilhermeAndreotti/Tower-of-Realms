@@ -9,7 +9,7 @@ extends Combatant
 ##  Skill: Onda Frenética. Todos os inimigos; gera mais Frenesi.
 ##  Skill 2: Descarga. Gasta todo o Frenesi num golpe no alvo e nos vizinhos,
 ##           mais forte quanto mais cheia a barra, e zera sem estourar.
-##  Ult: Cabeça Flamejante. Por 3 turnos dele, a Bola de Fogo atinge todos e
+##  Ult: Lorde da Chama Frenética (a cabeça vira chama). Por 3 turnos dele, a Bola de Fogo atinge todos e
 ##       o estouro da barra queima também os inimigos. Não gasta o turno.
 
 ## Ajuste de balanceamento: tudo da Chama Frenética está aqui.
@@ -17,14 +17,14 @@ const FRENZY_MAX := 100
 const FRENZY_ATK := 0.6  ## bônus de ATQ com a barra cheia (proporcional)
 const FRENZY_BASIC := 20
 const FRENZY_WAVE := 30
-const FRENZY_HEAD := 30  ## ao entrar na Cabeça Flamejante
+const FRENZY_HEAD := 30  ## ao virar o Lorde da Chama Frenética
 const OVERFLOW_DAMAGE := 0.20  ## do HP máximo dele, sem passar por escudo
-## Estouro na Cabeça Flamejante, em todos os inimigos. Sai depois de a barra
+## Estouro como Lorde da Chama Frenética, em todos os inimigos. Sai depois de a barra
 ## zerar (sem o bônus), por isso o multiplicador já é alto.
 const BURST_MULT := 2.0
 
 const BASIC_MULT := 0.9
-const HEAD_BASIC_MULT := 0.7  ## a Bola de Fogo em todos, na Cabeça Flamejante
+const HEAD_BASIC_MULT := 0.7  ## a Bola de Fogo em todos, como Lorde da Chama Frenética
 const WAVE_MULT := 0.7
 ## Descarga: do multiplicador com a barra vazia até o com ela cheia; os
 ## vizinhos levam uma fração.
@@ -43,7 +43,7 @@ const FOLDER := "res://characters/clairin/"
 const FRENZY_COLOR := Color(1.0, 0.82, 0.2)
 
 var frenzy := 0
-var head_turns := 0  ## turnos que faltam da Cabeça Flamejante (0 = fora)
+var head_turns := 0  ## turnos que faltam do Lorde da Chama Frenética (0 = fora)
 
 
 func _init() -> void:
@@ -74,7 +74,7 @@ func gain_frenzy(amount: int) -> void:
 
 
 ## Se a barra encheu, estoura: a barra zera e ele perde HP (fica com 1, no
-## mínimo). Devolve {"damage", "burst" (true na Cabeça Flamejante: a batalha
+## mínimo). Devolve {"damage", "burst" (true como Lorde da Chama Frenética: a batalha
 ## queima também os inimigos)}; {} se não estourou.
 func overflow() -> Dictionary:
 	if frenzy < FRENZY_MAX:
@@ -106,7 +106,7 @@ func use_ult() -> void:
 	gain_frenzy(FRENZY_HEAD)
 
 
-## Fim do turno dele. Devolve true se a Cabeça Flamejante acabou agora.
+## Fim do turno dele. Devolve true se o Lorde da Chama Frenética acabou agora.
 func end_turn() -> bool:
 	if head_turns <= 0:
 		return false
@@ -125,15 +125,15 @@ func can_use(action: String, points: int) -> bool:
 
 
 func kit_bar() -> Dictionary:
-	return {"label": "FR", "value": frenzy, "max": FRENZY_MAX, "color": FRENZY_COLOR, "marks": 4}
+	return {"label": "FR", "value": frenzy, "max": FRENZY_MAX, "color": FRENZY_COLOR, "marks": 4, "effect": "frenzy"}
 
 
 func skills(points: int) -> Array[Dictionary]:
 	var head := in_flaming_head()
 	var ult := {
-		"action": "ult", "name": "Cabeça Flamejante", "key": "R", "icon": FOLDER + "icon_flaming_head.png",
+		"action": "ult", "name": "Lorde da Chama Frenética", "key": "R", "icon": FOLDER + "icon_flaming_head.png",
 		"target": "self", "energy_cost": roundi(ULT_COST), "highlight": true, "free": true, "color": FRENZY_COLOR,
-		"description": "A cabeça vira chama por %d turnos dele: a Bola de Fogo atinge todos e o estouro da barra queima também os inimigos. Entra com +%d de Frenesi." % [
+		"description": "Ele vira o Lorde da Chama Frenética por %d turnos dele, com a cabeça em chamas: a Bola de Fogo atinge todos e o estouro da barra queima também os inimigos. Entra com +%d de Frenesi." % [
 			HEAD_DURATION, FRENZY_HEAD],
 		"details": [
 			{"label": "Bola de Fogo", "text": "Atinge todos os inimigos (%sx)." % _mult_text(HEAD_BASIC_MULT)},
@@ -142,7 +142,7 @@ func skills(points: int) -> Array[Dictionary]:
 		],
 	}
 	if head:
-		ult.merge({"state": "blocked", "badge": str(head_turns), "missing_reason": "A Cabeça Flamejante já está acesa."})
+		ult.merge({"state": "blocked", "badge": str(head_turns), "missing_reason": "Ele já é o Lorde da Chama Frenética."})
 	else:
 		ult.state = "ready" if energy >= ULT_COST else "no_resource"
 	return [
@@ -150,7 +150,7 @@ func skills(points: int) -> Array[Dictionary]:
 			"action": "basic", "name": "Bola de Fogo", "key": "Q", "icon": FOLDER + "icon_fireball.png",
 			"state": "ready", "target": "all" if head else "single", "type": type, "point_gain": 1,
 			"badge": "TODOS" if head else "", "color": FRENZY_COLOR if head else Types.color(type),
-			"description": "Bola de fogo no alvo (na Cabeça Flamejante, em todos). Gera 1 ponto de skill e +%d de Frenesi." % FRENZY_BASIC,
+			"description": "Bola de fogo no alvo (como Lorde da Chama Frenética, em todos). Gera 1 ponto de skill e +%d de Frenesi." % FRENZY_BASIC,
 		},
 		{
 			"action": "skill", "name": "Onda Frenética", "key": "E", "icon": FOLDER + "icon_wave.png",
@@ -178,7 +178,7 @@ func skills(points: int) -> Array[Dictionary]:
 			"details": [
 				{"label": "Bola de Fogo", "mark": "+%d" % FRENZY_BASIC},
 				{"label": "Onda Frenética", "mark": "+%d" % FRENZY_WAVE},
-				{"label": "Cabeça Flamejante", "mark": "+%d" % FRENZY_HEAD},
+				{"label": "Lorde da Chama Frenética", "mark": "+%d" % FRENZY_HEAD},
 				{"label": "Descarga", "mark": "zera"},
 			],
 		},
@@ -191,9 +191,9 @@ static func _mult_text(m: float) -> String:
 
 func effects() -> Array[Dictionary]:
 	var list: Array[Dictionary] = [{"id": "frenzy", "short": str(frenzy), "name": "Frenesi %d/%d" % [frenzy, FRENZY_MAX],
-		"type": "buff", "turns": -1, "color": FRENZY_COLOR, "detail": "Chama Frenética: ATQ +%d%%" % roundi(frenzy_bonus() * 100)}]
+		"type": "buff", "turns": -1, "color": FRENZY_COLOR, "detail": "Frenesi: ATQ +%d%%" % roundi(frenzy_bonus() * 100)}]
 	if in_flaming_head():
-		list.append({"id": "flaming_head", "short": "CAB", "name": "Cabeça Flamejante", "type": "buff",
+		list.append({"id": "flaming_head", "short": "LRD", "name": "Lorde da Chama Frenética", "type": "buff",
 			"turns": head_turns, "color": FRENZY_COLOR, "detail": "Bola de Fogo em todos · o estouro queima os inimigos"})
 	list.append_array(super())
 	return list

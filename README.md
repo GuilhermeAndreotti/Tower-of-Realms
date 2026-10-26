@@ -63,7 +63,7 @@ Cada lutador tem um *action value* (AV), que é quanto falta para ele agir. Quem
 - **Pontos de skill** são compartilhados pela equipe. O time começa com 3 e o máximo é 5. O ataque básico **gera** 1 ponto, e a skill **gasta** 1. Revezar entre básicos e skills faz parte da estratégia.
 - **Energia** é individual. Ela enche ao atacar e ao receber golpes e paga a ultimate.
 - **Fragmentos d'Alma** são só da Àskara, que não usa energia: pagam as invocações e o Lorde Demônio.
-- **Chama Frenética** é só do Clairin: uma barra embaixo da energia que aumenta o dano dele e estoura nele se encher.
+- **Chama Frenética** é só do Clairin: uma barra ao lado da energia que aumenta o dano dele e estoura nele se encher.
 
 ### Dano
 ```

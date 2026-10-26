@@ -50,12 +50,13 @@ var _shield_text: Label  ## "+N" ao lado do HP, quando há escudo
 var _energy_bar: PixelBar
 var _energy_text: Label
 var _energy_row: Control
+var _resources_row: Control  ## energia e a barra do kit, lado a lado
 var _kit_row: Control  ## barra própria do kit (Combatant.kit_bar()), quando tem
 var _kit_label: Label
 var _kit_bar: PixelBar
 var _kit_text: Label
 var _points_drawing: Control
-var _chips: HBoxContainer
+var _chips: HFlowContainer  ## quebra em linhas: o painel não alarga com muitos efeitos
 var _character_panel: PanelContainer
 
 # resto da equipe (cartõezinhos ao lado do painel)
@@ -253,7 +254,8 @@ func _build_log() -> void:
 func _build_character() -> void:
 	var m := UIStyle.MARGIN
 	var p := _panel(Vector2(0, 1), Vector2(m, -m))
-	p.custom_minimum_size.x = 300
+	# largura fixa: o que não cabe quebra linha (efeitos) ou corta (subtítulo)
+	p.custom_minimum_size.x = 330
 	_character_panel = p
 	var h := _hbox(8)
 	_panel_portrait = _drawing(Vector2(54, 54), _draw_portrait)
@@ -268,6 +270,9 @@ func _build_character() -> void:
 	_form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_form.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_form.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# o subtítulo corta com "…" em vez de alargar o painel
+	_form.clip_text = true
+	_form.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	top.add_child(_name)
 	_level = UIStyle.label("", 10, UIStyle.GOLD, 3)
 	_level.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -288,34 +293,39 @@ func _build_character() -> void:
 	hp_row[0].add_child(_shield_text)
 	hp_row[0].move_child(_shield_text, 2)
 	v.add_child(hp_row[0])
-	var en_row := _resource_row("EN", UIStyle.ENERGY)
+	# a barra do kit divide a linha com a energia, para o painel não crescer
+	_resources_row = _hbox(10)
+	var en_row := _resource_row("EN", UIStyle.ENERGY, 36)
 	_energy_row = en_row[0]
 	_energy_bar = en_row[1]
 	_energy_bar.marks = 6
 	_energy_text = en_row[2]
-	v.add_child(_energy_row)
-	var kit_row := _resource_row("", UIStyle.ENERGY)
+	_resources_row.add_child(_energy_row)
+	var kit_row := _resource_row("", UIStyle.ENERGY, 36)
 	_kit_row = kit_row[0]
 	_kit_label = _kit_row.get_child(0)
 	_kit_bar = kit_row[1]
 	_kit_text = kit_row[2]
-	v.add_child(_kit_row)
+	_resources_row.add_child(_kit_row)
+	v.add_child(_resources_row)
 
-	var base := _hbox(6)
 	_points_drawing = _drawing(Vector2(0, 12), _draw_points)
-	base.add_child(_points_drawing)
-	_chips = _hbox(3)
-	_chips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_chips.alignment = BoxContainer.ALIGNMENT_END
-	base.add_child(_chips)
-	v.add_child(base)
+	v.add_child(_points_drawing)
+	# efeitos numa linha própria, que quebra em mais linhas na largura do painel
+	_chips = HFlowContainer.new()
+	_chips.add_theme_constant_override("h_separation", 3)
+	_chips.add_theme_constant_override("v_separation", 2)
+	_chips.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chips.custom_minimum_size.x = 1
+	v.add_child(_chips)
 	h.add_child(v)
 	p.add_child(h)
 
 
 ## [linha, barra, texto do valor]
-func _resource_row(label: String, color: Color) -> Array:
+func _resource_row(label: String, color: Color, value_width := 64) -> Array:
 	var line := _hbox(5)
+	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var l := UIStyle.label(label, 9, color, 2)
 	l.custom_minimum_size.x = 16
 	var bar := PixelBar.new()
@@ -323,7 +333,7 @@ func _resource_row(label: String, color: Color) -> Array:
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var value := UIStyle.label("", 11)
-	value.custom_minimum_size.x = 64
+	value.custom_minimum_size.x = value_width
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	line.add_child(l)
 	line.add_child(bar)
@@ -651,6 +661,7 @@ func _refresh_character() -> void:
 	_energy_text.text = "%d/%d" % [_active.energy, _active.max_energy]
 	var kit := _active.kit_bar()
 	_kit_row.visible = not kit.is_empty()
+	_resources_row.visible = _energy_row.visible or _kit_row.visible
 	if not kit.is_empty():
 		_kit_label.text = kit.label
 		_kit_label.label_settings.font_color = kit.color
@@ -671,8 +682,14 @@ func _refresh_character() -> void:
 			break
 	for child in _chips.get_children():
 		child.queue_free()
+	# o efeito que a barra do kit já mostra não repete como etiqueta
+	var shown_by_bar: String = kit.get("effect", "")
+	var chips := 0
 	for e in effects:
-		_chips.add_child(_chip(e))
+		if e.id != shown_by_bar:
+			_chips.add_child(_chip(e))
+			chips += 1
+	_chips.visible = chips > 0
 
 
 func _chip(e: Dictionary) -> Control:

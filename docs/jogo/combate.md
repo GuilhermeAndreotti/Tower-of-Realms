@@ -44,7 +44,7 @@ Os tipos dos inimigos são parte do desenho dos andares (ver [Torre e andares](t
 - **Pontos de skill:** do time, começam em 3, máximo 5. O básico dá 1; cada skill (E e W) custa 1. A batalha cobra `point_cost` antes da ação e dá `point_gain` depois.
 - **Recarga:** a skill 2 (W) também tem recarga, para não disputar os pontos com a E a cada turno. Recarga N = uma vez a cada N turnos do dono, contando o turno do uso. A batalha inicia a recarga depois da ação (`"cooldown"` na habilidade); `Combatant.pass_turn()` desconta e `with_cooldown()` põe a barra no estado `cooldown`, com os turnos que faltam.
 - **Energia:** de cada personagem. Sobe com básico, skill e ao apanhar; paga a ultimate. Quem tem `max_energy = 0` não usa energia, e a HUD esconde a barra.
-- **Recurso de kit:** um kit pode ter o próprio (os Fragmentos d'Alma da Àskara). Ele mora na classe do personagem, aparece em `effects()` e a barra explica o que falta pela chave `missing_reason` da habilidade. Para ganhar algo quando um inimigo cai, o kit sobrescreve `on_enemy_fallen()`. Se o recurso pede uma barra (a Chama Frenética do Clairin), o kit a descreve em `kit_bar()` (rótulo, valor, máximo, cor) e a HUD a mostra embaixo da energia; sem `kit_bar()`, a linha some.
+- **Recurso de kit:** um kit pode ter o próprio (os Fragmentos d'Alma da Àskara). Ele mora na classe do personagem, aparece em `effects()` e a barra explica o que falta pela chave `missing_reason` da habilidade. Para ganhar algo quando um inimigo cai, o kit sobrescreve `on_enemy_fallen()`. Se o recurso pede uma barra (a Chama Frenética do Clairin), o kit a descreve em `kit_bar()` (rótulo, valor, máximo, cor) e a HUD a mostra ao lado da energia; sem `kit_bar()`, a linha some.
 
 ## Estados
 

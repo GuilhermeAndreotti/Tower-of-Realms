@@ -337,8 +337,10 @@ func skills(_points: int) -> Array[Dictionary]:
 	return []
 
 
-## Barra própria do kit, que a HUD mostra embaixo da energia: {"label" (2-3
-## letras), "value", "max", "color", "marks"? (divisões)}. {} = nenhuma.
+## Barra própria do kit, que a HUD mostra ao lado da energia: {"label" (2-3
+## letras), "value", "max", "color", "marks"? (divisões), "effect"? (id do
+## efeito de effects() que a barra já mostra: a HUD não repete como
+## etiqueta)}. {} = nenhuma.
 func kit_bar() -> Dictionary:
 	return {}
 
