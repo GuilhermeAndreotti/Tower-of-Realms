@@ -3,7 +3,7 @@ extends Combatant
 ## Kit do Clairin, portador da Chama Frenética (tipo Fogo, de Azeroth). Bate
 ## em área e paga com o próprio HP.
 ##  Passiva: Chama Frenética. Uma barra de 0 a 100 que sobe com os ataques
-##           dele e aumenta o ATQ (até +60% cheia). Se chega a 100, estoura:
+##           dele e aumenta o ATQ (até +80% cheia). Se chega a 100, estoura:
 ##           ele perde 20% do HP máximo (nunca cai por isso) e a barra zera.
 ##  Básico: Bola de Fogo. Um alvo só; gera 1 ponto de skill e Frenesi.
 ##  Skill: Onda Frenética. Todos os inimigos; gera mais Frenesi.
@@ -14,7 +14,7 @@ extends Combatant
 
 ## Ajuste de balanceamento: tudo da Chama Frenética está aqui.
 const FRENZY_MAX := 100
-const FRENZY_ATK := 0.6  ## bônus de ATQ com a barra cheia (proporcional)
+const FRENZY_ATK := 0.8  ## bônus de ATQ com a barra cheia (proporcional)
 const FRENZY_BASIC := 20
 const FRENZY_WAVE := 30
 const FRENZY_HEAD := 30  ## ao virar o Lorde da Chama Frenética
@@ -24,8 +24,8 @@ const OVERFLOW_DAMAGE := 0.20  ## do HP máximo dele, sem passar por escudo
 const BURST_MULT := 2.0
 
 const BASIC_MULT := 0.9
-const HEAD_BASIC_MULT := 0.7  ## a Bola de Fogo em todos, como Lorde da Chama Frenética
-const WAVE_MULT := 0.7
+const HEAD_BASIC_MULT := 1.0  ## a Bola de Fogo em todos, como Lorde da Chama Frenética
+const WAVE_MULT := 1.0
 ## Descarga: do multiplicador com a barra vazia até o com ela cheia; os
 ## vizinhos levam uma fração.
 const DISCHARGE_MIN := 0.5
