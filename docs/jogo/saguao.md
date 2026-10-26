@@ -1,12 +1,12 @@
 # Saguão
 
-O saguão (`Lobby`, [`lobby.gd`](../../scripts/lobby/lobby.gd)) é a zona segura: a Caoimhe anda livre, fala com os personagens e entra na dungeon pela porta, no centro da parede do fundo.
+O saguão (`Lobby`, [`lobby.gd`](../../lobby/lobby.gd)) é a zona segura: a Caoimhe anda livre, fala com os personagens e entra na dungeon pela porta, no centro da parede do fundo.
 
 Chega-se nele pelo menu inicial (entrada "inicio") ou voltando da dungeon (entrada "porta"). Esc, fora de conversa e de transição, volta ao [menu inicial](menu-inicial.md); não há nada a salvar, porque o progresso é salvo a cada mudança.
 
 ## Coordenadas e arte
 
-O fundo tem 640×180 pixels, ampliado 3× na tela. As constantes do `Lobby` (móveis, tochas, porta, lugares) estão em pixels do fundo, os mesmos de `ferramentas/gerar_lobby.py`, que gera a arte. Mudou a posição de algo desenhado no fundo? Mude nos dois e gere de novo.
+O fundo tem 640×180 pixels, ampliado 3× na tela. As constantes do `Lobby` (móveis, tochas, porta, lugares) estão em pixels do fundo, os mesmos de `tools/generate_lobby.py`, que gera a arte. Mudou a posição de algo desenhado no fundo? Mude nos dois e gere de novo.
 
 - Móveis bloqueiam só a pegada da base; o resto é desenho.
 - Os personagens e móveis são ordenados pela altura dos pés (`y_sort`).
@@ -20,7 +20,7 @@ O fundo tem 640×180 pixels, ampliado 3× na tela. As constantes do `Lobby` (mó
 
 ## Conversas
 
-As falas estão em `Conversas` ([`conversas.gd`](../../scripts/lobby/conversas.gd)), com o formato no comentário do arquivo. A chave é:
+As falas estão em `Conversas` ([`conversations.gd`](../../lobby/conversations.gd)), com o formato no comentário do arquivo. A chave é:
 
 - o id de um personagem: abre ao falar com ele;
 - outro id: conversa de história, aberta por um evento `conversa`.

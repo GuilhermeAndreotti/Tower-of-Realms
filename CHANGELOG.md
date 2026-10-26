@@ -23,9 +23,9 @@ e o projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Quem chega pela história entra no nível médio da equipe principal, dentro do limite da Torre.
 - Nível e barra de XP na montagem da equipe; nível no painel da batalha; tela de vitória com a XP de cada um, quem subiu de nível e os atributos ganhos, quem estava na reserva, o andar liberado e o limite que subiu.
 - Progresso salvo em `user://progresso.cfg`: níveis, XP, equipe, andares vencidos e eventos ainda não apresentados.
-- Ferramenta de simulação dos andares com a batalha de verdade e um piloto automático (`ferramentas/simular_andares.gd`).
-- Logo do jogo em pixel art, no topo do README (gerada por `ferramentas/gerar_logo.py`).
-- Página de cada personagem (`personagens/<id>/README.md`), ligada ao README principal, com os atributos e as habilidades no mesmo texto do jogo, gerados por `ferramentas/gerar_readme_personagens.gd`.
+- Ferramenta de simulação dos andares com a batalha de verdade e um piloto automático (`tools/simulate_floors.gd`).
+- Logo do jogo em pixel art, no topo do README (gerada por `tools/generate_logo.py`).
+- Página de cada personagem (`characters/<id>/README.md`), ligada ao README principal, com os atributos e as habilidades no mesmo texto do jogo, gerados por `tools/generate_character_readmes.gd`.
 - Documentação do projeto em `docs/`, `AGENTS.md` e este changelog.
 - Nova personagem: Àskara, invocadora do abismo (Trevas), de Nariagari. Não usa energia: junta Fragmentos d'Alma (começa com 2, máximo 8; +1 por Seta Vil e +1 quando um inimigo cai) e os gasta em demônios.
   - Seta Vil (Q): 0,6× ATQ, gera 1 ponto de skill e 1 fragmento.
@@ -58,6 +58,7 @@ e o projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Nos seletores de opção da batalha, W e S não navegam mais (só ↑/↓): o W passa a chamar a skill 2, mesmo com a lente do Andri aberta.
 - O piloto da simulação dos andares usa as skills 2 (Bang! e Protocolo MOMC).
 - Ícones de habilidade e de artefato padronizados no estilo dos da Shumi: mesmo tamanho (desenho de 11×11 centrado), sem moldura própria (o slot da barra já tem borda) e com a borda da figura num tom escuro da própria cor. Todos os do Andri e da Àskara foram redesenhados; o Disparo do Andri virou uma bola de fogo.
+- Projeto reorganizado em pastas por feature, com nomes de pasta e de arquivo em inglês: cada cena fica junto do script e da arte dela (`combat/`, `characters/`, `enemies/`, `progression/`, `tower/`, `lobby/`, `menu/`, `ui/`), e os testes e ferramentas passam a `tests/` e `tools/`.
 
 ### Fixed
 

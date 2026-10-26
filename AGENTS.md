@@ -26,7 +26,7 @@ Não crie documento novo sem verificar se o assunto já tem um. Mudou uma regra?
 - A recompensa de uma vitória é dada uma vez só, e só na vitória.
 - Eventos de história: efeito aplicado e salvo na hora; apresentação na fila, removida só depois de apresentada ([Torre e andares](docs/jogo/torre-e-andares.md#eventos-de-história)).
 - Save antigo continua abrindo: chave que falta vale o padrão, valor inválido é corrigido na leitura.
-- Arte gerada por script é alterada no gerador em `ferramentas/`, não no PNG.
+- Arte gerada por script é alterada no gerador em `tools/`, não no PNG.
 
 ## Validação
 

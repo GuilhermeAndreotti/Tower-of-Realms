@@ -1,6 +1,6 @@
 # Menu inicial
 
-O menu inicial (`MenuInicial`, [`menu_inicial.gd`](../../scripts/ui/menu_inicial.gd)) é a cena principal: mostra a logo e escolhe em qual slot de save o jogo vai rodar. Só apresenta; criar, ler e apagar saves é com `Progressao` ([Progressão](progressao.md#save)).
+O menu inicial (`MenuInicial`, [`main_menu.gd`](../../menu/main_menu.gd)) é a cena principal: mostra a logo e escolhe em qual slot de save o jogo vai rodar. Só apresenta; criar, ler e apagar saves é com `Progressao` ([Progressão](progressao.md#save)).
 
 ## Telas
 

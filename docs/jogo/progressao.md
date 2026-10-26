@@ -1,6 +1,6 @@
 # Progressão
 
-Níveis, experiência, limite de nível e save. As regras e as fórmulas estão todas em `Progressao` ([`progressao.gd`](../../scripts/personagens/progressao.gd)); o limite de cada andar, em `Andares`. Nenhum outro lugar calcula XP ou nível.
+Níveis, experiência, limite de nível e save. As regras e as fórmulas estão todas em `Progressao` ([`progression.gd`](../../progression/progression.gd)); o limite de cada andar, em `Andares`. Nenhum outro lugar calcula XP ou nível.
 
 ## Experiência
 

@@ -21,11 +21,11 @@ Aqui fica o que não dá para descobrir só lendo o código: como as partes se e
 | Informação                               | Fonte canônica                                                      |
 | ---------------------------------------- | ------------------------------------------------------------------- |
 | Versão do Godot e configuração do projeto | [`project.godot`](../project.godot)                                 |
-| Personagens jogáveis e crescimento        | [`scripts/personagens/elenco.gd`](../scripts/personagens/elenco.gd) |
-| Curva de XP e regras de progressão        | [`scripts/personagens/progressao.gd`](../scripts/personagens/progressao.gd) |
-| Andares, inimigos e limites de nível      | [`scripts/torre/andares.gd`](../scripts/torre/andares.gd)           |
-| Tabela de tipos                           | [`scripts/combate/tipos.gd`](../scripts/combate/tipos.gd)           |
-| Kits (números de cada habilidade)         | a classe de cada personagem em `scripts/personagens/`               |
+| Personagens jogáveis e crescimento        | [`characters/roster.gd`](../characters/roster.gd) |
+| Curva de XP e regras de progressão        | [`progression/progression.gd`](../progression/progression.gd) |
+| Andares, inimigos e limites de nível      | [`tower/floors.gd`](../tower/floors.gd)           |
+| Tabela de tipos                           | [`combat/types.gd`](../combat/types.gd)           |
+| Kits (números de cada habilidade)         | a classe de cada personagem em `characters/`               |
 | Mudanças notáveis                         | [`CHANGELOG.md`](../CHANGELOG.md)                                   |
 | Descrição do jogo para quem joga          | [`README.md`](../README.md)                                         |
 

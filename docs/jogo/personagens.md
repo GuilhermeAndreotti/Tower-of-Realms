@@ -1,6 +1,6 @@
 # Personagens
 
-Os personagens jogáveis estão cadastrados em `Elenco` ([`elenco.gd`](../../scripts/personagens/elenco.gd)). Nem a batalha, nem a HUD, nem a progressão têm condicionais por personagem: tudo vem do cadastro e do kit.
+Os personagens jogáveis estão cadastrados em `Elenco` ([`roster.gd`](../../characters/roster.gd)). Nem a batalha, nem a HUD, nem a progressão têm condicionais por personagem: tudo vem do cadastro e do kit.
 
 ## O que define um personagem
 
@@ -16,13 +16,13 @@ Os personagens jogáveis estão cadastrados em `Elenco` ([`elenco.gd`](../../scr
 
 ## Adicionar um personagem
 
-1. Crie a classe de regras em `scripts/personagens/` (`extends Combatente`), com os atributos de nível 1 no `_init`, e implemente `habilidades()`, `efeitos()`, `pode_usar()` e o que o kit precisar.
+1. Crie a classe de regras em `characters/` (`extends Combatente`), com os atributos de nível 1 no `_init`, e implemente `habilidades()`, `efeitos()`, `pode_usar()` e o que o kit precisar.
 2. Crie a classe de animações (`extends AcoesPersonagem`) e implemente `executar()`.
 3. Ponha o id em `Elenco.IDS` e os dados em `Elenco.dados()`, incluindo o `crescimento`.
 4. Se ele chega pela história, use `"inicial": false` e libere com um evento `desbloquear` (ver [Torre e andares](torre-e-andares.md#eventos-de-história)).
-5. Monte o kit no [padrão](#padrão-do-kit) e dê a ele uma passiva em `habilidades()` (`"passiva": true`, sem tecla, com ícone e descrição; a etiqueta PASSIVA vem do cartão). Habilidades com vários itens (opções, níveis, invocações) listam cada um em `detalhes`, em vez de um parágrafo: a barra da batalha e a montagem da equipe explicam todos os kits no mesmo padrão ([Combate](combate.md#kits)). Os ícones seguem o padrão de [`ferramentas/icone_pixel.py`](../../ferramentas/icone_pixel.py): desenho 11x11 centrado num PNG 15x15, sem moldura, com a borda num tom escuro da própria cor.
-6. Crie `personagens/<id>/README.md` com a apresentação e as marcas do trecho gerado (copie de um existente), rode `ferramentas/gerar_readme_personagens.gd` e ponha o link na tabela de personagens do README principal. Sempre que mudar o texto de um kit, rode o gerador de novo.
-7. Rode os testes; `teste_combate.gd` confere que todo personagem está cadastrado completo, explica a passiva e tem o README em dia.
+5. Monte o kit no [padrão](#padrão-do-kit) e dê a ele uma passiva em `habilidades()` (`"passiva": true`, sem tecla, com ícone e descrição; a etiqueta PASSIVA vem do cartão). Habilidades com vários itens (opções, níveis, invocações) listam cada um em `detalhes`, em vez de um parágrafo: a barra da batalha e a montagem da equipe explicam todos os kits no mesmo padrão ([Combate](combate.md#kits)). Os ícones seguem o padrão de [`tools/pixel_icon.py`](../../tools/pixel_icon.py): desenho 11x11 centrado num PNG 15x15, sem moldura, com a borda num tom escuro da própria cor.
+6. Crie `characters/<id>/README.md` com a apresentação e as marcas do trecho gerado (copie de um existente), rode `tools/generate_character_readmes.gd` e ponha o link na tabela de personagens do README principal. Sempre que mudar o texto de um kit, rode o gerador de novo.
+7. Rode os testes; `test_combat.gd` confere que todo personagem está cadastrado completo, explica a passiva e tem o README em dia.
 
 ## Padrão do kit
 
@@ -36,7 +36,7 @@ Todo personagem tem cinco entradas na barra, sempre nesta ordem:
 | 4 | Ultimate | R | energia ou recurso do kit |
 | 5 | Passiva | — | a identidade do personagem, sempre por último |
 
-A ordem vale mesmo quando a skill 2 é passiva (a Àskara: Seta Vil, Invocação, Último Ato, Lorde Demônio, Fragmento d'Alma). As teclas são da ação, não da posição: a skill 1 é sempre E e a skill 2, quando é ativa, W. `teste_combate.gd` confere a ordem.
+A ordem vale mesmo quando a skill 2 é passiva (a Àskara: Seta Vil, Invocação, Último Ato, Lorde Demônio, Fragmento d'Alma). As teclas são da ação, não da posição: a skill 1 é sempre E e a skill 2, quando é ativa, W. `test_combat.gd` confere a ordem.
 
 ## Identidade e crescimento
 
@@ -50,7 +50,7 @@ As skills 2 seguem o papel de cada um: a Shumi ataca junto com a equipe, mais fo
 
 ## Liberação temporária
 
-Por enquanto, `Elenco.todos_liberados` é `true`: todos começam liberados, inclusive quem tem `"inicial": false`. O cadastro e os eventos de história continuam como estão, para a chegada pela história voltar a valer ao desligar a chave. Os testes desligam a chave para testar a história; `teste_torre.gd` confere também o modo ligado.
+Por enquanto, `Elenco.todos_liberados` é `true`: todos começam liberados, inclusive quem tem `"inicial": false`. O cadastro e os eventos de história continuam como estão, para a chegada pela história voltar a valer ao desligar a chave. Os testes desligam a chave para testar a história; `test_tower.gd` confere também o modo ligado.
 
 Mexer em crescimento muda o equilíbrio de todos os andares: rode a simulação antes e depois (ver [Testes e ferramentas](../desenvolvimento/testes-e-ferramentas.md#simulação-dos-andares)).
 

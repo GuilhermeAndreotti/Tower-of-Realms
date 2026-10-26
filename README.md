@@ -18,7 +18,7 @@
 - [Sistema de combate](#️-sistema-de-combate)
 - [A Torre](#-a-torre)
 - [Níveis e experiência](#-níveis-e-experiência)
-- [Personagens](#-personagens): [Shumi](personagens/shumi/README.md) · [Andri](personagens/andri/README.md) · [Àskara](personagens/askara/README.md)
+- [Personagens](#-personagens): [Shumi](characters/shumi/README.md) · [Andri](characters/andri/README.md) · [Àskara](characters/askara/README.md)
 - [Inimigos](#-inimigos)
 - [Rodando o projeto](#-rodando-o-projeto)
 - [Estrutura do projeto](#-estrutura-do-projeto)
@@ -117,9 +117,9 @@ Cada ida à dungeon é um andar. Você vence e volta ao saguão. Vencer o andar 
 - **Limite de nível:** é o do andar mais alto liberado. Ele deixa treinar até mais ou menos um nível acima do recomendado para o andar seguinte.
 - **Tipos dos inimigos:** fazem parte do desafio. O Guardião de Veneno e o chefe de Trevas não são fracos a nenhuma lente do Andri, então pedem a Análise. A Sentinela de Água é super efetiva contra o Andri, e a de Ácido contra a Shumi.
 
-Os andares ficam em `scripts/torre/andares.gd`. Para criar um andar novo, basta acrescentar um item na lista.
+Os andares ficam em `tower/floors.gd`. Para criar um andar novo, basta acrescentar um item na lista.
 
-**Eventos de história** (`scripts/torre/eventos.gd`): o efeito vale na hora e fica salvo. A apresentação acontece no saguão, na volta. Por exemplo, o personagem surge com um anúncio, ou uma conversa se abre. Os eventos vêm do `ao_vencer` de um andar ou de uma fala de conversa (`"evento": "desbloquear:andri"`). Os tipos atuais:
+**Eventos de história** (`tower/story_events.gd`): o efeito vale na hora e fica salvo. A apresentação acontece no saguão, na volta. Por exemplo, o personagem surge com um anúncio, ou uma conversa se abre. Os eventos vêm do `ao_vencer` de um andar ou de uma fala de conversa (`"evento": "desbloquear:andri"`). Os tipos atuais:
 - `desbloquear`: libera um personagem.
 - `conversa`: abre uma conversa de `Conversas`. Ainda não há conversas escritas.
 
@@ -127,7 +127,7 @@ Os andares ficam em `scripts/torre/andares.gd`. Para criar um andar novo, basta 
 
 ## 📈 Níveis e experiência
 
-Cada personagem tem nível e XP próprios. As regras ficam em `scripts/personagens/progressao.gd`.
+Cada personagem tem nível e XP próprios. As regras ficam em `progression/progression.gd`.
 
 - **XP por vitória:** cada inimigo vale uma quantidade de XP, definida no andar.
   - **Quem lutou:** recebe a XP inteira, inclusive quem caiu.
@@ -155,9 +155,9 @@ Cada personagem tem uma página própria com atributos e habilidades. Lá, o tex
 
 | | Personagem | Universo | Tipo | Papel |
 |---|---|---|---|---|
-| 🔴 | [**Shumi**, espadachim do Kaioken](personagens/shumi/README.md) | Dragon Ball New Age | Físico | Risco e recompensa: o Kaioken aumenta o poder a cada nível, mas drena o HP dela. |
-| 🟡 | [**Andri Findavil**, inventor e artífice](personagens/andri/README.md) | Tales of Azeroth | Fogo | Suporte tático: troca de elemento, cria fraquezas e entrega artefatos, ao lado do robô MOMC. |
-| 🟣 | [**Àskara**, invocadora do abismo](personagens/askara/README.md) | Nariagari | Trevas | Invocadora: junta Fragmentos d'Alma e os gasta em demônios ou no Lorde Demônio. |
+| 🔴 | [**Shumi**, espadachim do Kaioken](characters/shumi/README.md) | Dragon Ball New Age | Físico | Risco e recompensa: o Kaioken aumenta o poder a cada nível, mas drena o HP dela. |
+| 🟡 | [**Andri Findavil**, inventor e artífice](characters/andri/README.md) | Tales of Azeroth | Fogo | Suporte tático: troca de elemento, cria fraquezas e entrega artefatos, ao lado do robô MOMC. |
+| 🟣 | [**Àskara**, invocadora do abismo](characters/askara/README.md) | Nariagari | Trevas | Invocadora: junta Fragmentos d'Alma e os gasta em demônios ou no Lorde Demônio. |
 
 ---
 
@@ -190,40 +190,40 @@ godot --path .          # abre o jogo (ou importe o project.godot no editor)
 ### Testes
 Os testes rodam sem interface e usam um save só deles:
 ```bash
-godot --headless --path . -s testes/teste_combate.gd     # regras de combate
-godot --headless --path . -s testes/teste_progressao.gd  # níveis, XP, recompensas e save
-godot --headless --path . -s testes/teste_lobby.gd       # saguão
-godot --headless --path . -s testes/teste_torre.gd       # andares, história, escolha do andar
-godot --headless --path . -s testes/teste_menu.gd        # menu inicial e slots de save
+godot --headless --path . -s tests/test_combat.gd       # regras de combate
+godot --headless --path . -s tests/test_progression.gd  # níveis, XP, recompensas e save
+godot --headless --path . -s tests/test_lobby.gd        # saguão
+godot --headless --path . -s tests/test_tower.gd        # andares, história, escolha do andar
+godot --headless --path . -s tests/test_menu.gd         # menu inicial e slots de save
 ```
 
 ### Ferramentas
 | Script | O que faz |
 |---|---|
-| `ferramentas/simular_andares.gd` | Simula os andares com a batalha de verdade e um piloto automático, e mostra as vitórias, os turnos e o HP restante em cada nível: `godot --headless --path . -s ferramentas/simular_andares.gd -- [rodadas] [andar:nível ...] [equipe=askara,shumi]` |
-| `ferramentas/demo_captura.gd` | Joga uma batalha sozinho e salva capturas de tela: `godot --path . -s ferramentas/demo_captura.gd -- <pasta> shumi andri` |
-| `ferramentas/gerar_readme_personagens.gd` | Atualiza os atributos e as habilidades no README de cada personagem, com o texto do jogo: `godot --headless --path . -s ferramentas/gerar_readme_personagens.gd` |
-| `ferramentas/gerar_andri.py` | Gera a spritesheet, o MOMC e os ícones do Andri a partir do sprite original (precisa do Pillow) |
-| `ferramentas/gerar_askara.py` | Gera a spritesheet e os ícones da Àskara e reduz a arte das invocações para a arena (precisa do Pillow) |
-| `ferramentas/gerar_assets_teste.py` | Gera a arte provisória (inimigos, cenário, onda do Engo-ji) e o ícone da passiva da Shumi |
+| `tools/simulate_floors.gd` | Simula os andares com a batalha de verdade e um piloto automático, e mostra as vitórias, os turnos e o HP restante em cada nível: `godot --headless --path . -s tools/simulate_floors.gd -- [rodadas] [andar:nível ...] [equipe=askara,shumi]` |
+| `tools/capture_demo.gd` | Joga uma batalha sozinho e salva capturas de tela: `godot --path . -s tools/capture_demo.gd -- <pasta> shumi andri` |
+| `tools/generate_character_readmes.gd` | Atualiza os atributos e as habilidades no README de cada personagem, com o texto do jogo: `godot --headless --path . -s tools/generate_character_readmes.gd` |
+| `tools/generate_andri.py` | Gera a spritesheet, o MOMC e os ícones do Andri a partir do sprite original (precisa do Pillow) |
+| `tools/generate_askara.py` | Gera a spritesheet e os ícones da Àskara e reduz a arte das invocações para a arena (precisa do Pillow) |
+| `tools/generate_placeholder_art.py` | Gera a arte provisória (inimigos, cenário, onda do Engo-ji) e o ícone da passiva da Shumi |
 
 ---
 
 ## 📁 Estrutura do projeto
 
 ```
-scenes/              cenas: menu inicial, saguão, escolha do andar, seleção de equipe e batalha
-scripts/
-  combate/           regras: combatente, fila de turnos, tipos, estados, inimigos, batalha
-  personagens/       elenco + kit de cada herói (regras e animações separadas) + progressão
-  torre/             andares e eventos de história
-  lobby/             saguão, conversas e caixa de diálogo
-  ui/                menu inicial, HUD, barras, slots de habilidade, seletor radial, efeitos visuais
-personagens/         sprites, spritesheets, ícones e README de cada herói
-inimigos/ cenarios/ efeitos/   arte dos inimigos, do cenário e dos efeitos
-testes/              testes headless da lógica
+combat/              batalha: cena, regras (combatente, estados, tipos, fila, invocações), base das animações e efeitos
+  hud/               interface da batalha: HUD, slots de habilidade, ordem de ação, seletor radial
+characters/          elenco e uma pasta por herói: regras, animações, sprites, ícones e README
+enemies/             inimigo comum e a arte dos inimigos
+progression/         níveis, XP e save
+tower/               andares, eventos de história, escolha do andar e da equipe
+lobby/               saguão: cena, jogador, interagíveis, conversas, caixa de diálogo e arte
+menu/                menu inicial e slots de save
+ui/                  estilo e componentes de interface comuns (barra, cartão de habilidade)
+tests/               testes headless da lógica
+tools/               scripts de captura, simulação e geração de assets
 docs/                documentação técnica
-ferramentas/         scripts de captura e geração de assets
 ```
 
 As **regras** (`Combatente`) ficam separadas das **animações** (`AcoesPersonagem`) e da **interface** (`HudBatalha`). Por isso a lógica pode ser testada sem abrir o jogo.

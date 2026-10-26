@@ -1,6 +1,6 @@
 # Torre e andares
 
-Os andares estão em `Andares.LISTA` ([`andares.gd`](../../scripts/torre/andares.gd)); o formato de cada um está no comentário do arquivo. Andar novo é um item a mais na lista, nada mais muda.
+Os andares estão em `Andares.LISTA` ([`floors.gd`](../../tower/floors.gd)); o formato de cada um está no comentário do arquivo. Andar novo é um item a mais na lista, nada mais muda.
 
 ## Regras
 
@@ -20,7 +20,7 @@ A curva de XP e a XP de cada andar foram escolhidas juntas:
 - O limite deixa treinar só cerca de um nível acima disso (mais ou menos uma repetição).
 - Ninguém precisa repetir andares para avançar; repetir dá uma folga pequena, não uma vitória garantida.
 
-`teste_torre.gd` confere as duas primeiras regras com as contas da `Progressao`. Mudou a XP de um andar, a curva ou um limite? Ajuste o resto junto e rode a simulação.
+`test_tower.gd` confere as duas primeiras regras com as contas da `Progressao`. Mudou a XP de um andar, a curva ou um limite? Ajuste o resto junto e rode a simulação.
 
 ## Encontros
 
@@ -48,7 +48,7 @@ A simulação usa um piloto simples. Ela compara andares e níveis entre si; nã
 
 ## Eventos de história
 
-`Eventos` ([`eventos.gd`](../../scripts/torre/eventos.gd)) tem dois lados:
+`Eventos` ([`story_events.gd`](../../tower/story_events.gd)) tem dois lados:
 
 - **Efeito**: aplicado na hora e salvo (`Eventos.aplicar()`).
 - **Apresentação**: fica na fila `torre/eventos_pendentes` e roda no saguão, na volta (ver [Saguão](saguao.md#eventos-de-história)).

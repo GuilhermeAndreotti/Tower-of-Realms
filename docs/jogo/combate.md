@@ -1,6 +1,6 @@
 # Combate
 
-Combate por turnos com fila por velocidade (no estilo de *Honkai: Star Rail*) e efetividade por tipo (no estilo de *Pokémon*). A coordenação está em `scripts/combate/batalha.gd`; as regras, em `Combatente` e nas classes dos personagens.
+Combate por turnos com fila por velocidade (no estilo de *Honkai: Star Rail*) e efetividade por tipo (no estilo de *Pokémon*). A coordenação está em `combat/battle.gd`; as regras, em `Combatente` e nas classes dos personagens.
 
 ## Fila de turnos
 
@@ -23,7 +23,7 @@ A redução vem dos estados do alvo (`reducao_dano`, como a resistência do Lord
 
 ## Tipos
 
-Cada lutador tem um tipo e ataca com ele, a não ser que a ação diga outro. Multiplicadores: `Tipos.SUPER` (2) e `Tipos.POUCO` (0,5), e nada mais. Arcano tem regra própria: recebe 2× de tudo e causa 2× em tudo, menos em Físico. A tabela completa está em [`tipos.gd`](../../scripts/combate/tipos.gd).
+Cada lutador tem um tipo e ataca com ele, a não ser que a ação diga outro. Multiplicadores: `Tipos.SUPER` (2) e `Tipos.POUCO` (0,5), e nada mais. Arcano tem regra própria: recebe 2× de tudo e causa 2× em tudo, menos em Físico. A tabela completa está em [`types.gd`](../../combat/types.gd).
 
 Os tipos dos inimigos são parte do desenho dos andares (ver [Torre e andares](torre-e-andares.md#encontros)).
 

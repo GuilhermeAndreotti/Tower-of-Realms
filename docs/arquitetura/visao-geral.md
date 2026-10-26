@@ -5,11 +5,11 @@
 ## Fluxo de cenas
 
 ```
-menu_inicial.tscn ──NEW GAME / LOAD GAME (slot)──▶ lobby.tscn
+main_menu.tscn ──NEW GAME / LOAD GAME (slot)──▶ lobby.tscn
         ▲                                               │ Esc
         └───────────────────────────────────────────────┘
 
-lobby.tscn ──porta──▶ selecao_andar.tscn ──▶ selecao_equipe.tscn ──▶ batalha.tscn
+lobby.tscn ──porta──▶ floor_select.tscn ──▶ team_select.tscn ──▶ battle.tscn
     ▲                        │ Esc                    │ Esc                │
     └────────────────────────┘◀───────────────────────┘                    │
     └──────────────── fim do andar (vitória ou derrota) ◀───────────────────┘
@@ -46,16 +46,20 @@ O save é um `ConfigFile` lido uma vez e mantido em memória (`Progressao._save`
 ## Pastas
 
 ```
-scenes/              cenas (cada uma só com o nó raiz e o script)
-scripts/combate/     regras do combate, fila, tipos, estados, inimigos, batalha
-scripts/personagens/ elenco, progressão e o kit de cada herói (regras + animações)
-scripts/torre/       andares e eventos de história
-scripts/lobby/       saguão, jogador, interagíveis, conversas e diálogo
-scripts/ui/          HUD, seleções, barras, seletor radial, efeitos visuais
-personagens/ inimigos/ cenarios/ efeitos/   arte (pixel art, filtro nearest)
-testes/              testes headless
-ferramentas/         simulação, captura de tela e geradores de arte
-docs/                esta documentação
+combat/        a batalha: cena, regras (Combatente, Estado, Tipos, fila, invocações), base das animações e efeitos
+  hud/         interface da batalha: HUD, slots, ordem de ação, seletor radial
+characters/    Elenco e uma pasta por herói (regras, animações, arte, README)
+enemies/       Inimigo e a arte dos inimigos
+progression/   Progressao: níveis, XP e save
+tower/         andares, eventos de história e as telas de andar e de equipe
+lobby/         saguão: cena, jogador, interagíveis, conversas, diálogo e arte
+menu/          menu inicial
+ui/            estilo e componentes de interface comuns
+tests/         testes headless
+tools/         simulação, captura de tela e geradores de arte
+docs/          esta documentação
 ```
 
-As cenas montam a interface por código no `_ready()`; os `.tscn` só apontam para o script.
+Cada pasta é uma feature: a cena, o script e a arte dela ficam juntos, e o que só ela usa não sai de lá. O que várias telas usam (estilo, barras, cartão de habilidade) fica em `ui/`.
+
+As cenas montam a interface por código no `_ready()`; os `.tscn` só apontam para o script e ficam na pasta da feature.
