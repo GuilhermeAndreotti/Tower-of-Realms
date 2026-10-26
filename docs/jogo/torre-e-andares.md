@@ -28,7 +28,7 @@ Cada andar ensina ou cobra uma coisa. Os inimigos só têm Investida, Golpe Pesa
 
 | Andar | Equipe | O que cobra                                                                                     |
 | ----- | ------ | ----------------------------------------------------------------------------------------------- |
-| 1     | 1      | aprender Corte, Engo-ji e pontos de skill                                                        |
+| 1     | 1      | aprender Corte, Engo-ji e pontos de skill                                                       |
 | 2     | 1      | o primeiro Golpe Pesado: quando entrar no Kaioken                                               |
 | 3     | 2      | o Andri chega; as sentinelas Físicas caem com a lente Ácido, mas o Guardião de Veneno não é fraco a nenhuma lente (Análise ou Engo-ji? os pontos são do time), e a sentinela veloz age quase duas vezes por rodada |
 | 4     | 2      | chefe de Trevas (nenhuma lente é super efetiva) com Golpe Pesado a cada 2 ações; escolta de Água (2× no Andri) e de Ácido (2× na Shumi) |
@@ -57,7 +57,7 @@ Vêm do `on_win` de um andar (primeira vitória) ou de uma fala com `"event": "t
 
 | Tipo          | Efeito                                         | Apresentação no saguão                     |
 | ------------- | ---------------------------------------------- | ------------------------------------------ |
-| `unlock` | libera o personagem (`Progression.unlock`) | ele surge com anel de luz e anúncio        |
-| `conversation`    | nenhum                                         | abre a conversa, se ela tiver falas        |
+| `unlock`      | libera o personagem (`Progression.unlock`)     | ele surge com anel de luz e anúncio        |
+| `conversation` | nenhum                                         | abre a conversa, se ela tiver falas        |
 
 Tipo novo: efeito em `StoryEvents.apply()`, apresentação em `Lobby._present()` e a linha da tela de vitória em `StoryEvents.summary()`.

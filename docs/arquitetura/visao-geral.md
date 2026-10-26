@@ -24,9 +24,9 @@ O combate separa três coisas, e nenhuma invade a outra:
 
 | Camada     | Classes                                       | Faz                                             | Não faz                     |
 | ---------- | --------------------------------------------- | ----------------------------------------------- | --------------------------- |
-| Regras     | `Combatant` e subclasses, `StatusEffect`, `Types`  | números, estados, quem pode o quê               | animação, interface         |
-| Animações  | `CharacterActions` e subclasses                | o que cada ação faz na arena, com efeitos       | decidir regras de dano      |
-| Interface  | `BattleHud`, `UIStyle`, `PixelBar`...     | mostrar o estado e avisar o que o jogador pediu | regra nenhuma               |
+| Regras     | `Combatant` e subclasses, `StatusEffect`, `Types` | números, estados, quem pode o quê               | animação, interface         |
+| Animações  | `CharacterActions` e subclasses               | o que cada ação faz na arena, com efeitos       | decidir regras de dano      |
+| Interface  | `BattleHud`, `UIStyle`, `PixelBar`...         | mostrar o estado e avisar o que o jogador pediu | regra nenhuma               |
 
 `Battle` coordena: a vez, os pontos de skill do time, o alvo e o fim da luta. A HUD só lê descrições (`skills()`, `effects()`) que as regras fornecem, por isso personagens novos aparecem sem mudar a HUD. Detalhes em [Combate](../jogo/combate.md).
 
@@ -38,10 +38,10 @@ Fora do combate, a mesma ideia: `Floors` e `StoryEvents` (dados e regras da Torr
 
 | Estado                                              | Onde vive                                  | Sobrevive a fechar o jogo |
 | --------------------------------------------------- | ------------------------------------------ | ------------------------- |
-| Níveis, XP, equipe, andares vencidos, andar escolhido, eventos pendentes | `Progression` (o arquivo do slot em uso) | sim |
-| Qual slot está em uso                               | `Progression.file` (variável estática)   | não: o menu escolhe de novo |
-| Onde a Caoimhe aparece ao voltar ao saguão          | `Engine` meta (`Lobby.ENTRANCE_META`)        | não                       |
-| Preferência do painel de controles da batalha        | `user://hud.cfg`                           | sim                       |
+| Níveis, XP, equipe, andares vencidos, andar escolhido, eventos pendentes | `Progression` (o arquivo do slot em uso)   | sim                       |
+| Qual slot está em uso                               | `Progression.file` (variável estática)     | não: o menu escolhe de novo |
+| Onde a Caoimhe aparece ao voltar ao saguão          | `Engine` meta (`Lobby.ENTRANCE_META`)      | não                       |
+| Preferência do painel de controles da batalha       | `user://hud.cfg`                           | sim                       |
 
 O save é um `ConfigFile` lido uma vez e mantido em memória (`Progression._save`). Testes e ferramentas trocam `Progression.file` para não tocar no save do jogador. Formato e compatibilidade em [Progressão](../jogo/progressao.md#save).
 

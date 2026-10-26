@@ -9,7 +9,7 @@ Combate por turnos com fila por velocidade (no estilo de *Honkai: Star Rail*) e 
 | Componente      | Guarda                                    | Avisa                                         |
 | --------------- | ----------------------------------------- | --------------------------------------------- |
 | `Health`        | HP atual e máximo                         | `changed` a cada mudança, `depleted` ao zerar |
-| `StatusEffects` | os estados e o que eles somam (bônus, escudo, fraqueza, provocação, redução) | — |
+| `StatusEffects` | os estados e o que eles somam (bônus, escudo, fraqueza, provocação, redução) | —                                             |
 | `Cooldowns`     | turnos de recarga de cada ação            | —                                             |
 
 `hp`, `max_hp` e `status_effects` continuam no `Combatant` como atalhos. O que um estado muda no dono ao entrar ou sair (HP máximo, a vez) é o `Combatant` que aplica, porque depende do resto dele; os componentes só guardam e somam. Na arena, a barra sobre inimigos e invocações é o nó `FighterBar`, filho do `FighterVisual`, que escuta o `Health` do lutador.
@@ -96,9 +96,9 @@ A batalha é uma máquina de estados (`Battle.Phase`, numa `StateMachine`). A fa
 | ----------------- | ----------------------------------------------------- | ----------------------------------------- | -------- |
 | `STARTING`        | a arena monta                                         | —                                         | `ACTING`, `OVER` |
 | `ACTING`          | alguém age: inimigo, invocação ou o aliado depois de escolher | ←/→ e clique trocam o alvo (para o próximo golpe) | `PLAYER_TURN`, `OVER` |
-| `PLAYER_TURN`     | esperando a ação do aliado da vez                     | teclas da barra, alvo                      | `CHOOSING_OPTION`, `ACTING`, `OVER` |
+| `PLAYER_TURN`     | esperando a ação do aliado da vez                     | teclas da barra, alvo                     | `CHOOSING_OPTION`, `ACTING`, `OVER` |
 | `CHOOSING_OPTION` | o seletor de opções da ação está aberto               | ↑/↓, 1-9 (no anel, ←/→), Enter, Esc       | `PLAYER_TURN`, `ACTING`, `OVER` |
-| `OVER`            | o resultado está na tela                              | Enter, Esc ou clique voltam ao saguão     | — |
+| `OVER`            | o resultado está na tela                              | Enter, Esc ou clique voltam ao saguão     | —        |
 
 `waiting_for_player` e `over` são leituras da fase (`PLAYER_TURN` ou `CHOOSING_OPTION`; `OVER`), não variáveis soltas.
 

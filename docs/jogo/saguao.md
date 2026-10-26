@@ -24,9 +24,9 @@ O saguão é uma máquina de estados (`Lobby.Mode`, numa `StateMachine`); o esta
 
 | Estado       | O que acontece                                  | Teclas                         | Vai para                    |
 | ------------ | ----------------------------------------------- | ------------------------------ | --------------------------- |
-| `EXPLORING`  | anda, foco nos interagíveis                      | Enter interage, Esc vai ao menu | `TALKING`, `PRESENTING`, `LEAVING` |
+| `EXPLORING`  | anda, foco nos interagíveis                     | Enter interage, Esc vai ao menu | `TALKING`, `PRESENTING`, `LEAVING` |
 | `TALKING`    | conversa aberta                                 | as da caixa de diálogo         | `EXPLORING`                 |
-| `PRESENTING` | eventos de história pendentes sendo apresentados | as da caixa de diálogo, se abrir | `EXPLORING`               |
+| `PRESENTING` | eventos de história pendentes sendo apresentados | as da caixa de diálogo, se abrir | `EXPLORING`                 |
 | `LEAVING`    | a tela escurece para a dungeon ou o menu        | nenhuma                        | (troca de cena)             |
 
 Fora de `EXPLORING`, o `Lobby` trava a Caoimhe e tira o foco. A Caoimhe (`LobbyPlayer`) tem a própria máquina, `Motion`: `IDLE`, `WALKING` e `LOCKED`; a animação ("idle" ou "walk") acompanha a troca de estado.

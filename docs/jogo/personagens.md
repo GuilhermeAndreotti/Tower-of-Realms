@@ -6,13 +6,13 @@ Os personagens jogáveis estão cadastrados em `Roster` ([`roster.gd`](../../cha
 
 | Parte                      | Onde                                         | Observação                                               |
 | -------------------------- | -------------------------------------------- | -------------------------------------------------------- |
-| Atributos de nível 1        | `super(...)` no `_init` da classe de regras | HP, ATQ, DEF, VEL e tipo                                 |
-| Kit (regras)                | classe que estende `Combatant`              | ver [Combate](combate.md#kits)                           |
-| Animações                   | classe que estende `CharacterActions`         |                                                          |
-| Nome, origem, universo, sprite | `Roster.data()`                          | `sprite`: png, json, pé, altura e retângulo do rosto     |
-| Crescimento por nível       | `Roster.data().growth`                 | ver [Progressão](progressao.md#atributos)                |
-| Começa bloqueado?           | `Roster.data().starts_unlocked = false`             | sem a chave, já começa liberado; por enquanto `Roster.all_unlocked` libera todos (ver abaixo) |
-| Lugar no saguão             | `Lobby.SPOTS` (opcional)                   | sem lugar, ele usa um dos `FREE_SPOTS`               |
+| Atributos de nível 1       | `super(...)` no `_init` da classe de regras  | HP, ATQ, DEF, VEL e tipo                                 |
+| Kit (regras)               | classe que estende `Combatant`               | ver [Combate](combate.md#kits)                           |
+| Animações                  | classe que estende `CharacterActions`        |                                                          |
+| Nome, origem, universo, sprite | `Roster.data()`                              | `sprite`: png, json, pé, altura e retângulo do rosto     |
+| Crescimento por nível      | `Roster.data().growth`                       | ver [Progressão](progressao.md#atributos)                |
+| Começa bloqueado?          | `Roster.data().starts_unlocked = false`      | sem a chave, já começa liberado; por enquanto `Roster.all_unlocked` libera todos (ver abaixo) |
+| Lugar no saguão            | `Lobby.SPOTS` (opcional)                     | sem lugar, ele usa um dos `FREE_SPOTS`                   |
 
 ## Adicionar um personagem
 
@@ -30,11 +30,11 @@ Todo personagem tem cinco entradas na barra, sempre nesta ordem:
 
 | Ordem | Entrada | Tecla | Observação |
 | ----- | ------- | ----- | ---------- |
-| 1 | Ataque básico | Q | gera ponto de skill |
-| 2 | Skill 1 | E | custa ponto de skill |
-| 3 | Skill 2 | W | a mais livre: pode ser um ataque ou ação (com custo e `cooldown`) ou uma passiva; passiva fica neste mesmo lugar, sem tecla |
-| 4 | Ultimate | R | energia ou recurso do kit |
-| 5 | Passiva | — | a identidade do personagem, sempre por último |
+| 1     | Ataque básico | Q     | gera ponto de skill |
+| 2     | Skill 1 | E     | custa ponto de skill |
+| 3     | Skill 2 | W     | a mais livre: pode ser um ataque ou ação (com custo e `cooldown`) ou uma passiva; passiva fica neste mesmo lugar, sem tecla |
+| 4     | Ultimate | R     | energia ou recurso do kit |
+| 5     | Passiva | —     | a identidade do personagem, sempre por último |
 
 A ordem vale mesmo quando a skill 2 é passiva (a Àskara: Seta Vil, Invocação, Último Ato, Lorde Demônio, Fragmento d'Alma). As teclas são da ação, não da posição: a skill 1 é sempre E e a skill 2, quando é ativa, W. `test_combat.gd` confere a ordem.
 

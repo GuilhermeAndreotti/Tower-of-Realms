@@ -61,7 +61,7 @@ Um `ConfigFile` por slot de save (`SLOTS`): o slot 1 é `user://progresso.cfg`, 
 
 | Seção / chave                      | Conteúdo                                  |
 | ---------------------------------- | ----------------------------------------- |
-| `jogo/versao`                      | versão do formato (`SAVE_VERSION`)         |
+| `jogo/versao`                      | versão do formato (`SAVE_VERSION`)        |
 | `jogo/salvo_em`                    | último salvamento (unix), para o menu     |
 | `jogador/equipe`                   | ids da última equipe                      |
 | `personagem_<id>/nivel`, `xp`      | progresso; a seção existir = liberado     |
