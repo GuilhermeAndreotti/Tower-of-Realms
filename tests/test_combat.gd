@@ -978,9 +978,9 @@ func _test_battle_phases() -> void:
 func _test_clairin_frenzy() -> void:
 	print("clairin: chama frenética, descarga e cabeça flamejante")
 	var c := Clairin.new()
-	check(c.type == Types.FIRE and c.frenzy == 0 and is_equal_approx(c.atk(), 140.0), "Clairin é Fogo e começa com a barra vazia")
+	check(c.type == Types.FIRE and c.frenzy == 0 and is_equal_approx(c.atk(), c.base_atk), "Clairin é Fogo e começa com a barra vazia")
 	c.gain_frenzy(50)
-	check(is_equal_approx(c.atk(), 140.0 * 1.3), "metade da barra: ATQ +30%")
+	check(is_equal_approx(c.atk(), c.base_atk * 1.3), "metade da barra: ATQ +30%")
 	check(c.kit_bar().value == 50 and c.kit_bar().max == Clairin.FRENZY_MAX, "a barra do kit vai para a HUD")
 	check(c.overflow().is_empty() and c.frenzy == 50, "sem encher, não estoura")
 	c.gain_frenzy(60)

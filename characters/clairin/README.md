@@ -9,7 +9,7 @@ O Clairin queima todos os inimigos de uma vez e paga com o próprio HP. A **Cham
 
 | | HP | ATQ | DEF | VEL | Energia |
 |---|---|---|---|---|---|
-| Nível 1 | 1080 | 140 | 50 | 104 | 120 |
+| Nível 1 | 1080 | 150 | 50 | 104 | 120 |
 | Por nível | +55 | +7,5 | +2,5 | +0,5 | — |
 
 ## Habilidades

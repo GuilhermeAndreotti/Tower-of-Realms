@@ -47,7 +47,7 @@ var head_turns := 0  ## turnos que faltam da Cabeça Flamejante (0 = fora)
 
 
 func _init() -> void:
-	super("Clairin", true, 1080, 140.0, 50.0, 104.0, Types.FIRE)
+	super("Clairin", true, 1080, 150.0, 50.0, 104.0, Types.FIRE)
 	max_energy = 120.0
 	energy = 60.0
 	energy_on_hit = ENERGY_ON_HIT
