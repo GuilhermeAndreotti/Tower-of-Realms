@@ -24,7 +24,7 @@ Bola de fogo no alvo (como Lorde da Chama Frenética, em todos). Gera 1 ponto de
 ### <img src="icon_wave.png" width="24"> Onda Frenética
 **Skill (E)** · `1 ponto` · `Todos os inimigos` · `Fogo`
 
-Uma onda de fogo atinge todos os inimigos (1,0x). Gera +30 de Frenesi.
+Uma onda de fogo atinge todos os inimigos (0,9x). Gera +30 de Frenesi.
 
 ### <img src="icon_discharge.png" width="24"> Descarga
 **Skill 2 (W)** · `1 ponto` · `recarga 3 turnos` · `Alvo + vizinhos` · `Fogo`
@@ -45,7 +45,7 @@ Ele vira o Lorde da Chama Frenética por 3 turnos dele, com a cabeça em chamas:
 ### <img src="icon_frenzied_flame.png" width="24"> Chama Frenética
 **Passiva**
 
-A barra sobe com os ataques dele e aumenta o ATQ, até +80% cheia. Se chega a 100, estoura: ele perde 20% do HP máximo (nunca cai por isso) e a barra zera.
+A barra sobe com os ataques dele e aumenta o ATQ, até +70% cheia. Se chega a 100, estoura: ele perde 20% do HP máximo (nunca cai por isso) e a barra zera.
 
 - **Bola de Fogo** · *+20*
 - **Onda Frenética** · *+30*
@@ -56,7 +56,7 @@ A barra sobe com os ataques dele e aumenta o ATQ, até +80% cheia. Se chega a 10
 
 ## Mais detalhes
 
-- **Chama Frenética:** a barra fica ao lado da energia, no painel dele. Bola de Fogo dá +20 e Onda Frenética, +30; com a barra cheia, o ATQ dele sobe 80%. Ao chegar em 100, ela estoura: ele perde 20% do HP máximo (sem cair por isso) e a barra zera.
+- **Chama Frenética:** a barra fica ao lado da energia, no painel dele. Bola de Fogo dá +20 e Onda Frenética, +30; com a barra cheia, o ATQ dele sobe 70%. Ao chegar em 100, ela estoura: ele perde 20% do HP máximo (sem cair por isso) e a barra zera.
 - **Descarga:** gasta a barra inteira num golpe no alvo e nos vizinhos, sem estourar. Vazia, é fraca (0,5x); cheia, chega a 2x.
 - **Lorde da Chama Frenética:** não gasta o turno. Por 3 turnos dele, a Bola de Fogo atinge todos os inimigos e o estouro da barra queima também os inimigos.
 
