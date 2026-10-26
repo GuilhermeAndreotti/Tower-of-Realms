@@ -169,7 +169,7 @@ func _draw() -> void:
 	# selo no canto de cima à direita (nível, "ALL", "MÁX"...)
 	var badge: String = data.get("badge", "")
 	if badge != "":
-		var f := UIStyle.source()
+		var f := UIStyle.font()
 		var w := f.get_string_size(badge, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 6
 		var sr := Rect2(Vector2(r.end.x - w + 3, r.position.y - 3), Vector2(w, 12))
 		var badge_color: Color = data.get("color", UIStyle.GOLD)
@@ -247,7 +247,7 @@ class _Name extends Control:
 		queue_redraw()
 
 	func _width(t: String) -> float:
-		return UIStyle.source().get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, NAME_SIZE).x
+		return UIStyle.font().get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, NAME_SIZE).x
 
 	## Quanto o nome passa da largura disponível (0 = cabe).
 	func _excess() -> float:

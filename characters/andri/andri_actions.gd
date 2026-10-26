@@ -110,9 +110,9 @@ func _protocol() -> void:
 func _momc_shield(target: Combatant) -> void:
 	var base := _momc.position
 	var va := b.visual(target)
-	var outbound := _momc.create_tween()
-	outbound.tween_property(_momc, "position", va.position - v.position + Vector2(-26, -va.height * 0.6), 0.3).set_trans(Tween.TRANS_SINE)
-	await outbound.finished
+	var fly_out := _momc.create_tween()
+	fly_out.tween_property(_momc, "position", va.position - v.position + Vector2(-26, -va.height * 0.6), 0.3).set_trans(Tween.TRANS_SINE)
+	await fly_out.finished
 	var e := Andri.momc_shield(target)
 	target.apply_status(e)
 	CombatEffects.ring(b.world, center(target), Andri.MOMC_COLOR, 46.0)
@@ -165,9 +165,9 @@ func _arsenal() -> void:
 	item.position = v.top() + Vector2(0, -10)
 	b.world.add_child(item)
 	CombatEffects.ring(b.world, item.position, art.color, 40.0)
-	var rises := item.create_tween()
-	rises.tween_property(item, "position:y", item.position.y - 24, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	await rises.finished
+	var rise := item.create_tween()
+	rise.tween_property(item, "position:y", item.position.y - 24, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await rise.finished
 	var from := item.position
 	var to := center(target)
 	var height := 60.0 if target != a else 20.0

@@ -223,12 +223,12 @@ func _open_radial(action: String) -> void:
 ## Mostra o seletor com o motivo de cada opção não servir no alvo atual.
 func _refresh_choice() -> void:
 	var h := _skill(active, _choosing)
-	var speaker := action_target(_choosing)
+	var chosen_target := action_target(_choosing)
 	var reasons: Array[String] = []
 	for o: Dictionary in h.options:
-		reasons.append(active.invalid_reason(_choosing, o.id, speaker))
+		reasons.append(active.invalid_reason(_choosing, o.id, chosen_target))
 	# escolha sobre si mesmo (a lente, por exemplo) não precisa mostrar alvo
-	var target_name := speaker.name if speaker and target_type(_choosing) != "self" else ""
+	var target_name := chosen_target.name if chosen_target and target_type(_choosing) != "self" else ""
 	if is_instance_valid(_radial):
 		_radial.display(h.options, _option_index, reasons)
 	else:
@@ -525,16 +525,16 @@ func _last_resort(ini: Enemy) -> void:
 ## inimigo, e quem da equipe tiver como ataca junto o primeiro atingido. Se
 ## ele já caiu, ninguém ataca.
 func _follow_up_attacks(actor: Combatant) -> void:
-	var speaker := _first_hit
+	var hit_enemy := _first_hit
 	_first_hit = null
-	if speaker == null:
+	if hit_enemy == null:
 		return
 	for c in living_allies():
-		if over or not speaker.is_alive():
+		if over or not hit_enemy.is_alive():
 			return
-		var g := c.follow_up(actor, speaker)
+		var g := c.follow_up(actor, hit_enemy)
 		if not g.is_empty():
-			await (_actions[c] as CharacterActions).follow_up(speaker, g)
+			await (_actions[c] as CharacterActions).follow_up(hit_enemy, g)
 
 
 ## Fim do turno de `c`: os estados genéricos perdem um turno.
@@ -714,13 +714,13 @@ func summon_strike(inv: Summon, g: Dictionary) -> void:
 			var va: FighterVisual = _visuals[pair[0]]
 			CombatEffects.elemental_impact(world, va.position + Vector2(0, -va.height * 0.5), inv.type, 1.0)
 			await apply_damage(inv, pair[0], pair[1])
-	for speaker: Combatant in debuffed:
-		if not inv.debuff.is_valid() or not speaker.is_alive():
+	for victim: Combatant in debuffed:
+		if not inv.debuff.is_valid() or not victim.is_alive():
 			continue
 		var e: StatusEffect = inv.debuff.call()
-		speaker.apply_status(e)
-		CombatEffects.ring(world, _visuals[speaker].position + Vector2(0, -_visuals[speaker].height * 0.5), UIStyle.effect_color(e.description()), 40.0)
-		hud.log_line("%s ficou %s." % [BattleHud.fighter_name(speaker), BattleHud.highlight(e.name, UIStyle.effect_color(e.description()))])
+		victim.apply_status(e)
+		CombatEffects.ring(world, _visuals[victim].position + Vector2(0, -_visuals[victim].height * 0.5), UIStyle.effect_color(e.description()), 40.0)
+		hud.log_line("%s ficou %s." % [BattleHud.fighter_name(victim), BattleHud.highlight(e.name, UIStyle.effect_color(e.description()))])
 	refresh()
 
 
@@ -735,15 +735,15 @@ func last_act(inv: Summon) -> void:
 	else:
 		hud.log_line("%s utilizou %s." % [BattleHud.fighter_name(inv), BattleHud.highlight(g.name, inv.color)])
 	if g.has("shield"):
-		var speaker := inv.shield_target(allies_on_field())
-		if speaker:
+		var receiver := inv.shield_target(allies_on_field())
+		if receiver:
 			var e := inv.last_act_shield(g)
-			speaker.apply_status(e)
-			var vq: FighterVisual = _visuals[speaker]
+			receiver.apply_status(e)
+			var vq: FighterVisual = _visuals[receiver]
 			CombatEffects.line(world, _visuals[inv].position + Vector2(0, -_visuals[inv].height * 0.5), vq.position + Vector2(0, -vq.height * 0.5), inv.color, 0.5)
 			CombatEffects.ring(world, vq.position + Vector2(0, -vq.height * 0.5), inv.color, 50.0)
 			vq.flash(Color(1.0 + inv.color.r, 1.0 + inv.color.g, 1.0 + inv.color.b))
-			hud.log_line("%s recebe um escudo de %s." % [BattleHud.fighter_name(speaker), BattleHud.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
+			hud.log_line("%s recebe um escudo de %s." % [BattleHud.fighter_name(receiver), BattleHud.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
 			refresh()
 			await wait(0.4)
 

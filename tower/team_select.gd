@@ -210,7 +210,7 @@ func _draw_team_slot(c: Control) -> void:
 	var badge := Rect2(6, 6, 18, 18)
 	c.draw_rect(badge.grow(1), Color.BLACK)
 	c.draw_rect(badge, UIStyle.GOLD if id != "" else UIStyle.LIGHT_BACKGROUND)
-	c.draw_string(UIStyle.source(), badge.position + Vector2(0, 14), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 18, 13,
+	c.draw_string(UIStyle.font(), badge.position + Vector2(0, 14), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 18, 13,
 		Color.BLACK if id != "" else UIStyle.DIM_TEXT)
 	if id != "" and i == 0:
 		UIStyle.text(c, Vector2(28, 19), "FRENTE", 9, UIStyle.GOLD)
@@ -248,7 +248,7 @@ func _draw_card(c: Control) -> void:
 		var badge := Rect2(r.end.x - 16, r.position.y - 4, 18, 16)
 		c.draw_rect(badge.grow(1), Color.BLACK)
 		c.draw_rect(badge, UIStyle.ALLY)
-		c.draw_string(UIStyle.source(), badge.position + Vector2(0, 12), str(spot + 1), HORIZONTAL_ALIGNMENT_CENTER, 18, 11, Color.WHITE)
+		c.draw_string(UIStyle.font(), badge.position + Vector2(0, 12), str(spot + 1), HORIZONTAL_ALIGNMENT_CENTER, 18, 11, Color.WHITE)
 
 
 func _draw_hints(c: Control) -> void:
@@ -258,7 +258,7 @@ func _draw_hints(c: Control) -> void:
 			UIStyle.key(c, Vector2(x + 1, 1), t)
 			x += maxf(13.0, 7.0 * t.length() + 6.0) + 4
 		UIStyle.text(c, Vector2(x, 11), item[1], 10, Color(0.82, 0.8, 0.88))
-		x += UIStyle.source().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 16
+		x += UIStyle.font().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 16
 
 
 func _dashed(c: Control, r: Rect2, color: Color) -> void:

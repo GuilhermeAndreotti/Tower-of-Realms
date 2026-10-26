@@ -241,7 +241,7 @@ func _draw() -> void:
 			var r := Rect2(x, y - 3, 11, 11)
 			draw_rect(r.grow(1), Color.BLACK)
 			draw_rect(r, effect_color)
-			draw_string(UIStyle.source(), r.position + Vector2(0, 9), e.get("short", ""), HORIZONTAL_ALIGNMENT_CENTER, 11, 9, Color.BLACK)
+			draw_string(UIStyle.font(), r.position + Vector2(0, 9), e.get("short", ""), HORIZONTAL_ALIGNMENT_CENTER, 11, 9, Color.BLACK)
 			x += 14
 	if marked:
 		var my := y - 30.0 + sin(_time * 6.0) * 3.0

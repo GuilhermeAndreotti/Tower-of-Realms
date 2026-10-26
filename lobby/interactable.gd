@@ -26,19 +26,19 @@ var focused := false:
 			focused = v
 			_time = 0.0
 			queue_redraw()
-			_floor.queue_redraw()
+			_ground.queue_redraw()
 
 var _time := 0.0
-var _floor := Node2D.new()  ## elipse, desenhada embaixo de todos
+var _ground := Node2D.new()  ## elipse, desenhada embaixo de todos
 
 
 func _init() -> void:
 	z_as_relative = false
 	z_index = 20  # a dica fica por cima dos móveis e personagens
-	_floor.z_as_relative = false
-	_floor.z_index = -5
-	_floor.draw.connect(_draw_floor)
-	add_child(_floor)
+	_ground.z_as_relative = false
+	_ground.z_index = -5
+	_ground.draw.connect(_draw_ground)
+	add_child(_ground)
 
 
 func block_reason() -> String:
@@ -49,10 +49,10 @@ func _process(delta: float) -> void:
 	if focused:
 		_time += delta
 		queue_redraw()
-		_floor.queue_redraw()
+		_ground.queue_redraw()
 
 
-func _draw_floor() -> void:
+func _draw_ground() -> void:
 	if not focused:
 		return
 	var pulso := 0.5 + 0.5 * sin(_time * 5.0)
@@ -60,15 +60,15 @@ func _draw_floor() -> void:
 	for i in 24:
 		var a := TAU * i / 24
 		pts.append(Vector2(cos(a) * base_width / 2, -2 + sin(a) * 7))
-	_floor.draw_colored_polygon(pts, Color(color, 0.14 + 0.1 * pulso))
+	_ground.draw_colored_polygon(pts, Color(color, 0.14 + 0.1 * pulso))
 	pts.append(pts[0])
-	_floor.draw_polyline(pts, Color(color, 0.5 + 0.35 * pulso), 2.0)
+	_ground.draw_polyline(pts, Color(color, 0.5 + 0.35 * pulso), 2.0)
 
 
 func _draw() -> void:
 	if not focused:
 		return
-	var f := UIStyle.source()
+	var f := UIStyle.font()
 	var y := -height - 10.0 + sin(_time * 4.0) * 2.0
 	if title != "":
 		UIStyle.text(self, Vector2(-100, y - 18), title, 13, color, 200, HORIZONTAL_ALIGNMENT_CENTER)

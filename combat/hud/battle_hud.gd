@@ -217,7 +217,7 @@ const CONTROLS := [
 
 
 func _draw_controls(c: Control) -> void:
-	var f := UIStyle.source()
+	var f := UIStyle.font()
 	var x := 0.0
 	for item: Array in CONTROLS:
 		for t: String in item[0]:

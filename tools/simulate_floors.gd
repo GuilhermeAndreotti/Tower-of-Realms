@@ -224,14 +224,14 @@ func _use_arsenal(an: Andri) -> void:
 		if float(allies[i].hp) / allies[i].max_hp < float(allies[worst].hp) / allies[worst].max_hp:
 			worst = i
 	var id := "freya"
-	var speaker := worst
+	var pick := worst
 	if float(allies[worst].hp) / allies[worst].max_hp >= 0.5:
 		id = "ra"
-		speaker = 0
+		pick = 0
 		for i in allies.size():
-			if allies[i].atk() > allies[speaker].atk():
-				speaker = i
-	b.ally_target = speaker
+			if allies[i].atk() > allies[pick].atk():
+				pick = i
+	b.ally_target = pick
 	b.request_action("ult")
 	var ids: Array = Andri.ARTIFACTS.map(func(x: Dictionary) -> String: return x.id)
 	b.select_option(ids.find(id))

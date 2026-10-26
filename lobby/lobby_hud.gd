@@ -116,7 +116,7 @@ func _controls_width() -> float:
 	for item: Array in CONTROLS:
 		for t: String in item[0]:
 			x += maxf(13.0, 7.0 * t.length() + 6.0) + 4
-		x += UIStyle.source().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 14
+		x += UIStyle.font().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 14
 	return x - 14
 
 
@@ -127,4 +127,4 @@ func _draw_controls(c: Control) -> void:
 			UIStyle.key(c, Vector2(x + 1, 1), t)
 			x += maxf(13.0, 7.0 * t.length() + 6.0) + 4
 		UIStyle.text(c, Vector2(x, 11), item[1], 10, Color(0.82, 0.8, 0.88))
-		x += UIStyle.source().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 14
+		x += UIStyle.font().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 14

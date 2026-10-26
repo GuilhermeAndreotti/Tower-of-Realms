@@ -50,7 +50,7 @@ static func effect_color(effect: Dictionary) -> Color:
 	return effect.get("color", EFFECT_TYPE_COLORS.get(effect.get("type", ""), TEXT))
 
 
-static func source() -> Font:
+static func font() -> Font:
 	return ThemeDB.fallback_font
 
 
@@ -92,13 +92,13 @@ static func type_badge(ci: CanvasItem, pos: Vector2, type: String, font_size := 
 	ci.draw_rect(r.grow(1), Color.BLACK)
 	ci.draw_rect(r, color.darkened(0.65))
 	ci.draw_rect(r, color, false, 1.0)
-	ci.draw_string(source(), pos + Vector2(3, font_size), t, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color.lightened(0.4))
+	ci.draw_string(font(), pos + Vector2(3, font_size), t, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color.lightened(0.4))
 	return width
 
 
 static func type_badge_width(type: String, font_size := 9, short := false) -> float:
 	var t := Types.abbr(type) if short else Types.name(type)
-	return ceilf(source().get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x) + 6
+	return ceilf(font().get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x) + 6
 
 
 ## O mesmo selo como Control, para painéis montados com containers.
@@ -128,7 +128,7 @@ static func tag(text: String, color: Color, font_size := 9) -> PanelContainer:
 ## Texto com contorno desenhado direto num CanvasItem (componentes com _draw).
 static func text(ci: CanvasItem, pos: Vector2, t: String, font_size: int, color: Color,
 		width := -1.0, alignment := HORIZONTAL_ALIGNMENT_LEFT) -> void:
-	var f := source()
+	var f := font()
 	ci.draw_string_outline(f, pos, t, alignment, width, font_size, 3, Color.BLACK)
 	ci.draw_string(f, pos, t, alignment, width, font_size, color)
 
@@ -148,7 +148,7 @@ static func key(ci: CanvasItem, pos: Vector2, letter: String, active := true) ->
 	ci.draw_rect(r.grow(1), Color.BLACK)
 	ci.draw_rect(r, Color(0.9, 0.88, 0.95) if active else Color(0.4, 0.4, 0.46))
 	ci.draw_rect(Rect2(r.position + Vector2(0, r.size.y - 2), Vector2(w, 2)), Color(0.55, 0.52, 0.65) if active else Color(0.28, 0.28, 0.33))
-	ci.draw_string(source(), pos + Vector2(0, 10), letter, HORIZONTAL_ALIGNMENT_CENTER, w, 10, Color(0.08, 0.07, 0.12))
+	ci.draw_string(font(), pos + Vector2(0, 10), letter, HORIZONTAL_ALIGNMENT_CENTER, w, 10, Color(0.08, 0.07, 0.12))
 
 
 ## Escudo numa barra de HP de retângulo `r` (borda incluída): contorno azul

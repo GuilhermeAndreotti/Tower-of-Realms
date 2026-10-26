@@ -105,7 +105,7 @@ func _draw() -> void:
 	if a < 0.9:
 		return
 	# nome e efeito acima da gema do topo; motivo em vermelho se não servir
-	var f := UIStyle.source()
+	var f := UIStyle.font()
 	var width := 230.0
 	var y := top.y - SIDE * 0.9
 	var reason := _reasons[_index] if _index < _reasons.size() else ""

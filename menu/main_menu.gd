@@ -12,7 +12,7 @@ const LOGO := "res://logo.png"
 const EMBERS := 40
 
 var mode := "start"  ## "start", "new" (escolher onde criar) ou "load"
-var requested := ""  ## confirmação aberta: "", "overwrite" ou "delete"
+var pending_confirm := ""  ## confirmação aberta: "", "overwrite" ou "delete"
 var slot_requested := 0
 
 var _start: VBoxContainer
@@ -28,8 +28,8 @@ var _logo_box: Control
 var _logo: TextureRect
 var _confirmation: ColorRect
 var _confirmation_text: Label
-var _yes: Button
-var _no: Button
+var _confirm_button: Button
+var _cancel_button: Button
 var _veil: ColorRect
 var _embers: Control
 var _particles: Array[Dictionary] = []
@@ -175,17 +175,17 @@ func _build_confirmation() -> void:
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", 12)
-	_no = _button("CANCELAR", Vector2(130, 32), 12)
-	_no.pressed.connect(cancel)
-	_yes = _button("", Vector2(130, 32), 12)
-	_yes.add_theme_color_override("font_color", UIStyle.DAMAGE_TAKEN)
-	_yes.pressed.connect(confirm)
-	buttons.add_child(_no)
-	buttons.add_child(_yes)
+	_cancel_button = _button("CANCELAR", Vector2(130, 32), 12)
+	_cancel_button.pressed.connect(cancel)
+	_confirm_button = _button("", Vector2(130, 32), 12)
+	_confirm_button.add_theme_color_override("font_color", UIStyle.DAMAGE_TAKEN)
+	_confirm_button.pressed.connect(confirm)
+	buttons.add_child(_cancel_button)
+	buttons.add_child(_confirm_button)
 	box.add_child(buttons)
 	# o foco não escapa para os botões de trás enquanto a pergunta está aberta
-	for b: Button in [_no, _yes]:
-		var other := _yes if b == _no else _no
+	for b: Button in [_cancel_button, _confirm_button]:
+		var other := _confirm_button if b == _cancel_button else _cancel_button
 		for side in [SIDE_LEFT, SIDE_RIGHT]:
 			b.set_focus_neighbor(side, other.get_path())
 		for side in [SIDE_TOP, SIDE_BOTTOM]:
@@ -195,11 +195,11 @@ func _build_confirmation() -> void:
 
 
 ## Botão de pedra com filete dourado; o foco (teclado) tem o visual do hover.
-func _button(text: String, min_size: Vector2, source: int) -> Button:
+func _button(text: String, min_size: Vector2, font_size: int) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.custom_minimum_size = min_size
-	b.add_theme_font_size_override("font_size", source)
+	b.add_theme_font_size_override("font_size", font_size)
 	b.add_theme_color_override("font_color", UIStyle.GOLD)
 	b.add_theme_color_override("font_hover_color", Color.WHITE)
 	b.add_theme_color_override("font_focus_color", Color.WHITE)
@@ -260,7 +260,7 @@ func _initial_slot() -> int:
 
 ## Clicar (ou Enter) num slot: cria, pede para sobrescrever ou carrega.
 func choose_slot(n: int) -> void:
-	if requested != "" or _leaving:
+	if pending_confirm != "" or _leaving:
 		return
 	var exists := Progression.slot_exists(n)
 	if mode == "new":
@@ -276,22 +276,22 @@ func choose_slot(n: int) -> void:
 
 
 func request_delete(n: int) -> void:
-	if requested != "" or _leaving or not Progression.slot_exists(n):
+	if pending_confirm != "" or _leaving or not Progression.slot_exists(n):
 		return
 	_ask("delete", n, "Apagar o slot %d?\nNão dá para desfazer." % n, "APAGAR")
 
 
-func _ask(type: String, n: int, text: String, yes: String) -> void:
-	requested = type
+func _ask(type: String, n: int, text: String, confirm_label: String) -> void:
+	pending_confirm = type
 	slot_requested = n
 	_confirmation_text.text = text
-	_yes.text = yes
+	_confirm_button.text = confirm_label
 	_confirmation.visible = true
-	_no.grab_focus()  # o padrão é não perder nada
+	_cancel_button.grab_focus()  # o padrão é não perder nada
 
 
 func confirm() -> void:
-	var type := requested
+	var type := pending_confirm
 	var n := slot_requested
 	cancel()
 	if type == "overwrite":
@@ -305,9 +305,9 @@ func confirm() -> void:
 
 
 func cancel() -> void:
-	if requested == "":
+	if pending_confirm == "":
 		return
-	requested = ""
+	pending_confirm = ""
 	_confirmation.visible = false
 	if mode != "start":
 		_slots[slot_requested - 1].grab_focus()
@@ -332,14 +332,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	match event.keycode:
 		KEY_ESCAPE:
-			if requested != "":
+			if pending_confirm != "":
 				cancel()
 			elif mode != "start":
 				open("start")
 			get_viewport().set_input_as_handled()
 		KEY_DELETE, KEY_BACKSPACE:
 			var i := _slots.find(get_viewport().gui_get_focus_owner())
-			if requested == "" and i >= 0:
+			if pending_confirm == "" and i >= 0:
 				request_delete(i + 1)
 				get_viewport().set_input_as_handled()
 
@@ -386,7 +386,7 @@ func _draw_hints(c: Control) -> void:
 			UIStyle.key(c, Vector2(x + 1, 1), t)
 			x += maxf(13.0, 7.0 * t.length() + 6.0) + 4
 		UIStyle.text(c, Vector2(x, 11), item[1], 10, Color(0.82, 0.8, 0.88))
-		x += UIStyle.source().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 16
+		x += UIStyle.font().get_string_size(item[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 16
 
 
 ## Brasa subindo do pé da tela; `spread` sorteia a altura (início da tela).
