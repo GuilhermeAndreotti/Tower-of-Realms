@@ -5,18 +5,21 @@
 ## Fluxo de cenas
 
 ```
-main_menu.tscn ──NEW GAME / LOAD GAME (slot)──▶ lobby.tscn
-        ▲                                               │ Esc
-        └───────────────────────────────────────────────┘
+main_menu.tscn ──LOAD GAME (slot)───────────────────────▶ lobby.tscn
+       │                                                    ▲
+       └──NEW GAME (slot)──▶ intro.tscn ──fim ou Esc────────┘
+
+lobby.tscn ──Esc──▶ main_menu.tscn
 
 lobby.tscn ──porta──▶ floor_select.tscn ──▶ team_select.tscn ──▶ battle.tscn
     ▲                        │ Esc                    │ Esc                │
     └────────────────────────┘◀───────────────────────┘                    │
-    └──────────────── fim do andar (vitória ou derrota) ◀───────────────────┘
+    └─────────────── fim da missão (vitória ou derrota) ◀───────────────────┘
 ```
 
-- A cena principal é o menu inicial ([Menu inicial](../jogo/menu-inicial.md)): ele escolhe o slot de save e leva ao saguão ([Saguão](../jogo/saguao.md)).
-- Cada ida à dungeon é um andar: vence ou perde e volta ao saguão. Repetir é subir de novo pela porta ([Torre e andares](../jogo/torre-e-andares.md)).
+- A cena principal é o menu inicial ([Menu inicial](../jogo/menu-inicial.md)): ele escolhe o slot de save e leva ao saguão ([Saguão](../jogo/saguao.md)); o jogo novo passa antes pela introdução.
+- `floor_select.tscn` é o mapa da Torre: cada ida à dungeon é uma missão de um andar (a principal ou uma secundária); vence ou perde e volta ao saguão. Repetir é subir de novo pela porta ([Torre e andares](../jogo/torre-e-andares.md)).
+- A tela é desenhada para 960x540 e escala com a janela (`canvas_items`, `aspect="expand"` no [`project.godot`](../../project.godot)). Numa janela de outra proporção (maximizada, monitor 16:10 ou ultrawide) a tela não encolhe nem ganha faixas pretas: fica com 540 de altura e mais largura, ou 960 de largura e mais altura. As telas de interface usam âncoras; a batalha centraliza a arena de 960x540 com uma `Camera2D` e cobre a sobra com o cenário espelhado (`CombatEffects.view_rect()` dá a parte à vista); o saguão aproxima a câmera para a sala cobrir a tela; o mapa da Torre prende o fundo e os círculos ao palco de 960x540 (`FloorSelect.stage_origin()`) e preenche a sobra com faixas de céu.
 
 ## Camadas
 
@@ -26,7 +29,7 @@ O combate separa três coisas, e nenhuma invade a outra:
 | ---------- | --------------------------------------------- | ----------------------------------------------- | --------------------------- |
 | Regras     | `Combatant` e subclasses, `StatusEffect`, `Types` | números, estados, quem pode o quê               | animação, interface         |
 | Animações  | `CharacterActions` e subclasses               | o que cada ação faz na arena, com efeitos       | decidir regras de dano      |
-| Interface  | `BattleHud`, `UIStyle`, `PixelBar`...         | mostrar o estado e avisar o que o jogador pediu | regra nenhuma               |
+| Interface  | `BattleHud`, `UIStyle`, `PixelFrame`, `PixelBar`... | mostrar o estado e avisar o que o jogador pediu | regra nenhuma               |
 
 `Battle` coordena: a vez, os pontos de skill do time, o alvo e o fim da luta. A HUD só lê descrições (`skills()`, `effects()`) que as regras fornecem, por isso personagens novos aparecem sem mudar a HUD. Detalhes em [Combate](../jogo/combate.md).
 
@@ -38,7 +41,7 @@ Fora do combate, a mesma ideia: `Floors` e `StoryEvents` (dados e regras da Torr
 
 | Estado                                              | Onde vive                                  | Sobrevive a fechar o jogo |
 | --------------------------------------------------- | ------------------------------------------ | ------------------------- |
-| Níveis, XP, equipe, andares vencidos, andar escolhido, eventos pendentes | `Progression` (o arquivo do slot em uso)   | sim                       |
+| Níveis, XP, equipe, andares e missões vencidos, andar e missão escolhidos, eventos pendentes | `Progression` (o arquivo do slot em uso)   | sim                       |
 | Qual slot está em uso                               | `Progression.file` (variável estática)     | não: o menu escolhe de novo |
 | Onde a Caoimhe aparece ao voltar ao saguão          | `Engine` meta (`Lobby.ENTRANCE_META`)      | não                       |
 | Preferência do painel de controles da batalha       | `user://hud.cfg`                           | sim                       |
@@ -55,16 +58,19 @@ combat/        a batalha: cena, regras (Combatant, StatusEffect, Types, fila, in
 characters/    Roster e uma pasta por herói (regras, animações, arte, README)
 enemies/       Enemy e a arte dos inimigos
 progression/   Progression: níveis, XP e save
-tower/         andares, eventos de história e as telas de andar e de equipe
+tower/         andares e missões, eventos de história, o mapa da Torre e a tela de equipe
 lobby/         saguão: cena, jogador, interagíveis, conversas, diálogo e arte
+intro/         introdução do jogo novo
 menu/          menu inicial
-ui/            estilo e componentes de interface comuns
+ui/            estilo, fontes e componentes de interface comuns
 tests/         testes headless
 tools/         simulação, captura de tela e geradores de arte
 docs/          esta documentação
 ```
 
 Cada pasta é uma feature: a cena, o script e a arte dela ficam juntos, e o que só ela usa não sai de lá. O que várias telas usam (estilo, barras, cartão de habilidade) fica em `ui/`.
+
+O visual da interface sai todo de `UIStyle`: cores, fontes, `panel()` (a moldura de pixel, `PixelFrame`), `button()` e `heading()`. As fontes são pixeladas e só ficam nítidas na grade em que foram desenhadas (monogram em 16, Silkscreen em 8); `UIStyle` fixa esse tamanho com escala inteira, então qualquer `font_size` cai na grade (de 9 a 23 sai em 16 na monogram; de 24 em diante, em 32). Para um texto maior de verdade, peça 24 ou mais. Os glifos `▸` e `·` não existem ou saem tortos nessas fontes: use `>` e `•`.
 
 As cenas montam a interface por código no `_ready()`; os `.tscn` só apontam para o script e ficam na pasta da feature.
 

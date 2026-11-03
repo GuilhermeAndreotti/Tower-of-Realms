@@ -45,7 +45,7 @@ func _ready() -> void:
 	_root.add_child(dialog)
 	_anchor(dialog, Vector2(0.5, 1), Vector2(0, -UIStyle.MARGIN - 30))
 
-	_announcement = UIStyle.label("", 26, UIStyle.GOLD, 7)
+	_announcement = UIStyle.heading("", 24, UIStyle.GOLD, 7)
 	_announcement.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_root.add_child(_announcement)
 	_anchor(_announcement, Vector2(0.5, 0.22), Vector2.ZERO)

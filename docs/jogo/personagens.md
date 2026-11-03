@@ -47,7 +47,19 @@ O crescimento tem que refletir o papel do personagem, e não ser igual para todo
 - **Àskara** (Trevas, invocadora, de Nariagari): frágil, com HP e DEF baixos; as invocações copiam uma fração dos atributos dela na hora em que são chamadas, então o crescimento dela é também o delas. Não usa energia: a ult é paga em Fragmentos d'Alma (ver [Combate](combate.md#invocações)).
 - **Clairin** (Fogo, área, de Tales of Azeroth): o ATQ é o que mais cresce, e a Chama Frenética soma até +70% em cima. HP e DEF ficam perto dos do Andri: com menos, ele caía antes de a barra render (a simulação mostrou isso com 950 de HP e 40 de DEF). A barra é um recurso de kit mostrado pela HUD com `kit_bar()` (ver [Combate](combate.md#recursos)).
 
-As skills 2 seguem o papel de cada um: a Shumi ataca junto com a equipe, mais forte a cada nível do Kaioken (Bang!, com o visual Kokoro em cada Finger Beam), o Andri usa o MOMC para proteger ou bater (Protocolo MOMC), a Àskara tem uma passiva, o Último Ato dos demônios, e o Clairin descarrega a Chama Frenética antes de ela estourar (Descarga). Na ult do Clairin (Lorde da Chama Frenética), a ação troca para uma segunda folha, com a cabeça em chamas, como o visual Kokoro da Shumi.
+- **Lia Moonlight** (Luz, curandeira, de Tales of Azeroth): cresce em HP e DEF, para ficar de pé curando; o ATQ quase não importa, porque as curas são frações do HP máximo de quem recebe, e não do ATQ dela. A Bênção Lunar devolve a ela parte do que cura nos outros.
+
+As skills 2 seguem o papel de cada um: a Shumi ataca junto com a equipe, mais forte a cada nível do Kaioken (Bang!, com o visual Kokoro em cada Finger Beam), o Andri usa o MOMC para proteger ou bater (Protocolo MOMC), a Àskara tem uma passiva, o Último Ato dos demônios, o Clairin descarrega a Chama Frenética antes de ela estourar (Descarga) e a Lia cura todos e fere os inimigos de uma vez (Nova Sagrada). Na ult do Clairin (Lorde da Chama Frenética), a ação troca para uma segunda folha, com a cabeça em chamas, como o visual Kokoro da Shumi.
+
+## Bônus de equipe
+
+Quando a equipe fecha um número de membros do mesmo universo (`Roster.data().universe`), todos da equipe ganham um bônus durante a luta. Os bônus ficam em `Synergies` ([`synergies.gd`](../../characters/synergies.gd)): universo, quantos fecham e os `mods`, somados como os de qualquer estado (`damage` multiplica o dano causado, `healing` as curas feitas, ver [Combate](combate.md#estados)). A batalha aplica um estado sem contagem em cada um no começo, anuncia e registra; a montagem da equipe mostra quanto falta para fechar.
+
+| Bônus | Fecha com | Efeito |
+| ----- | --------- | ------ |
+| Por Azeroth! | 3 de Tales of Azeroth (Andri, Clairin e Lia) | +10% de dano e de cura para toda a equipe |
+
+Como a equipe tem até 3, o universo de um personagem novo decide em que bônus ele entra: confira na hora de cadastrar. Quem cura no kit multiplica a cura por `Combatant.healing_mult()`, para o bônus valer.
 
 ## Liberação temporária
 

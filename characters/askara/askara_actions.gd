@@ -84,7 +84,7 @@ func _lord() -> void:
 		"" if dismissed.is_empty() else " (as invocações em campo alimentam o portal)"])
 	var veil := CombatEffects.veil(b.world, Color(inv.color.darkened(0.8), 0.55), 0.0, true)
 	if r.rare:
-		b.announce("%d%%  ·  %s" % [roundi(Askara.LIGHT_LORD_CHANCE * 100), inv.name.to_upper()], inv.color, 30)
+		b.announce("%d%%  •  %s" % [roundi(Askara.LIGHT_LORD_CHANCE * 100), inv.name.to_upper()], inv.color, 30)
 		b.log_line("Algo diferente atende ao chamado: o %s!" % UIStyle.highlight(inv.name, inv.color))
 	else:
 		b.announce(inv.name.to_upper(), inv.color, 30)

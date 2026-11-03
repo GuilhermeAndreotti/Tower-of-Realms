@@ -37,7 +37,10 @@ func _init() -> void:
 	_test_andri_protocol()
 	_test_askara_last_act()
 	_test_last_resort()
+	_test_second_form()
 	_test_clairin_frenzy()
+	_test_lia()
+	_test_synergies()
 
 
 ## Os testes com a batalha de verdade precisam da árvore de cenas.
@@ -45,8 +48,11 @@ func _initialize() -> void:
 	await _test_askara_in_battle()
 	await _test_bang_in_battle()
 	await _test_black_iron_in_battle()
+	await _test_molten_golem_in_battle()
 	await _test_battle_phases()
 	await _test_clairin_in_battle()
+	await _test_lia_in_battle()
+	await _test_synergy_in_battle()
 	Progression.delete()
 	print("\n%s (%d falha%s)" % ["TUDO OK" if _failures == 0 else "FALHOU", _failures, "" if _failures == 1 else "s"])
 	quit(1 if _failures else 0)
@@ -582,6 +588,18 @@ func _test_askara_fragments() -> void:
 	check(a.on_enemy_fallen() == "", "no máximo, um inimigo caído não dá nada")
 	a.fragments = 3
 	check(a.on_enemy_fallen() != "" and a.fragments == 4, "inimigo caído dá 1 fragmento")
+	var imp: Summon = a.summon("imp").summon
+	check(a.fragments == 3, "o Diabrete custa 1 fragmento")
+	check(a.on_summon_acted(imp) != "" and a.fragments == 4, "a primeira ação de um demônio dá 1 fragmento")
+	imp.consume_turn()
+	check(a.on_summon_acted(imp) == "" and a.fragments == 4, "as outras ações do mesmo demônio não dão")
+	imp.renew()
+	check(a.on_summon_acted(imp) != "" and a.fragments == 5, "renovado, a primeira ação conta de novo")
+	a.fragments = Askara.LORD_COST
+	var lord: Summon = a.summon_lord(0.9).summon
+	var before := a.fragments
+	check(a.on_summon_acted(lord) == "" and a.fragments == before, "o Lorde não dá fragmentos")
+	a.fragments = 4
 	var foe := Enemy.new("I", "", 1000, 100, 0, 100)
 	var damage := Combatant.calculate_damage(a, foe, Askara.ARROW_MULT, 0.5)
 	check(damage == roundi(125 * 0.6), "Seta Vil: 0,6x do ATQ (75)")
@@ -636,6 +654,12 @@ func _test_askara_lord() -> void:
 	var lord: Summon = r.summon
 	check(r.dismissed.size() == 2 and a.on_field() == [lord] and a.fragments == 0, "o Lorde apaga as invocações e fica sozinho")
 	check(lord.id == "demon_lord" and not r.rare and lord.entrance_strike.reach == "all", "Lorde Demônio, com golpe de chegada em todos")
+	check(is_equal_approx(lord.target_weight(), 1.0 + Askara.LORD_TAUNT), "o Lorde puxa os ataques (provoca, menos que o Emissário)")
+	var abyss: StatusEffect = lord.debuff.call()
+	check(abyss.id == "abyss_charm" and abyss.mods.atk == Askara.ABYSS_CHARM_ATK and lord.strike.get("debuff_all", false)
+		and lord.entrance_strike.get("debuff_all", false), "os golpes do Lorde enfraquecem todos que acertam (Encanto do Abismo)")
+	check(abyss.mods.atk > Askara.CHARM_ATK and abyss.id != Askara.charm().id, "mais fraco que o encanto da Lilith, sem substituí-lo")
+	check(lord.last_act.reach == "all" and lord.last_act.style == "dive", "ao ir embora, explode em todos")
 	a.fragments = 8
 	check(not a.can_use("skill", 3) and a.invalid_reason("skill", "imp", a).begins_with("O Lorde"), "com o Lorde em campo, o E fica bloqueado")
 	check(_skill_data(a, "skill", 3).state == "blocked" and not a.can_use("ult", 3), "e não dá para chamar outro Lorde")
@@ -820,7 +844,8 @@ func _test_askara_last_act() -> void:
 	check(emissary.shield_target([a, emissary, shumi]) == shumi, "a Muralha do Caos vai em quem tem a menor fração de HP")
 	a.fragments = 8
 	var lord: Summon = a.summon_lord(0.5).summon
-	check(lord.last_act.is_empty(), "os Lordes não têm último ato")
+	check(lord.last_act.get("name", "") == "Colapso do Abismo" and Askara.LORDS.light_lord.last_act.name == "Supernova",
+		"os Lordes também têm último ato: explodem antes de ir embora")
 
 
 func _test_bang_in_battle() -> void:
@@ -895,6 +920,160 @@ func _test_last_resort() -> void:
 	check(common.activate_last_resort() == null, "inimigo sem último recurso nunca ativa")
 
 
+func _test_lia() -> void:
+	print("lia: curas, bênção lunar e lord azeroth")
+	var l := Lia.new()
+	check(l.type == Types.LIGHT and l.max_energy == 120.0, "Lia é Luz e usa energia")
+	check(l.skills(0).map(func(h: Dictionary) -> String: return h.key) == ["Q", "E", "W", "R", ""], "barra no padrão: Q, E, W, R e a passiva")
+	check(_skill_data(l, "skill").target == "ally" and _skill_data(l, "basic").point_gain == 1, "Curar Ferimentos mira um aliado; o básico gera ponto")
+	var ally := Shumi.new()
+	ally.hp = 100
+	var healed := l.heal_target(ally, Lia.HEAL_FRACTION)
+	check(healed == roundi(ally.max_hp * Lia.HEAL_FRACTION) and ally.hp == 100 + healed, "Curar Ferimentos: uma fração do HP máximo de quem recebe")
+	ally.hp = ally.max_hp - 10
+	check(l.heal_target(ally, Lia.HEAL_FRACTION) == 10 and ally.hp == ally.max_hp, "não passa do HP máximo")
+	var fallen := Shumi.new()
+	fallen.take_damage(fallen.max_hp)
+	check(l.heal_target(fallen, Lia.HEAL_FRACTION) == 0 and not fallen.is_alive(), "não levanta quem caiu")
+	l.hp = 500
+	check(l.lunar_blessing(400) == roundi(400 * Lia.BLESSING) and l.hp == 500 + roundi(400 * Lia.BLESSING), "Bênção Lunar: recupera parte do que curou nos outros")
+	check(l.lunar_blessing(0) == 0, "sem cura nos outros, nada")
+	check(l.can_use("skill2", 1) and not l.can_use("skill2", 0), "Nova Sagrada pronta com 1 ponto")
+	l.start_cooldown("skill2", Lia.NOVA_COOLDOWN)
+	check(not l.can_use("skill2", 3) and _skill_data(l, "skill2", 3).state == "cooldown", "Nova Sagrada tem recarga")
+	check(not l.can_use("ult", 0), "sem energia, sem Lord Azeroth")
+	l.energy = Lia.ULT_COST
+	check(l.can_use("ult", 0), "com 120 de energia, o Lord Azeroth fica pronto")
+	# a proteção: -80% no próximo golpe e some nele
+	var foe := Enemy.new("I", "", 1000, 200, 0, 100)
+	var target := Shumi.new()
+	var plain := Combatant.calculate_damage(foe, target, 1.0, 0.5)
+	target.apply_status(Lia.lord_azeroth())
+	target.apply_status(Lia.lord_azeroth())
+	check(target.status_effects.size() == 1, "usar de novo renova, não soma")
+	var protected := Combatant.calculate_damage(foe, target, 1.0, 0.5)
+	check(protected == roundi(plain * 0.2), "o golpe protegido perde 80%")
+	var spent := target.spend_hit_statuses()
+	check(spent.size() == 1 and spent[0].id == "lord_azeroth" and target.status("lord_azeroth") == null, "a proteção acaba no golpe")
+	check(Combatant.calculate_damage(foe, target, 1.0, 0.5) == plain, "o golpe seguinte vem inteiro")
+	target.apply_status(Lia.lord_azeroth())
+	for i in Lia.LORD_TURNS:
+		target.pass_turn()
+	check(target.status("lord_azeroth") == null, "sem golpe, a proteção acaba em 3 turnos")
+
+
+func _test_synergies() -> void:
+	print("bônus de equipe (Por Azeroth!)")
+	var azeroth: Array[String] = ["andri", "clairin", "lia"]
+	var mixed: Array[String] = ["andri", "clairin", "shumi"]
+	check(Synergies.active(azeroth).map(func(x: Dictionary) -> String: return x.id) == ["for_azeroth"],
+		"Andri, Clairin e Lia (Tales of Azeroth) fecham o Por Azeroth!")
+	check(Synergies.active(mixed).is_empty() and Synergies.members(Synergies.LIST[0], mixed) == 2, "com 2 de Azeroth, ainda não")
+	var e := Synergies.status(Synergies.LIST[0])
+	check(e.turns == -1 and e.type == "buff" and e.mods.damage > 0 and e.mods.healing > 0, "o bônus é um estado que dura a luta toda")
+	var foe := Enemy.new("I", "", 1000, 100, 0, 100)
+	var c := Clairin.new()
+	var plain := Combatant.calculate_damage(c, foe, 1.0, 0.5)
+	c.apply_status(Synergies.status(Synergies.LIST[0]))
+	check(Combatant.calculate_damage(c, foe, 1.0, 0.5) == roundi(plain * 1.1), "com o bônus, o dano sobe 10%")
+	var l := Lia.new()
+	l.apply_status(Synergies.status(Synergies.LIST[0]))
+	var ally := Shumi.new()
+	ally.hp = 100
+	check(l.heal_target(ally, Lia.HEAL_FRACTION) == roundi(ally.max_hp * Lia.HEAL_FRACTION * 1.1), "e as curas, 10%")
+
+
+func _test_synergy_in_battle() -> void:
+	print("bônus de equipe na batalha")
+	Progression.delete()
+	for n in range(1, 5):
+		Progression.mark_floor_cleared(n)
+	for id in ["andri", "clairin", "lia"]:
+		Progression.unlock(id)
+	Floors.choose(5)
+	for ids: Array in [["andri", "clairin", "lia"], ["shumi", "clairin", "lia"]]:
+		var team: Array[String] = []
+		team.assign(ids)
+		Roster.set_team(team)
+		var b: Battle = (load("res://combat/battle.tscn") as PackedScene).instantiate()
+		root.add_child(b)
+		current_scene = b
+		await process_frame
+		var all_have := b.team.all(func(x: Combatant) -> bool: return x.status("synergy_for_azeroth") != null)
+		var none_have := b.team.all(func(x: Combatant) -> bool: return x.status("synergy_for_azeroth") == null)
+		if ids[0] == "andri":
+			check(all_have and b.synergies.size() == 1, "três de Azeroth: todos começam com o Por Azeroth!")
+		else:
+			check(none_have and b.synergies.is_empty(), "dois de Azeroth: ninguém ganha")
+		b.queue_free()
+		await process_frame
+
+
+func _test_second_form() -> void:
+	print("segunda forma dos inimigos (Golem Incandescente)")
+	var golem: Enemy = Floors.create_enemies(5)[1]
+	check(not golem.can_awaken(), "de pé, não desperta")
+	check(golem.next_strike().heavy == false and not golem.next_strike().has("all"), "a primeira forma não tem o laser")
+	golem.take_damage(golem.max_hp)
+	check(golem.can_awaken(), "derrotado, pode despertar")
+	var w := StatusEffect.new("weak", "Fraco", "F", "debuff", 2)
+	golem.apply_status(w)
+	var healed := golem.awaken(2)
+	check(healed == roundi(golem.max_hp * 0.7) and golem.hp == healed, "volta com 40% do HP e mais 15% por inimigo absorvido")
+	check(golem.name == "Golem Incandescente" and golem.type == Types.FIRE and golem.texture == Floors.MOLTEN_GOLEM,
+		"troca nome, tipo (Fogo) e arte")
+	check(golem.status_effects.is_empty() and golem.heavy_strike_every == 0, "perde os estados e o Golpe Pesado")
+	check(not golem.can_awaken(), "desperta uma vez só")
+	check(not golem.next_strike().get("all", false), "a primeira ação da nova forma é um golpe comum")
+	check(golem.effects().any(func(e: Dictionary) -> bool: return e.id == "charging") == false, "sem aviso antes da vez do laser")
+	golem.count_action()
+	var strike := golem.next_strike()
+	check(strike.get("all", false) and strike.name == "Laser da Forja" and strike.type == Types.FIRE, "a cada 2 ações, o laser em toda a equipe")
+	check(golem.effects().any(func(e: Dictionary) -> bool: return e.id == "charging" and e.name == "Laser da Forja"), "o laser é avisado uma ação antes")
+	golem.count_action()
+	check(not golem.next_strike().get("all", false), "depois do laser, volta ao golpe comum")
+	var alone: Enemy = Floors.create_enemies(5)[1]
+	alone.take_damage(alone.max_hp)
+	check(alone.awaken(0) == roundi(alone.max_hp * 0.4), "sem ninguém para absorver, só os 40%")
+
+
+func _test_molten_golem_in_battle() -> void:
+	print("golem incandescente na batalha")
+	Progression.delete()
+	for n in range(1, 5):
+		Progression.mark_floor_cleared(n)
+	Progression.unlock("andri")
+	Progression.unlock("askara")
+	Floors.choose(5)
+	Roster.set_team(["shumi", "andri", "askara"])
+	var b: Battle = (load("res://combat/battle.tscn") as PackedScene).instantiate()
+	root.add_child(b)
+	current_scene = b
+	await process_frame
+	for c in b.fighters:
+		c.av = 1e9
+	var golem: Enemy = b.enemies[1]
+	var s := b.team[0]
+	b.enemies[2].take_damage(b.enemies[2].max_hp)  # um elemental já caiu
+	golem.hp = 1
+	await b.apply_damage(s, golem, 1.0)
+	check(golem.is_alive() and golem.awakened and golem.name == "Golem Incandescente", "o golpe que derrota o Golem o faz despertar")
+	check(golem.hp == roundi(golem.max_hp * 0.55), "absorveu o elemental de pé: 40% + 15% do HP")
+	check(not b.enemies[0].is_alive() and b.living_enemies() == [golem], "o elemental absorvido sai da luta")
+	check(not b.over, "a luta continua")
+	check(b.hud._announcement.text == "GOLEM INCANDESCENTE", "o anúncio da nova forma aparece na tela")
+	golem.count_action()
+	var hp_before: Array = b.team.map(func(c: Combatant) -> int: return c.hp)
+	await b._enemy_turn(golem)
+	var hit := range(b.team.size()).all(func(i: int) -> bool: return b.team[i].hp < hp_before[i])
+	check(hit, "o laser acerta toda a equipe")
+	golem.hp = 1
+	await b.apply_damage(s, golem, 1.0)
+	check(not golem.is_alive() and b.over, "derrotado de novo, cai de vez e a luta acaba")
+	b.queue_free()
+	await process_frame
+
+
 func _test_black_iron_in_battle() -> void:
 	print("ferro negro na batalha")
 	Progression.delete()
@@ -911,16 +1090,16 @@ func _test_black_iron_in_battle() -> void:
 	for c in b.fighters:
 		c.av = 1e9
 	check(b.floor_number == 5 and b.team.size() == 3 and b.enemies[1].name == "Golem de Pedra", "andar 5: a equipe de três contra o Golem e os elementais")
-	var golem: Enemy = b.enemies[1]
+	var elemental: Enemy = b.enemies[0]
 	var s := b.team[0]
-	golem.hp = ceili(golem.max_hp * 0.3) + 1  # qualquer golpe o deixa abaixo de 30%
-	await b.apply_damage(s, golem, 0.6)
-	check(golem.is_alive() and golem.shield() == roundi(golem.max_hp * 0.25), "o golpe que deixa o Golem abaixo de 30% ativa o Ferro Negro")
+	elemental.hp = ceili(elemental.max_hp * 0.3) + 1  # qualquer golpe o deixa abaixo de 30%
+	await b.apply_damage(s, elemental, 0.3)
+	check(elemental.is_alive() and elemental.shield() == roundi(elemental.max_hp * 0.25), "o golpe que deixa o Elemental abaixo de 30% ativa o Ferro Negro")
 	check(b.hud._announcement.text == "Ferro Negro ativado", "o anúncio \"Ferro Negro ativado\" aparece na tela")
-	var shield := golem.shield()
-	var hp := golem.hp
-	await b.apply_damage(s, golem, 0.3)
-	check(golem.hp == hp and golem.shield() < shield, "o escudo absorve os golpes seguintes")
+	var shield := elemental.shield()
+	var hp := elemental.hp
+	await b.apply_damage(s, elemental, 0.1)
+	check(elemental.hp == hp and elemental.shield() < shield, "o escudo absorve os golpes seguintes")
 	# escudo de aliado na HUD: contorno na barra e o valor ao lado do HP
 	var esc := StatusEffect.new("shield", "Escudo", "E", "buff", 2)
 	esc.shield = 150
@@ -1048,6 +1227,53 @@ func _test_clairin_in_battle() -> void:
 	check(range(3).all(func(i: int) -> bool: return b.enemies[i].hp < hps[i] or not b.enemies[i].is_alive())
 		and b.hud._log_lines.any(func(l: String) -> bool: return "alcança os inimigos" in l),
 		"como Lorde da Chama Frenética, a Bola de Fogo pega todos e o estouro queima os inimigos")
+	b.queue_free()
+	await process_frame
+
+
+func _test_lia_in_battle() -> void:
+	print("lia na batalha")
+	Progression.delete()
+	for n in range(1, 3):
+		Progression.mark_floor_cleared(n)
+	Floors.choose(3)
+	Roster.set_team(["lia", "shumi"])
+	var b: Battle = (load("res://combat/battle.tscn") as PackedScene).instantiate()
+	root.add_child(b)
+	current_scene = b
+	await process_frame
+	for c in b.fighters:
+		c.av = 1e9
+	var l := b.team[0] as Lia
+	var s := b.team[1]
+	l.av = 0.0  # só ela age
+	await _until(func() -> bool: return b.waiting_for_player)
+	s.hp = 200
+	l.hp = 400
+	b.request_action("skill")
+	check(b.phase == Battle.Phase.CHOOSING_OPTION and b._choosing == "skill" and b.current_ally() == l,
+		"a cura abre a escolha do aliado (começa nela mesma)")
+	b._change_target(1)
+	check(b.current_ally() == s, "←/→ trocam o aliado a curar")
+	b.request_action("skill")  # a mesma tecla confirma
+	await _until(func() -> bool: return b.waiting_for_player)
+	var healed := roundi(s.max_hp * Lia.HEAL_FRACTION)
+	check(s.hp == 200 + healed and l.hp == 400 + roundi(healed * Lia.BLESSING),
+		"Curar Ferimentos cura o aliado escolhido e a Bênção Lunar devolve parte a ela")
+	var hps: Array = b.enemies.map(func(e: Enemy) -> int: return e.hp)
+	b.points = 3
+	b.request_action("skill2")
+	await _until(func() -> bool: return b.waiting_for_player)
+	check(range(b.enemies.size()).all(func(i: int) -> bool: return b.enemies[i].hp < hps[i]) and l.cooldown("skill2") > 0,
+		"a Nova Sagrada fere todos os inimigos e entra em recarga")
+	l.energy = l.max_energy
+	b.request_action("ult")
+	await _until(func() -> bool: return b.waiting_for_player)
+	check(b.allies_on_field().all(func(c: Combatant) -> bool: return c.status("lord_azeroth") != null), "o Lord Azeroth protege todos em campo")
+	await b.apply_damage(b.enemies[0], s, 1.0)
+	check(s.status("lord_azeroth") == null and l.status("lord_azeroth") != null
+		and b.hud._log_lines.any(func(x: String) -> bool: return "se desfaz" in x),
+		"o golpe recebido gasta só a proteção de quem apanhou, e o registro avisa")
 	b.queue_free()
 	await process_frame
 

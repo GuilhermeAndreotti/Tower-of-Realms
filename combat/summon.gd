@@ -22,8 +22,11 @@ var on_field := true  ## false = saiu (tempo, queda, substituída)
 
 ## Golpe de cada vez: {"name", "mult", "reach" (unico/dupla/vizinhos/todos;
 ## dupla = o alvo e o de trás), "neighbor_mult"?, "aim"? (alvo/strongest),
-## "style"? (projetil/investida), "debuff_all"? (o debuff vai em todos
-## os atingidos, não só no principal)}. O dano é do tipo da invocação.
+## "style"? ("projectile", "charge": avança até cada alvo, ou "dive":
+## mergulha no principal e explode em todos de uma vez, sem voltar; para
+## últimos atos), "hit"? (no "charge": "slash", o padrão, ou "kiss"),
+## "debuff_all"? (o debuff vai em todos os atingidos, não só no
+## principal)}. O dano é do tipo da invocação.
 var strike := {}
 ## Golpe na chegada, na hora da invocação, no mesmo formato ({} = nenhum).
 var entrance_strike := {}

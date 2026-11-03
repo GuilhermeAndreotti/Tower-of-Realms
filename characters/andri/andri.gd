@@ -214,7 +214,7 @@ func use_artifact(id: String, target: Combatant) -> Dictionary:
 	var r := {"state": null, "heal": 0, "cleared": 0}
 	energy -= ULT_COST
 	if id == "freya":
-		r.heal = target.heal(roundi(target.max_hp * FREYA_HEAL))
+		r.heal = target.heal(roundi(target.max_hp * FREYA_HEAL * healing_mult()))
 		r.cleared = target.clear_debuffs()
 		return r
 	var e := artifact_status(id, target, lens)

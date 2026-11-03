@@ -67,10 +67,12 @@ Um `ConfigFile` por slot de save (`SLOTS`): o slot 1 é `user://progresso.cfg`, 
 | `personagem_<id>/nivel`, `xp`      | progresso; a seção existir = liberado     |
 | `torre/vencidos`                   | andares vencidos                          |
 | `torre/andar`                      | andar escolhido                           |
+| `torre/missoes_vencidas`           | ids das missões secundárias vencidas      |
+| `torre/missao`                     | missão escolhida no andar ("" = principal) |
 | `torre/eventos_pendentes`          | eventos ainda não apresentados no saguão  |
 
 As seções e chaves do save ficam em português, mesmo com o código em inglês: são o formato do arquivo, e mudar o nome delas faria saves antigos abrirem vazios. Os eventos pendentes gravados antes do código em inglês (`{"tipo": "desbloquear", "id", "quem"?}`) são convertidos na leitura para o formato atual (`{"type": "unlock", "id", "speaker"?}`).
 
-Compatibilidade: chaves que faltam valem o padrão (nível 1, XP 0, nada vencido); valores fora da regra são corrigidos na leitura; ids que não existem mais são ignorados. Mudou o formato de um jeito que não dá para ler o antigo? Suba `SAVE_VERSION` e converta na leitura.
+Compatibilidade: chaves que faltam valem o padrão (nível 1, XP 0, nada vencido, a missão principal); valores fora da regra são corrigidos na leitura; ids que não existem mais são ignorados. Mudou o formato de um jeito que não dá para ler o antigo? Suba `SAVE_VERSION` e converta na leitura.
 
 `Progression.file` e `Progression.slots_prefix` são trocáveis: testes e ferramentas usam arquivos próprios e apagam no fim.

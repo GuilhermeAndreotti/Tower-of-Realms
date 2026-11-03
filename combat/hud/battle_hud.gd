@@ -147,7 +147,7 @@ func _hbox(separation := 4) -> HBoxContainer:
 
 
 func _header(text: String) -> Label:
-	return UIStyle.label(text, 9, UIStyle.DIM_TEXT, 2)
+	return UIStyle.heading(text)
 
 
 func _drawing(min_size: Vector2, on_draw: Callable) -> Control:
@@ -185,7 +185,7 @@ func _build_objective() -> void:
 		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 			toggle_controls())
 	var h := _hbox(8)
-	h.add_child(UIStyle.label("OBJETIVO", 9, UIStyle.GOLD, 2))
+	h.add_child(UIStyle.heading("OBJETIVO", 8, UIStyle.GOLD))
 	_objective = UIStyle.label("", 12)
 	h.add_child(_objective)
 	_controls_hint = UIStyle.label("", 9, UIStyle.DIM_TEXT, 2)
@@ -198,10 +198,7 @@ func _build_objective() -> void:
 	# gaveta de controles, presa embaixo do objetivo
 	var drawer := PanelContainer.new()
 	var eg := UIStyle.panel(Color(UIStyle.BACKGROUND, 0.78))
-	eg.set_corner_radius_all(0)
-	eg.corner_radius_bottom_left = 4
-	eg.corner_radius_bottom_right = 4
-	eg.border_width_top = 0
+	eg.open_top = true
 	eg.content_margin_top = 4
 	eg.content_margin_bottom = 4
 	drawer.add_theme_stylebox_override("panel", eg)
@@ -212,7 +209,7 @@ func _build_objective() -> void:
 	_controls = drawer
 
 
-## Linha de controles: [tecla] descrição · [tecla] descrição ...
+## Linha de controles: [tecla] descrição • [tecla] descrição ...
 const CONTROLS := [
 	[["Q", "W", "E", "R"], "usar"],
 	[["←", "→"], "alvo"],
@@ -265,7 +262,7 @@ func _build_character() -> void:
 	var v := _vbox(2)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var top := _hbox(6)
-	_name = UIStyle.label("", 15, UIStyle.ALLY.lightened(0.35), 4)
+	_name = UIStyle.heading("", 16, UIStyle.ALLY.lightened(0.35), 4)
 	_form = UIStyle.label("", 10, UIStyle.DIM_TEXT, 3)
 	_form.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_form.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -486,7 +483,7 @@ func _build_options() -> void:
 	_option_reason.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_option_reason.custom_minimum_size.x = 288
 	v.add_child(_option_reason)
-	v.add_child(UIStyle.label("↑↓ ou 1-9 escolher · ←→ alvo · Enter confirmar · Esc cancelar", 9, UIStyle.DIM_TEXT, 2))
+	v.add_child(UIStyle.label("↑↓ ou 1-9 escolher • ←→ alvo • Enter confirmar • Esc cancelar", 9, UIStyle.DIM_TEXT, 2))
 	_options.add_child(v)
 	_options.visible = false
 
@@ -494,14 +491,18 @@ func _build_options() -> void:
 ## Abre (ou atualiza) o seletor da habilidade `h` com a opção `index` em
 ## foco. `reasons[i]` != "" desabilita a opção i no alvo atual (`target_name`).
 func show_options(h: Dictionary, index: int, reasons: Array[String], target_name: String) -> void:
-	_options_title.text = h.name.to_upper() + ("  ·  alvo: %s" % target_name if target_name != "" else "")
+	_options_title.text = h.name.to_upper() + ("  •  alvo: %s" % target_name if target_name != "" else "")
 	for child in _option_list.get_children():
 		child.queue_free()
-	var options: Array = h.options
+	var options: Array = h.get("options", [])
 	for i in options.size():
 		_option_list.add_child(_option_row(options[i], i, i == index, reasons[i] == ""))
-	_option_reason.text = reasons[index]
-	_option_reason.visible = reasons[index] != ""
+	if options.is_empty():
+		# só o alvo a escolher (a cura num aliado): o título já diz quem
+		_option_list.add_child(UIStyle.label("←/→ ou clique: escolha o aliado  •  Enter confirma  •  Esc cancela", 11, UIStyle.DIM_TEXT))
+	var reason: String = reasons[index] if index < reasons.size() else ""
+	_option_reason.text = reason
+	_option_reason.visible = reason != ""
 	_hint.visible = false
 	_options.visible = true
 	# fica logo acima da barra de habilidades
@@ -571,7 +572,7 @@ func warn(text: String) -> void:
 
 
 func _build_announcement() -> void:
-	_announcement = UIStyle.label("", 40, UIStyle.GOLD, 10)
+	_announcement = UIStyle.heading("", 40, UIStyle.GOLD, 10)
 	_announcement.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_announcement.custom_minimum_size = Vector2(600, 56)
 	_root.add_child(_announcement)
@@ -586,14 +587,14 @@ func _build_end() -> void:
 	_end.visible = false
 	_root.add_child(_end)
 	var p := PanelContainer.new()
-	var style := UIStyle.panel(UIStyle.LIGHT_BACKGROUND, UIStyle.GOLD.darkened(0.2), 2)
+	var style := UIStyle.panel(UIStyle.LIGHT_BACKGROUND, UIStyle.GOLD.darkened(0.2), 2, UIStyle.GOLD)
 	style.set_content_margin_all(18)
 	p.add_theme_stylebox_override("panel", style)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_end.add_child(p)
 	_anchor(p, Vector2(0.5, 0.45), Vector2.ZERO)
 	var v := _vbox(10)
-	_end_text = UIStyle.label("", 30, Color.WHITE, 8)
+	_end_text = UIStyle.heading("", 24, Color.WHITE, 6)
 	_end_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(_end_text)
 	_end_rewards = _vbox(6)
@@ -607,11 +608,7 @@ func _build_end() -> void:
 	back.text = "Voltar ao saguão"
 	back.focus_mode = Control.FOCUS_NONE
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	back.add_theme_font_size_override("font_size", 12)
-	back.add_theme_color_override("font_color", UIStyle.GOLD)
-	back.add_theme_stylebox_override("normal", UIStyle.panel(UIStyle.BACKGROUND, UIStyle.GOLD.darkened(0.25)))
-	back.add_theme_stylebox_override("hover", UIStyle.panel(UIStyle.LIGHT_BACKGROUND, UIStyle.GOLD))
-	back.add_theme_stylebox_override("pressed", UIStyle.panel(UIStyle.LIGHT_BACKGROUND, UIStyle.GOLD))
+	UIStyle.button(back)
 	back.pressed.connect(func() -> void: lobby_requested.emit())
 	v.add_child(back)
 	p.add_child(v)
@@ -693,21 +690,11 @@ func _refresh_character() -> void:
 
 
 func _chip(e: Dictionary) -> Control:
-	var color := UIStyle.effect_color(e)
-	var p := PanelContainer.new()
-	var s := UIStyle.panel(color.darkened(0.6), color, 1)
-	s.shadow_size = 0
-	s.content_margin_left = 4
-	s.content_margin_right = 4
-	s.content_margin_top = 0
-	s.content_margin_bottom = 0
-	p.add_theme_stylebox_override("panel", s)
-	p.mouse_filter = Control.MOUSE_FILTER_PASS
-	p.tooltip_text = e.name + ("\n" + e.detail if e.has("detail") else "")
 	var text: String = e.name
 	if e.get("turns", -1) > 0:
-		text += " · %d" % e.turns
-	p.add_child(UIStyle.label(text, 9, color.lightened(0.45), 2))
+		text += " • %d" % e.turns
+	var p := UIStyle.tag(text, UIStyle.effect_color(e))
+	p.tooltip_text = e.name + ("\n" + e.detail if e.has("detail") else "")
 	return p
 
 
@@ -722,7 +709,7 @@ func _refresh_skills(current_actor: Combatant) -> void:
 	for h in list:
 		(_slots[h.action] as SkillSlot).display(h, _players_turn)
 	if _players_turn:
-		_bar_title.text = "SUA VEZ · %s" % _active.name.to_upper()
+		_bar_title.text = "SUA VEZ • %s" % _active.name.to_upper()
 		_bar_title.label_settings.font_color = UIStyle.GOLD
 	elif current_actor == _active:
 		_bar_title.text = "%s EM AÇÃO" % _active.name.to_upper()
@@ -893,7 +880,7 @@ func _reward_row(r: Dictionary) -> Control:
 		var parts: Array[String] = []
 		for a: String in r.gains:
 			parts.append("%s +%d" % [Progression.STAT_NAMES[a], r.gains[a]])
-		var notice := UIStyle.label("SUBIU DE NÍVEL!   " + "  ·  ".join(parts), 10, UIStyle.GOLD, 3)
+		var notice := UIStyle.label("SUBIU DE NÍVEL!   " + "  •  ".join(parts), 10, UIStyle.GOLD, 3)
 		v.add_child(notice)
 		notice.ready.connect(func() -> void:
 			var t := notice.create_tween().set_loops()
@@ -908,9 +895,9 @@ static func xp_text(level: int, xp: int, at_limit: bool) -> String:
 	if level >= Progression.MAX_LEVEL:
 		return "Nível máximo"
 	if at_limit:
-		return "Limite da Torre (Nv %d) · vença um andar novo para subir mais" % level
+		return "Limite da Torre (Nv %d) • vença um andar novo para subir mais" % level
 	var maximum := Progression.xp_to_next(level)
-	return "%d/%d XP · faltam %d para o nível %d" % [xp, maximum, maximum - xp, level + 1]
+	return "%d/%d XP • faltam %d para o nível %d" % [xp, maximum, maximum - xp, level + 1]
 
 
 # ------------------------------------------------------- controles (H)

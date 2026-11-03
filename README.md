@@ -18,7 +18,7 @@
 - [Sistema de combate](#️-sistema-de-combate)
 - [A Torre](#-a-torre)
 - [Níveis e experiência](#-níveis-e-experiência)
-- [Personagens](#-personagens): [Shumi](characters/shumi/README.md) · [Andri](characters/andri/README.md) · [Àskara](characters/askara/README.md) · [Clairin](characters/clairin/README.md)
+- [Personagens](#-personagens): [Shumi](characters/shumi/README.md) · [Andri](characters/andri/README.md) · [Àskara](characters/askara/README.md) · [Clairin](characters/clairin/README.md) · [Lia Moonlight](characters/lia/README.md)
 - [Inimigos](#-inimigos)
 - [Rodando o projeto](#-rodando-o-projeto)
 - [Estrutura do projeto](#-estrutura-do-projeto)
@@ -29,10 +29,10 @@
 
 ## 🎮 Como jogar
 
-1. No **menu inicial**, escolha **NEW GAME** (jogo novo num dos 3 slots de save; um slot ocupado pede confirmação para ser sobrescrito) ou **LOAD GAME** (continua um save). Nas duas listas, **Del** ou o botão **APAGAR** apaga um save, também com confirmação.
+1. No **menu inicial**, escolha **NEW GAME** (jogo novo num dos 3 slots de save; um slot ocupado pede confirmação para ser sobrescrito; antes do saguão, a **introdução** conta a história da Caoimhe: **Enter** avança, **Esc** pula) ou **LOAD GAME** (continua um save). Nas duas listas, **Del** ou o botão **APAGAR** apaga um save, também com confirmação.
 2. No **saguão**, ande com a Caoimhe até a porta da dungeon e aperte **Enter**.
-3. Na **escolha do andar**, suba para um andar liberado. Os andares que você já venceu podem ser repetidos.
-4. Na **seleção de equipe**, escolha os heróis. Cada andar tem um limite de personagens.
+3. No **mapa da Torre**, clique no círculo de uma missão para ver a ficha dela e clique de novo (ou **Enter**) para entrar. **↑/↓** trocam de andar e **←/→** trocam de missão no andar. As missões que você já venceu podem ser repetidas.
+4. Na **seleção de equipe**, escolha os heróis. Cada missão tem um limite de personagens.
 5. Na batalha, quando chega a vez de um aliado, escolha a ação:
 
 | Tecla | Ação |
@@ -46,7 +46,7 @@
 | **Enter** | Confirma |
 | **Esc** | Cancela |
 
-No fim do andar, vencendo ou perdendo, o resultado aparece e **Enter** (ou um clique) volta ao saguão. Para repetir um andar, é só subir de novo pela porta. No saguão, **Esc** volta ao menu inicial (o progresso já fica salvo a cada mudança).
+No fim da missão, vencendo ou perdendo, o resultado aparece e **Enter** (ou um clique) volta ao saguão. Para repetir uma missão, é só subir de novo pela porta. No saguão, **Esc** volta ao menu inicial (o progresso já fica salvo a cada mudança).
 
 Passe o mouse sobre uma habilidade para ver quais alvos ela vai acertar antes de usar.
 
@@ -98,13 +98,17 @@ As duas skills custam 1 ponto de skill cada. A do W tem também **recarga**: dep
 Buffs e debuffs (escudo, fraqueza, lentidão etc.) aparecem como ícones com a contagem de turnos acima de cada lutador. Quem tem escudo ganha um **contorno azul na barra de HP**, com uma faixa azul do tamanho do escudo; no painel do personagem da vez, o valor do escudo aparece ao lado do HP (+N).
 
 ### Invocações
-Algumas habilidades chamam criaturas para o lado da equipe. Elas têm vez própria na fila, HP e barra, e os inimigos podem atacá-las. Mas não fazem parte da equipe: agem sozinhas no inimigo marcado, não ganham XP, vão embora depois de algumas vezes e não seguram a luta (se a equipe cair, a luta acaba). O Andri pode entregar artefatos a elas. Ao ir embora por tempo ou ao cair, cada demônio da Àskara faz um **último ato**.
+Algumas habilidades chamam criaturas para o lado da equipe. Elas têm vez própria na fila, HP e barra, e os inimigos podem atacá-las. Mas não fazem parte da equipe: agem sozinhas no inimigo marcado, não ganham XP, vão embora depois de algumas vezes e não seguram a luta (se a equipe cair, a luta acaba). O Andri pode entregar artefatos a elas. Ao ir embora por tempo ou ao cair, cada demônio da Àskara faz um **último ato**, e o Lorde Demônio explode em todos os inimigos.
 
 ---
 
 ## 🗼 A Torre
 
-Cada ida à dungeon é um andar. Você vence e volta ao saguão. Vencer o andar N libera o N+1. Um andar repetido dá a XP de novo, mas os eventos de história só acontecem na primeira vitória.
+Cada ida à dungeon é uma missão. Você vence e volta ao saguão. Cada andar tem uma **missão principal**: vencer a do andar N libera o N+1 e abre as **missões secundárias** do andar N. As secundárias são opcionais. Elas trocam a repetição da mesma luta por lutas novas, feitas para o nível do andar seguinte. Uma missão repetida dá a XP de novo, mas os eventos de história só acontecem na primeira vitória.
+
+O mapa não conta como uma luta funciona. Antes da primeira vitória, ele mostra só o nome, um texto de ambiente, o nível recomendado e o tamanho da equipe. Os inimigos e a XP aparecem depois, como lembrança do que você já enfrentou.
+
+Missões principais (spoilers):
 
 | Andar | Equipe | Nível rec. | Limite de nível | Inimigos | XP |
 |---|---|---|---|---|---|
@@ -112,13 +116,26 @@ Cada ida à dungeon é um andar. Você vence e volta ao saguão. Vencer o andar 
 | 2. Salão do Guardião | 1 | 2 | 5 | Sentinela e Guardião (Golpe Pesado a cada 3). Na história, **o Andri chega** na primeira vitória (por enquanto, todos já começam liberados) | 350 |
 | 3. Guarnição | 2 | 4 | 7 | Sentinela, Sentinela Veloz e Guardião de **Veneno** | 600 |
 | 4. Trono Sombrio | 2 | 6 | 9 | Guardião Sombrio de **Trevas** (Golpe Pesado a cada 2) e Sentinelas de **Água** e de **Ácido** | 900 |
-| 5. Forja de Pedra | 3 | 8 | 11 | Golem de Pedra (chefe, Golpe Pesado a cada 3) e 2 Elementais de **Fogo**, todos com o **Ferro Negro** | 1000 |
+| 5. Forja de Pedra | 3 | 8 | 11 | Golem de Pedra (chefe, Golpe Pesado a cada 3, volta como **Golem Incandescente**) e 2 Elementais de **Fogo** com o **Ferro Negro** | 1000 |
 
 - **Nível recomendado:** é o nível de quem chega sem repetir nenhum andar.
 - **Limite de nível:** é o do andar mais alto liberado. Ele deixa treinar até mais ou menos um nível acima do recomendado para o andar seguinte.
 - **Tipos dos inimigos:** fazem parte do desafio. O Guardião de Veneno e o chefe de Trevas não são fracos a nenhuma lente do Andri, então pedem a Análise. A Sentinela de Água é super efetiva contra o Andri, e a de Ácido contra a Shumi.
 
-Os andares ficam em `tower/floors.gd`. Para criar um andar novo, basta acrescentar um item na lista.
+Missões secundárias (spoilers):
+
+| Andar | Missão | Equipe | Nível rec. | Inimigos | XP |
+|---|---|---|---|---|---|
+| 1 | Ronda da Escada | 1 | 2 | 3 Sentinelas | 180 |
+| 2 | Ecos do Salão | 2 | 4 | 2 Guardiões, com os Golpes Pesados alternados | 400 |
+| 3 | Corredor das Tochas | 2 | 6 | 3 Sentinelas Velozes | 450 |
+| 3 | Cisterna | 2 | 6 | 2 Guardiões de **Veneno** | 500 |
+| 4 | Capela Alagada | 2 | 8 | Guardião das Águas (**Água**) e 2 Sentinelas de **Ácido** | 650 |
+| 4 | Vigília Sombria | 2 | 8 | 2 Guardiões Sombrios de **Trevas** (Golpe Pesado a cada 2) | 650 |
+| 5 | Fornalha | 3 | 10 | 3 Elementais de **Fogo** com o **Ferro Negro** | 600 |
+| 5 | Pedreira | 3 | 10 | 2 Golems de Pedra | 900 |
+
+Os andares e as missões ficam em `tower/floors.gd`. Para criar um andar novo, basta acrescentar um item na lista; para criar uma missão secundária, um item no `"side"` do andar.
 
 **Eventos de história** (`tower/story_events.gd`): o efeito vale na hora e fica salvo. A apresentação acontece no saguão, na volta. Por exemplo, o personagem surge com um anúncio, ou uma conversa se abre. Os eventos vêm do `on_win` de um andar ou de uma fala de conversa (`"event": "unlock:andri"`). Os tipos atuais:
 - `unlock`: libera um personagem.
@@ -143,8 +160,9 @@ Cada personagem tem nível e XP próprios. As regras ficam em `progression/progr
 |---|---|---|---|---|
 | Shumi (ofensiva) | +60 | +8 | +2 | +0,5 |
 | Andri (suporte) | +50 | +5,5 | +3 | +1 |
-| Àskara (invocadora) | +45 | +6 | +2 | +1 |
+| Àskara (invocadora) | +42 | +6 | +2 | +1 |
 | Clairin (área) | +55 | +7,5 | +2,5 | +0,5 |
+| Lia Moonlight (curandeira) | +55 | +5 | +3 | +0,5 |
 
 - **Personagem novo:** quem é desbloqueado entra na média de nível da equipe principal, arredondada e limitada ao limite da Torre, com 0 de XP e os atributos dele mesmo nesse nível. A equipe principal é a última montada na seleção. Se ainda não houver uma, conta a média de todos os personagens liberados.
 - **Save:** o nível, a XP, a equipe e os andares vencidos ficam no arquivo do slot (`user://progresso.cfg` no slot 1, `progresso_2.cfg` e `progresso_3.cfg` nos outros). O limite de nível é calculado a partir dos andares vencidos.
@@ -161,6 +179,15 @@ Cada personagem tem uma página própria com atributos e habilidades. Lá, o tex
 | 🟡 | [**Andri Findavil**, inventor e artífice](characters/andri/README.md) | Tales of Azeroth | Fogo | Suporte tático: troca de elemento, cria fraquezas e entrega artefatos, ao lado do robô MOMC. |
 | 🟣 | [**Àskara**, invocadora do abismo](characters/askara/README.md) | Nariagari | Trevas | Invocadora: junta Fragmentos d'Alma e os gasta em demônios ou no Lorde Demônio. |
 | 🟠 | [**Clairin**, portador da Chama Frenética](characters/clairin/README.md) | Tales of Azeroth | Fogo | Dano em área: a Chama Frenética fortalece tudo, mas estoura nele se a barra encher. |
+| 🌙 | [**Lia Moonlight**, a Escolhida de Elune](characters/lia/README.md) | Tales of Azeroth | Luz | Curandeira: cura um aliado ou todos e, com o Lord Azeroth, corta 80% do próximo golpe de cada um. |
+
+### Bônus de equipe
+
+Fechar 3 personagens do mesmo universo dá um bônus a toda a equipe durante a luta. A montagem da equipe mostra quanto falta, e a luta começa anunciando o bônus.
+
+| Bônus | Fecha com | Efeito |
+|---|---|---|
+| **Por Azeroth!** | 3 de Tales of Azeroth (Andri, Clairin e Lia) | +10% de dano e de cura para toda a equipe |
 
 ---
 
@@ -171,10 +198,11 @@ Cada personagem tem uma página própria com atributos e habilidades. Lá, o tex
 | **Sentinela** | Investida em um aliado aleatório |
 | **Guardião** | A cada 3 ações solta um **Golpe Pesado** (1,8×). O ícone **!** avisa quando ele vai vir |
 | **Guardião Sombrio** | Chefe de Trevas do andar 4, com Golpe Pesado a cada 2 ações |
-| **Golem de Pedra** | Chefe Físico do andar 5, lento e muito resistente, com Golpe Pesado a cada 3 ações |
+| **Golem de Pedra** | Chefe Físico do andar 5, lento e muito resistente, com Golpe Pesado a cada 3 ações. Derrotado, absorve os Elementais de pé e volta como **Golem Incandescente** |
+| **Golem Incandescente** | De Fogo. Volta com 40% do HP máximo, mais 15% por Elemental absorvido. A cada 2 ações dispara o **Laser da Forja** em toda a equipe |
 | **Elemental de Fogo** | Rápido e de Fogo (a lente Água do Andri dobra o dano nele) |
 
-**Ferro Negro:** os inimigos do andar 5, quando o HP cai abaixo de 30%, ativam o Ferro Negro uma vez por luta: "Ferro Negro ativado" aparece na tela e eles ganham um escudo de 25% do HP máximo por 3 turnos.
+**Ferro Negro:** os Elementais de Fogo do andar 5, quando o HP cai abaixo de 30%, ativam o Ferro Negro uma vez por luta: "Ferro Negro ativado" aparece na tela e eles ganham um escudo de 25% do HP máximo por 3 turnos.
 
 Os status de cada um mudam por andar (ver `Floors.LIST`). A arte ainda é provisória.
 
@@ -196,20 +224,22 @@ Os testes rodam sem interface e usam um save só deles:
 godot --headless --path . -s tests/test_combat.gd       # regras de combate
 godot --headless --path . -s tests/test_progression.gd  # níveis, XP, recompensas e save
 godot --headless --path . -s tests/test_lobby.gd        # saguão
-godot --headless --path . -s tests/test_tower.gd        # andares, história, escolha do andar
-godot --headless --path . -s tests/test_menu.gd         # menu inicial e slots de save
+godot --headless --path . -s tests/test_tower.gd        # andares, missões, história, mapa da Torre
+godot --headless --path . -s tests/test_menu.gd         # introdução, menu inicial e slots de save
 ```
 
 ### Ferramentas
 | Script | O que faz |
 |---|---|
-| `tools/simulate_floors.gd` | Simula os andares com a batalha de verdade e um piloto automático, e mostra as vitórias, os turnos e o HP restante em cada nível: `godot --headless --path . -s tools/simulate_floors.gd -- [rodadas] [andar:nível ...] [team=askara,shumi]` |
+| `tools/simulate_floors.gd` | Simula os andares com a batalha de verdade e um piloto automático, e mostra as vitórias, os turnos e o HP restante em cada nível: `godot --headless --path . -s tools/simulate_floors.gd -- [rodadas] [andar[/missão]:nível ...] [team=askara,shumi] [side]` (`side` inclui as missões secundárias) |
 | `tools/capture_demo.gd` | Joga uma batalha sozinho e salva capturas de tela: `godot --path . -s tools/capture_demo.gd -- <pasta> shumi andri` |
 | `tools/generate_character_readmes.gd` | Atualiza os atributos e as habilidades no README de cada personagem, com o texto do jogo: `godot --headless --path . -s tools/generate_character_readmes.gd` |
 | `tools/generate_andri.py` | Gera a spritesheet, o MOMC e os ícones do Andri a partir do sprite original (precisa do Pillow) |
 | `tools/generate_askara.py` | Gera a spritesheet e os ícones da Àskara e reduz a arte das invocações para a arena (precisa do Pillow) |
 | `tools/generate_clairin.py` | Gera as duas spritesheets do Clairin (normal e com a cabeça em chamas) e os ícones dele, a partir da folha original (precisa do Pillow) |
-| `tools/generate_placeholder_art.py` | Gera a arte provisória (inimigos, cenário, onda do Engo-ji) e o ícone da passiva da Shumi |
+| `tools/generate_lia.py` | Gera a spritesheet da Lia (com a espada recortada e redesenhada para conjurar e para a estocada) e os ícones dela, a partir do sprite original (precisa do Pillow) |
+| `tools/generate_tower_map.py` | Gera o fundo do mapa da Torre e os círculos de missão (precisa do Pillow) |
+| `tools/generate_placeholder_art.py` | Gera a arte provisória (inimigos, inclusive o Golem nas duas formas, os cenários comum e da forja, onda do Engo-ji) e o ícone da passiva da Shumi |
 
 ---
 
@@ -223,8 +253,9 @@ combat/              batalha: cena, regras (combatente, estados, tipos, fila, in
 characters/          elenco e uma pasta por herói: regras, animações, sprites, ícones e README
 enemies/             inimigo comum e a arte dos inimigos
 progression/         níveis, XP e save
-tower/               andares, eventos de história, escolha do andar e da equipe
+tower/               andares e missões, eventos de história, mapa da Torre e escolha da equipe
 lobby/               saguão: cena, jogador, interagíveis, conversas, caixa de diálogo e arte
+intro/               introdução do jogo novo
 menu/                menu inicial e slots de save
 ui/                  estilo e componentes de interface comuns (barra, cartão de habilidade)
 tests/               testes headless da lógica

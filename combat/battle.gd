@@ -1,7 +1,7 @@
 class_name Battle
 extends Node2D
-## Batalha de um andar (Floors.current()): a equipe escolhida no seletor
-## contra os inimigos do andar. Controles: as teclas da barra (Q/W/E/R),
+## Batalha de uma missão (Floors.current() e Floors.current_mission()): a
+## equipe escolhida no seletor contra os inimigos da missão. Controles: as teclas da barra (Q/W/E/R),
 ## ←/→ ou clique troca o alvo. Terminado o andar (vitória ou derrota), o
 ## resultado aparece e Enter, Esc ou clique voltam ao saguão. Ações com "options" abrem um seletor
 ## (lista na HUD ou, com "selector": "radial", um anel no próprio lutador):
@@ -66,7 +66,9 @@ var target := 0  ## índice entre os inimigos vivos
 var ally_target := 0  ## índice em allies_on_field() (ações com alvo "ally")
 var option := ""  ## opção escolhida para a ação em execução (elemento, artefato...)
 var floor_number := 1  ## número do andar (Floors)
+var mission_id := ""  ## missão do andar ("" = a principal; ver Floors.mission)
 var team_ids: Array[String] = []  ## ids do Roster da equipe, na ordem de `team`
+var synergies: Array[Dictionary] = []  ## bônus de equipe fechados (Synergies)
 ## Resultado da vitória (Progression.reward_victory), dado uma vez só.
 var rewards: Array[Dictionary] = []
 ## Floors.complete() da vitória ({} até lá).
@@ -102,13 +104,24 @@ func _ready() -> void:
 	add_child(world)
 	var background := Sprite2D.new()
 	floor_number = Floors.current()
-	var floor_data := Floors.data(floor_number)
+	mission_id = Floors.current_mission()
+	var floor_data := Floors.mission(floor_number, mission_id)
 	background.texture = load(floor_data.get("background", Floors.DEFAULT_BACKGROUND))
 	background.centered = false
 	background.scale = Vector2(3, 3)
+	# o cenário espelhado em volta cobre a sobra da tela quando a janela não
+	# é 16:9 (modo expand); a câmera mantém a arena de 960x540 no meio
+	background.texture_repeat = CanvasItem.TEXTURE_REPEAT_MIRROR
+	background.region_enabled = true
+	var tile := background.texture.get_size()
+	background.region_rect = Rect2(-tile, tile * 3)
+	background.position = -CombatEffects.SCREEN
 	world.add_child(background)
+	var camera := Camera2D.new()
+	camera.position = CombatEffects.SCREEN / 2
+	add_child(camera)  # fora do world, para o tremor sacudir a arena e não a câmera
 
-	team_ids = Roster.team().slice(0, Floors.max_team(floor_number))
+	team_ids = Roster.team().slice(0, Floors.max_team(floor_number, mission_id))
 	var ids := team_ids
 	var positions: Array = ALLY_POSITIONS[ids.size() - 1]
 	# quem está mais ao fundo (y menor) é desenhado antes
@@ -130,8 +143,12 @@ func _ready() -> void:
 	for i in order:
 		world.add_child(ally_visuals[i])
 	active = team[0]
+	synergies = Synergies.active(team_ids)
+	for s in synergies:
+		for c in team:
+			c.apply_status(Synergies.status(s))
 
-	enemies = Floors.create_enemies(floor_number)
+	enemies = Floors.create_enemies(floor_number, mission_id)
 	var enemy_positions: Array = ENEMY_POSITIONS[clampi(enemies.size(), 1, ENEMY_POSITIONS.size()) - 1]
 	for i in enemies.size():
 		var vi := FighterVisual.new()
@@ -162,6 +179,8 @@ func _ready() -> void:
 	hud.set_portraits(_portraits)
 	var names := ", ".join(team.map(func(c: Combatant) -> String: return UIStyle.fighter_name(c)))
 	log_line("Andar %d, %s: %s %s os guardiões da Torre." % [floor_number, floor_data.name, names, "encontra" if team.size() == 1 else "encontram"])
+	for s in synergies:
+		log_line("%s %s" % [UIStyle.highlight(s.name, s.color), s.description])
 	refresh()
 	_run.call_deferred()
 
@@ -176,10 +195,12 @@ func request_action(action: String) -> void:
 			return
 		cancel_choice()
 	var h := _skill(active, action)
-	if h.has("options") and active.can_use(action, points):
+	# ação com opções, ou que mira um aliado (a cura da Lia): primeiro se
+	# escolhe (a opção, o aliado com ←/→ ou clique), depois confirma
+	if (h.has("options") or h.get("target", "") == "ally") and active.can_use(action, points):
 		_choosing = action
 		_phase.go(Phase.CHOOSING_OPTION)
-		var ids: Array = h.options.map(func(o: Dictionary) -> String: return o.id)
+		var ids: Array = h.get("options", []).map(func(o: Dictionary) -> String: return o.id)
 		_option_index = maxi(0, ids.find(h.get("default_option", "")))
 		if h.get("selector", "") == "radial":
 			_open_radial(action)
@@ -212,10 +233,10 @@ func select_option(i: int) -> void:
 
 func confirm_choice() -> bool:
 	var action := _choosing
-	var options: Array = _skill(active, action).get("options", [])
-	if action == "" or options.is_empty():
+	if action == "":
 		return false
-	if not _confirm(action, options[_option_index].id):
+	var options: Array = _skill(active, action).get("options", [])
+	if not _confirm(action, options[_option_index].id if not options.is_empty() else ""):
 		return false
 	_close_choice()
 	return true
@@ -254,7 +275,7 @@ func _refresh_choice() -> void:
 	var h := _skill(active, _choosing)
 	var chosen_target := action_target(_choosing)
 	var reasons: Array[String] = []
-	for o: Dictionary in h.options:
+	for o: Dictionary in h.get("options", []):
 		reasons.append(active.invalid_reason(_choosing, o.id, chosen_target))
 	# escolha sobre si mesmo (a lente, por exemplo) não precisa mostrar alvo
 	var target_name := chosen_target.name if chosen_target and target_type(_choosing) != "self" else ""
@@ -289,6 +310,13 @@ func _input_over(event: InputEvent) -> void:
 ## senão ela segue para as teclas de sempre (alvo e habilidades).
 func _input_choosing(keycode: int) -> bool:
 	var n: int = _skill(active, _choosing).get("options", []).size()
+	if n == 0:
+		# só escolhendo o aliado: ←/→ e clique trocam o alvo; Enter confirma
+		match keycode:
+			KEY_ENTER, KEY_KP_ENTER, KEY_SPACE: confirm_choice()
+			KEY_ESCAPE: cancel_choice()
+			_: return false
+		return true
 	var step := 0
 	match keycode:
 		KEY_UP: step = -1
@@ -401,6 +429,12 @@ func allies_on_field() -> Array[Combatant]:
 
 func _run() -> void:
 	await wait(0.6)
+	for s in synergies:
+		announce(s.name.to_upper(), s.color, 32)
+		for c in team:
+			_visuals[c].flash(Color(1.0 + s.color.r, 1.0 + s.color.g, 1.0 + s.color.b))
+			CombatEffects.ring(world, _visuals[c].position + Vector2(0, -_visuals[c].height * 0.5), s.color, 50.0)
+		await wait(0.8)
 	_phase.go(Phase.ACTING)
 	while not over:
 		_actor = TurnQueue.next(fighters)
@@ -412,6 +446,11 @@ func _run() -> void:
 		if summoned:
 			_first_hit = null
 			await summon_strike(summoned, summoned.strike)
+			var caller := summoned.summoner
+			var gain := caller.on_summon_acted(summoned) if caller else ""
+			if gain != "":
+				log_line("%s absorve %s." % [UIStyle.fighter_name(caller), gain])
+				refresh()
 			await _follow_up_attacks(summoned)
 		elif _actor.ally:
 			await _ally_turn(_actor)
@@ -476,6 +515,10 @@ func _skill(a: Combatant, action: String) -> Dictionary:
 func _enemy_turn(foe: Enemy) -> void:
 	var vi: FighterVisual = _visuals[foe]
 	var strike := foe.next_strike()
+	if strike.get("all", false):
+		foe.count_action()
+		await _beam(foe, strike)
+		return
 	var victim := foe.choose_target(allies_on_field())
 	foe.count_action()
 	if strike.heavy:
@@ -512,6 +555,7 @@ func apply_damage(attacker: Combatant, victim: Combatant, mult: float, attack_ty
 	var effectiveness := victim.effectiveness_against(attack_type)
 	var absorbed := victim.absorb(damage)
 	victim.take_damage(damage - absorbed)
+	var spent := victim.spend_hit_statuses()
 	if attacker.ally and not victim.ally and not extra and _first_hit == null:
 		_first_hit = victim
 	var v: FighterVisual = _visuals[victim]
@@ -535,11 +579,16 @@ func apply_damage(attacker: Combatant, victim: Combatant, mult: float, attack_ty
 		notice += " " + UIStyle.highlight("Crítico!", UIStyle.CRITICAL_DAMAGE)
 	if absorbed > 0:
 		notice += " O escudo absorveu %s." % UIStyle.highlight(str(absorbed), CombatEffects.NUMBERS.shield[0])
+	for e in spent:
+		notice += " %s se desfaz." % UIStyle.highlight(e.name, UIStyle.effect_color(e.description()))
 	log_line("%s recebeu %s de dano %s.%s" % [UIStyle.fighter_name(victim),
 		UIStyle.highlight(str(damage - absorbed), CombatEffects.NUMBERS[type][0]),
 		UIStyle.highlight(Types.name(attack_type), Types.color(attack_type)), notice])
 	if victim.is_alive():
 		v.take_hit()
+	elif victim is Enemy and (victim as Enemy).can_awaken():
+		await _awaken(victim as Enemy)
+		return
 	else:
 		await _fall(victim)
 	target = clampi(target, 0, maxi(0, living_enemies().size() - 1))
@@ -573,6 +622,75 @@ func _last_resort(foe: Enemy) -> void:
 		UIStyle.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
 	refresh()
 	await wait(0.35)
+
+
+## Golpe do inimigo em toda a equipe (o laser do Golem Incandescente): carrega
+## no peito e o feixe atravessa a arena; cada um leva o dano quando ele passa.
+func _beam(foe: Enemy, strike: Dictionary) -> void:
+	var vi: FighterVisual = _visuals[foe]
+	var color := Types.color(strike.type)
+	var colors: Array[Color] = [color, color.lightened(0.4), Color(1.0, 0.95, 0.8)]
+	var origin := vi.position + Vector2(-vi.height * 0.22, -vi.height * 0.5)
+	log_line("%s dispara o %s em toda a equipe!" % [UIStyle.fighter_name(foe), UIStyle.highlight(strike.name, color)])
+	vi.flash(Color(2.6, 1.5, 0.8))
+	CombatEffects.charge(world, origin, colors, 0.6, 110.0)
+	await wait(0.6)
+	var speed := 1600.0
+	var reach := origin.x + 40.0
+	CombatEffects.beam(world, origin, PI, reach, speed, {"width": 30.0, "sparks": 30.0, "distortion": 0.4,
+		"colors": [color.darkened(0.2), color, color.lightened(0.5), Color.WHITE]}, 0.3)
+	var victims := allies_on_field()
+	victims.sort_custom(func(a: Combatant, b: Combatant) -> bool: return _visuals[a].position.x > _visuals[b].position.x)
+	var elapsed := 0.0
+	for victim in victims:
+		var va: FighterVisual = _visuals[victim]
+		var arrives := (origin.x - va.position.x) / speed
+		if arrives > elapsed:
+			await wait(arrives - elapsed)
+			elapsed = arrives
+		CombatEffects.impact(world, va.position + Vector2(0, -va.height * 0.5), color, 1.3)
+		await apply_damage(foe, victim, strike.mult, strike.type)
+		victim.gain_energy(victim.energy_on_hit)
+	shake(7.0)
+	await wait(0.4)
+
+
+## Segunda forma (Enemy.second_form): em vez de cair, o inimigo puxa para
+## dentro os outros inimigos de pé (saem da luta sem contar como derrubados
+## pela equipe), troca de forma e recupera HP.
+func _awaken(foe: Enemy) -> void:
+	var vi: FighterVisual = _visuals[foe]
+	var core := vi.position + Vector2(0, -vi.height * 0.5)
+	var color := Types.color(foe.second_form.get("type", foe.type))
+	log_line("%s desmorona... mas o núcleo volta a arder." % UIStyle.fighter_name(foe))
+	vi.flash(Color(0.4, 0.4, 0.4))
+	await wait(0.5)
+	var absorbed := living_enemies()
+	for other in absorbed:
+		other.take_damage(other.hp)
+		var vo: FighterVisual = _visuals[other]
+		CombatEffects.line(world, vo.position + Vector2(0, -vo.height * 0.5), core, color, 0.6)
+		vo.absorb_into(core)
+		log_line("%s absorve %s." % [UIStyle.fighter_name(foe), UIStyle.fighter_name(other)])
+	if not absorbed.is_empty():
+		CombatEffects.charge(world, core, [color, color.lightened(0.4), Color.WHITE], 0.6, 120.0)
+		await wait(0.6)
+	var healed := foe.awaken(absorbed.size())
+	vi.swap_texture(foe.texture)
+	_portraits[foe] = vi.portrait()
+	hud.set_portraits(_portraits)
+	vi.flash(Color(2.8, 1.8, 0.9))
+	CombatEffects.ring(world, core, color, vi.height * 0.8)
+	CombatEffects.impact(world, core, Color(1.0, 0.95, 0.8), 2.0)
+	CombatEffects.veil(world, Color(1.0, 0.55, 0.2, 0.25), 0.4)
+	CombatEffects.number(world, vi.top(), "+%d" % healed, "heal")
+	announce(foe.name.to_upper(), color, 32)
+	log_line("%s desperta como %s e recupera %s de HP." % [UIStyle.fighter_name(foe), UIStyle.highlight(foe.name, color),
+		UIStyle.highlight(str(healed), UIStyle.HEAL)])
+	shake(6.0)
+	target = clampi(target, 0, maxi(0, living_enemies().size() - 1))
+	refresh()
+	await wait(0.7)
 
 
 ## Ataque em conjunto (Combatant.follow_up): a ação de `actor` acertou um
@@ -638,7 +756,7 @@ func _check_end() -> void:
 	if over:
 		return
 	if living_enemies().is_empty():
-		_finish(true, "Andar %d concluído!" % floor_number)
+		_finish(true, ("Andar %d concluído!" % floor_number) if mission_id == "" else "Missão concluída!")
 	elif living_allies().is_empty():
 		_finish(false, "%s caiu..." % team[0].name if team.size() == 1 else "A equipe caiu...")
 
@@ -653,8 +771,10 @@ func _finish(victory: bool, text: String) -> void:
 			extras.append("Andar %d liberado: %s" % [completion.unlocked_floor, Floors.data(completion.unlocked_floor).name])
 			if completion.limit_after > completion.limit_before:
 				extras.append("Limite de nível: %d → %d" % [completion.limit_before, completion.limit_after])
-		elif completion.first and floor_number == Floors.total():
+		elif completion.first and mission_id == "" and floor_number == Floors.total():
 			extras.append("Você chegou ao topo da Torre, por enquanto.")
+		if completion.opened_side > 0:
+			extras.append(("Novas missões" if completion.opened_side > 1 else "Nova missão") + " no mapa do andar %d" % floor_number)
 		for e: Dictionary in completion.events:
 			var line := StoryEvents.summary(e)
 			if line != "":
@@ -671,7 +791,7 @@ func _reward() -> void:
 	_rewarded = true
 	# XP antes do andar: quem chega pela história entra no nível já com a XP desta luta
 	rewards = Progression.reward_victory(team_ids, enemies)
-	completion = Floors.complete(floor_number)
+	completion = Floors.complete(floor_number, mission_id)
 	for r in rewards:
 		if not r.took_part:
 			continue
@@ -738,7 +858,21 @@ func summon_strike(inv: Summon, g: Dictionary) -> void:
 	var main: Combatant = targets[0][0]
 	var debuffed: Array = targets.map(func(pair: Array) -> Combatant: return pair[0]) if g.get("debuff_all", false) else [main]
 	log_line("%s utilizou %s." % [UIStyle.fighter_name(inv), UIStyle.highlight(g.name, inv.color)])
-	if g.get("style", "projectile") == "charge":
+	if g.get("style", "projectile") == "dive":
+		# mergulha no principal e explode ali; o estouro pega todos os alvos
+		var vm: FighterVisual = _visuals[main]
+		var at := vm.position + Vector2(0, -vm.height * 0.5)
+		await vi.move_to(Vector2(vm.position.x - 40, vm.position.y), 0.28)
+		vi.flash(Color(3.0, 3.0, 3.0))
+		CombatEffects.ring(world, at, inv.color, 70.0 + 30.0 * targets.size())
+		CombatEffects.impact(world, at, inv.color, 2.4)
+		CombatEffects.impact(world, at, Color.WHITE, 1.3)
+		shake(4.0 + 1.5 * targets.size())
+		for pair: Array in targets:
+			var va: FighterVisual = _visuals[pair[0]]
+			CombatEffects.impact(world, va.position + Vector2(0, -va.height * 0.5), inv.color, 1.0)
+			await apply_damage(inv, pair[0], pair[1])
+	elif g.get("style", "projectile") == "charge":
 		# avança até cada alvo, do mais perto ao mais longe, e golpeia; o
 		# corte acompanha o tamanho da invocação
 		var origin := vi.position
@@ -748,8 +882,14 @@ func summon_strike(inv: Summon, g: Dictionary) -> void:
 		for pair: Array in in_order:
 			var va: FighterVisual = _visuals[pair[0]]
 			await vi.move_to(Vector2(va.position.x - 110, origin.y), 0.22 if pair == in_order[0] else 0.14)
-			CombatEffects.slash(world, va.position + Vector2(0, -va.height * 0.5), inv.color, radius, randf_range(-0.6, 0.6))
-			CombatEffects.impact(world, va.position + Vector2(0, -va.height * 0.5), inv.color, 1.2 if radius > 46.0 else 0.8)
+			var hit_at := va.position + Vector2(0, -va.height * 0.5)
+			if g.get("hit", "slash") == "kiss":
+				CombatEffects.ring(world, hit_at, inv.color, 36.0)
+				CombatEffects.ring(world, hit_at, Color(1.0, 0.55, 0.8), 22.0)
+				va.flash(Color(1.8, 1.2, 1.6))
+			else:
+				CombatEffects.slash(world, hit_at, inv.color, radius, randf_range(-0.6, 0.6))
+			CombatEffects.impact(world, hit_at, inv.color, 1.2 if radius > 46.0 else 0.8)
 			if radius > 46.0:
 				shake(3.0)
 			await apply_damage(inv, pair[0], pair[1])
@@ -794,6 +934,8 @@ func last_act(inv: Summon) -> void:
 			receiver.apply_status(e)
 			var vq: FighterVisual = _visuals[receiver]
 			CombatEffects.line(world, _visuals[inv].position + Vector2(0, -_visuals[inv].height * 0.5), vq.position + Vector2(0, -vq.height * 0.5), inv.color, 0.5)
+			# a muralha sobe entre quem recebe e os inimigos
+			CombatEffects.wall(world, vq.position + Vector2(55, 4), inv.color, vq.height * 0.95)
 			CombatEffects.ring(world, vq.position + Vector2(0, -vq.height * 0.5), inv.color, 50.0)
 			vq.flash(Color(1.0 + inv.color.r, 1.0 + inv.color.g, 1.0 + inv.color.b))
 			log_line("%s recebe um escudo de %s." % [UIStyle.fighter_name(receiver), UIStyle.highlight(str(e.shield), CombatEffects.NUMBERS.shield[0])])
@@ -848,7 +990,8 @@ func refresh() -> void:
 		_visuals[c].acting = c == _actor and team.size() > 1
 	var queue := TurnQueue.forecast(fighters, QUEUE_SIZE)
 	hud.refresh(active, team, points, MAX_POINTS, queue, _actor, waiting_for_player)
-	hud.set_objective("Andar %d  ·  Derrote os guardiões  ·  %d/%d restantes" % [floor_number, alive.size(), enemies.size()])
+	hud.set_objective("Andar %d%s  •  Derrote os guardiões  •  %d/%d restantes" % [floor_number,
+		"" if mission_id == "" else " • " + Floors.mission(floor_number, mission_id).name, alive.size(), enemies.size()])
 
 
 ## Uma linha no registro da batalha (BBCode; ver UIStyle.fighter_name e

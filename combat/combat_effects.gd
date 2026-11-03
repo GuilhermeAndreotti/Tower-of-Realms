@@ -8,9 +8,12 @@ extends RefCounted
 ## dos sprites.
 
 const PIXEL := 3.0
+## Arena desenhada para 960x540. Numa janela de outra proporção a tela é
+## maior (modo expand) e a Battle centraliza a arena; ver view_rect.
 const SCREEN := Vector2(960, 540)
 
-## Estilo de cada tipo de número: [cor, tamanho].
+## Estilo de cada tipo de número: [cor, tamanho]. Saem na fonte de título,
+## que arredonda o tamanho para a grade dela (ver UIStyle).
 const NUMBERS := {
 	"damage": [UIStyle.DAMAGE, 24],
 	"weak": [UIStyle.WEAK_DAMAGE, 18],
@@ -29,7 +32,7 @@ const NUMBERS := {
 
 static func number(parent: Node, pos: Vector2, text: String, type := "damage") -> void:
 	var style: Array = NUMBERS.get(type, NUMBERS.damage)
-	var l := UIStyle.label(text, style[1], style[0], 7)
+	var l := UIStyle.heading(text, style[1], style[0], 7)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.size = Vector2(90, 36)
 	l.pivot_offset = l.size / 2
@@ -83,6 +86,12 @@ static func beam(parent: Node, origin: Vector2, angle: float, reach: float, spee
 	t.tween_property(fx, "fading", 1.0, 0.25).set_ease(Tween.EASE_IN)
 	t.tween_callback(fx.queue_free)
 	return fx
+
+
+## Parte da arena à vista, nas coordenadas locais de `node` (o world da
+## Battle, por exemplo); passa de SCREEN quando a janela não é 16:9.
+static func view_rect(node: CanvasItem) -> Rect2:
+	return node.get_global_transform_with_canvas().affine_inverse() * node.get_viewport_rect()
 
 
 ## Véu de tela inteira. `behind_everyone` põe o véu logo acima do cenário
@@ -145,6 +154,12 @@ static func elemental_impact(parent: Node, pos: Vector2, type: String, strength 
 			impact(parent, pos + Vector2(0, -6), Color(1, 0.85, 0.3), 0.7 * strength)
 		Types.NATURE:
 			slash(parent, pos, color, 18.0 * strength, 0.8)
+
+
+## Muralha de blocos que sobe do chão em `pos` (a base), segura um instante e
+## desmorona (escudo erguido na frente de um aliado).
+static func wall(parent: Node, pos: Vector2, color: Color, height := 110.0) -> void:
+	_play(parent, _Wall.new(color, height), pos, 1.1)
 
 
 ## Colchetes que se fecham em volta de `pos` (alvo sendo analisado).
@@ -276,7 +291,7 @@ class _Veil extends Node2D:
 
 	func _draw() -> void:
 		# um pouco maior que a tela, para o tremor não mostrar a borda
-		draw_rect(Rect2(-Vector2(40, 40), CombatEffects.SCREEN + Vector2(80, 80)), color)
+		draw_rect(CombatEffects.view_rect(self).grow(40), color)
 
 
 class Beam extends Node2D:
@@ -488,6 +503,37 @@ class _Projectile extends Node2D:
 			_:
 				draw_rect(Rect2(-l, -l, l * 2, l * 2), color)
 				draw_rect(Rect2(-l / 2, -l / 2, l, l), color.lightened(0.6))
+
+
+class _Wall extends _Effect:
+	var height: float
+	var _bricks: Array[float] = []  ## brilho de cada bloco, sorteado uma vez
+
+	func _init(p_color: Color, p_height: float) -> void:
+		color = p_color
+		height = p_height
+		for i in 64:
+			_bricks.append(randf_range(-0.12, 0.12))
+
+	func _draw() -> void:
+		# sobe no primeiro quarto, fica e some no último
+		var rise := clampf(progress / 0.25, 0.0, 1.0)
+		var fade := clampf((1.0 - progress) / 0.3, 0.0, 1.0)
+		var block := CombatEffects.PIXEL * 4
+		var rows := int(height / block)
+		var shown := int(ceilf(rows * rise))
+		for row in shown:
+			for col in 3:
+				var offset := block * 0.5 if row % 2 else 0.0
+				var x := -block * 1.5 + col * block + offset - block * 0.25
+				var y := -(row + 1) * block
+				var tint := color.lightened(0.15 + _bricks[(row * 3 + col) % _bricks.size()])
+				draw_rect(Rect2(x, y, block - CombatEffects.PIXEL, block - CombatEffects.PIXEL), Color(tint, 0.85 * fade))
+				draw_rect(Rect2(x, y, block - CombatEffects.PIXEL, CombatEffects.PIXEL), Color(color.lightened(0.6), fade))
+		# brilho na crista enquanto sobe
+		if rise < 1.0 or progress < 0.35:
+			var top := -shown * block
+			draw_rect(Rect2(-block * 1.75, top - CombatEffects.PIXEL, block * 3.5, CombatEffects.PIXEL), Color(Color.WHITE, 0.8 * fade))
 
 
 class _Reticle extends _Effect:

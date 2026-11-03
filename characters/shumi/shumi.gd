@@ -236,7 +236,7 @@ func skills(points: int) -> Array[Dictionary]:
 		var n: Dictionary = LEVELS[i]
 		levels.append({"label": "Kaioken " + n.name, "color": KAIOKEN_COLOR, "current": i == level,
 			"mark": "current" if i == level else ("próximo" if i == level + 1 else ""),
-			"text": "ATQ +%d%% · VEL +%d%% · queima %d%% do HP por turno" % [
+			"text": "ATQ +%d%% • VEL +%d%% • queima %d%% do HP por turno" % [
 				roundi(n.atk * 100), roundi(n.spd * 100), roundi(n.drain * 100)]})
 	ult.details = levels
 	if at_max_level():
@@ -315,7 +315,7 @@ func effects() -> Array[Dictionary]:
 		var n: Dictionary = LEVELS[level]
 		list.append({"id": "kaioken", "short": n.name, "name": "Kaioken " + n.name, "type": "buff",
 			"color": KAIOKEN_COLOR, "turns": kaioken_turns,
-			"detail": "ATQ +%d%% · VEL +%d%% · -%d%% HP/turno · +%d energia" % [
+			"detail": "ATQ +%d%% • VEL +%d%% • -%d%% HP/turno • +%d energia" % [
 				roundi(n.atk * 100), roundi(n.spd * 100), roundi(n.drain * 100), roundi(n.limit)]})
 	if exhaustion_turns > 0:
 		list.append({"id": "exhaustion", "short": "EXA", "name": "Exausta", "type": "debuff",

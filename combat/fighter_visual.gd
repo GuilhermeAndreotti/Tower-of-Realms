@@ -174,6 +174,37 @@ func flash(color: Color) -> void:
 
 
 func die() -> void:
+	_leave()
+	var t := create_tween().set_parallel()
+	t.tween_property(_sprite, "modulate:a", 0.0, 0.6)
+	t.tween_property(_sprite, "scale", _sprite.scale * Vector2(1.2, 0.6), 0.6)
+
+
+## Sai da luta puxado para `point` (absorvido por outro lutador), encolhendo.
+func absorb_into(point: Vector2, duration := 0.6) -> void:
+	_leave()
+	var t := create_tween().set_parallel()
+	t.tween_property(self, "position", point + Vector2(0, height * 0.3), duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	t.tween_property(_sprite, "scale", _sprite.scale * 0.2, duration).set_ease(Tween.EASE_IN)
+	t.tween_property(_sprite, "modulate:a", 0.0, duration * 0.4).set_delay(duration * 0.6)
+
+
+## Troca a imagem de um lutador de imagem única (a segunda forma de um
+## inimigo), com os pés no mesmo lugar; a barra acompanha a altura nova.
+func swap_texture(png: String) -> void:
+	var spr := _sprite as Sprite2D
+	if spr == null:
+		return
+	spr.texture = load(png)
+	spr.offset = -Vector2(spr.texture.get_width() / 2.0, spr.texture.get_height())
+	height = spr.texture.get_height() * SCALE
+	_portrait = spr.texture
+	if _bar:
+		_bar.position = Vector2(0, _bar_y())
+	queue_redraw()
+
+
+func _leave() -> void:
 	marked = false
 	highlighted = false
 	acting = false
@@ -181,9 +212,6 @@ func die() -> void:
 		_bar.visible = false
 		_bar.set_process(false)
 	queue_redraw()
-	var t := create_tween().set_parallel()
-	t.tween_property(_sprite, "modulate:a", 0.0, 0.6)
-	t.tween_property(_sprite, "scale", _sprite.scale * Vector2(1.2, 0.6), 0.6)
 
 
 func _process(delta: float) -> void:

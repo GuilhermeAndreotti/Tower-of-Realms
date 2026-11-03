@@ -1,6 +1,7 @@
 extends SceneTree
-## Testes do menu inicial e dos slots de save: criar, sobrescrever, carregar,
-## apagar e o resumo de cada slot. Usa slots próprios (slots_prefix).
+## Testes da introdução, do menu inicial e dos slots de save: criar,
+## sobrescrever, carregar, apagar e o resumo de cada slot. Usa slots
+## próprios (slots_prefix).
 ## Rodar: godot --headless --path . -s tests/test_menu.gd
 
 var _failures := 0
@@ -32,6 +33,7 @@ func _run() -> void:
 	_clear()
 
 	_test_slots()
+	await _test_intro()
 	await _test_empty_menu()
 	await _test_new_game()
 	await _test_overwrite()
@@ -53,6 +55,47 @@ func _menu() -> MainMenu:
 
 func _close(m: MainMenu) -> void:
 	m.queue_free()
+	await process_frame
+
+
+func _intro() -> Intro:
+	var intro: Intro = (load("res://intro/intro.tscn") as PackedScene).instantiate()
+	root.add_child(intro)
+	await process_frame
+	return intro
+
+
+func _test_intro() -> void:
+	print("introdução")
+	var intro := await _intro()
+	check(intro.line_index == 0 and intro.phase == Intro.Phase.TYPING and intro.scene == "queen",
+		"começa na primeira fala, escrevendo, na cena da rainha")
+	intro.advance()
+	check(intro.phase == Intro.Phase.READING and intro.line_index == 0, "Enter completa a fala sem pular")
+	intro.advance()
+	check(intro.line_index == 1 and intro.phase == Intro.Phase.TYPING, "Enter de novo passa para a próxima")
+	var scenes: Array[String] = []
+	while intro.phase != Intro.Phase.LEAVING:
+		if intro.scene not in scenes:
+			scenes.append(intro.scene)
+		intro.advance()
+	check(scenes == ["queen", "war", "death", "tower", "hall", "arrival"], "passa pelas cenas na ordem do roteiro")
+	check(intro.line_index == Intro.LINES.size() - 1, "a última fala é a chegada dos seres de outros mundos")
+	intro.queue_free()
+	await process_frame
+
+	intro = await _intro()
+	for i in 90:  # sem tecla, a fala passa sozinha
+		await process_frame
+	var key := InputEventKey.new()
+	key.keycode = KEY_ESCAPE
+	key.pressed = true
+	intro._unhandled_input(key)
+	check(intro.phase == Intro.Phase.LEAVING, "Esc pula a introdução")
+	current_scene = intro
+	await create_timer(1.2).timeout
+	check(current_scene is Lobby, "depois da introdução vem o saguão")
+	current_scene.queue_free()
 	await process_frame
 
 
@@ -107,6 +150,7 @@ func _test_new_game() -> void:
 	m.choose_slot(1)
 	check(m._leaving and Progression.slot_exists(1), "slot vazio: cria o jogo direto")
 	check(Engine.get_meta(Lobby.ENTRANCE_META, "") == "start", "entra no saguão pelo começo")
+	check(m.destination == MainMenu.INTRO_SCENE, "jogo novo passa pela introdução")
 	await _close(m)
 
 
@@ -126,6 +170,7 @@ func _test_overwrite() -> void:
 	m.confirm()
 	check(m._leaving, "confirmar começa o jogo")
 	check(Progression.slot_summary(1).level == 1, "o slot foi zerado")
+	check(m.destination == MainMenu.INTRO_SCENE, "sobrescrever também é jogo novo: passa pela introdução")
 	await _close(m)
 
 
@@ -145,6 +190,7 @@ func _test_load() -> void:
 	check(m._slots[2].has_focus(), "cursor no save mais recente")
 	m.choose_slot(3)
 	check(m._leaving and Progression.file == Progression.slot_file(3), "carregar passa a usar o slot")
+	check(m.destination == MainMenu.LOBBY_SCENE, "carregar vai direto ao saguão, sem a introdução")
 	check(Progression.level("shumi") == 2, "o progresso do slot é lido")
 	await _close(m)
 

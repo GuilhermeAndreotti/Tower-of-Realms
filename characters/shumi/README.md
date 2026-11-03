@@ -45,10 +45,10 @@ Dispara uma rajada de energia de seus dedos em um alvo e, pelos 2 turnos seguint
 
 Entra no x2. Cada nível dura 3 turnos dela (subir renova); quando acaba, ela fica exausta, e depois do x20 perde um turno.
 
-- **Kaioken x2** · *próximo*: ATQ +20% · VEL +20% · queima 3% do HP por turno
-- **Kaioken x4**: ATQ +40% · VEL +35% · queima 5% do HP por turno
-- **Kaioken x10**: ATQ +80% · VEL +55% · queima 8% do HP por turno
-- **Kaioken x20**: ATQ +150% · VEL +80% · queima 12% do HP por turno
+- **Kaioken x2** · *próximo*: ATQ +20% • VEL +20% • queima 3% do HP por turno
+- **Kaioken x4**: ATQ +40% • VEL +35% • queima 5% do HP por turno
+- **Kaioken x10**: ATQ +80% • VEL +55% • queima 8% do HP por turno
+- **Kaioken x20**: ATQ +150% • VEL +80% • queima 12% do HP por turno
 
 ### <img src="icon_human_limit.png" width="24"> Limite Humano
 **Passiva**

@@ -4,8 +4,9 @@ extends RefCounted
 ## crescimento de atributos, XP das batalhas, nível de entrada de quem é
 ## desbloqueado) e o progresso salvo. Todas as fórmulas moram aqui; o
 ## crescimento de cada um fica no Roster ("growth" em data()).
-## O save também guarda a equipe e a subida da Torre (andares vencidos,
-## andar escolhido, eventos de história ainda não apresentados).
+## O save também guarda a equipe e a subida da Torre (andares e missões
+## vencidos, andar e missão escolhidos, eventos de história ainda não
+## apresentados).
 ##
 ## O XP guardado é o acumulado dentro do nível atual (0 até xp_to_next()).
 ##
@@ -345,6 +346,34 @@ static func chosen_floor() -> int:
 
 static func save_chosen_floor(number: int) -> void:
 	_data().set_value("torre", "andar", number)
+	save()
+
+
+## Missões secundárias vencidas ao menos uma vez (ids, ver Floors).
+static func cleared_missions() -> Array[String]:
+	var list: Array[String] = []
+	for id: Variant in _data().get_value("torre", "missoes_vencidas", []):
+		if id is String and id != "" and id not in list:
+			list.append(id)
+	return list
+
+
+static func mark_mission_cleared(id: String) -> void:
+	var list := cleared_missions()
+	if id not in list:
+		list.append(id)
+		_data().set_value("torre", "missoes_vencidas", list)
+		save()
+
+
+## Missão escolhida dentro do andar escolhido: "" = a principal.
+static func chosen_mission() -> String:
+	var id: Variant = _data().get_value("torre", "missao", "")
+	return id if id is String else ""
+
+
+static func save_chosen_mission(id: String) -> void:
+	_data().set_value("torre", "missao", id)
 	save()
 
 

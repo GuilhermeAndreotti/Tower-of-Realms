@@ -163,7 +163,7 @@ func _fire(targets: Array, style: Dictionary, windup := 0.36) -> void:
 	aim /= targets.size()
 	var last_x: float = b.visual(targets[-1][0]).position.x
 	var dir := (Vector2(last_x, aim) - origin).normalized()
-	var reach: float = (CombatEffects.SCREEN.x + 40 - origin.x) / dir.x if s.engo_ji_pierces() \
+	var reach: float = (CombatEffects.view_rect(b.world).end.x + 40 - origin.x) / dir.x if s.engo_ji_pierces() \
 		else (last_x + 50 - origin.x) / dir.x
 	var st := style.duplicate()
 	st.tip = WAVE_TIP

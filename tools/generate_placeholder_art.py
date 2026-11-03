@@ -1,5 +1,5 @@
 """Gera a arte provisória do protótipo: inimigos de teste (construtos, o golem
-de pedra e o elemental de fogo), cenário, a onda do Engo-ji e o ícone da
+de pedra nas duas formas e o elemental de fogo), cenários (o comum e a forja), a onda do Engo-ji e o ícone da
 passiva da Shumi (Limite Humano).
 
 Uso: python3 tools/generate_placeholder_art.py  (a partir da pasta Torre)
@@ -88,55 +88,109 @@ def construto(size, olho, olho_light, semente):
     return contornar(img)
 
 
-def golem(size, semente):
-    """Golem de pedra em blocos, olhando para a esquerda: tronco largo, braços
-    pesados até o chão e placas de ferro negro (o Ferro Negro do andar 5)."""
+# Pedra do Golem: seis tons do mais escuro ao mais claro, e a lava da forma
+# incandescente (do vermelho escuro ao quase branco).
+GOLEM_STONE = ((30, 30, 38, 255), (48, 48, 58, 255), (68, 67, 76, 255), (92, 90, 96, 255),
+               (120, 117, 118, 255), (152, 147, 142, 255))
+LAVA = ((130, 34, 14, 255), (222, 84, 24, 255), (255, 160, 52, 255), (255, 232, 160, 255))
+LIGHT = (-0.55, -0.65, 0.52)  # de cima, à esquerda e da frente
+
+
+def golem(size, semente, molten=False):
+    """Golem de pedras empilhadas, olhando para a esquerda: cada pedra é uma
+    superelipse sombreada como um volume (luz de cima/esquerda, grão e sombra
+    onde encosta na de trás), com braços pesados até o chão. Incandescente
+    (depois de absorver os Elementais de Fogo), a pedra escurece, as
+    rachaduras viram lava e saem brasas da cabeça e dos ombros."""
     rnd = random.Random(semente)
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    iron, iron_light = (34, 34, 44, 255), (70, 72, 88, 255)
-    ember, ember_light = (255, 120, 40, 255), (255, 210, 120, 255)
+    u = size / 64
+    norm = math.sqrt(sum(c * c for c in LIGHT))
+    lx, ly, lz = (c / norm for c in LIGHT)
+    grain = {}
 
-    def block(x0, y0, x1, y1):
-        for y in range(y0, y1):
-            for x in range(x0, x1):
-                # luz de cima/esquerda: borda clara em cima e à esquerda
-                light = (y - y0) / max(1, y1 - y0) * 0.7 + (x - x0) / max(1, x1 - x0) * 0.3
-                color = STONE_LIGHT if light < 0.22 else STONE if light < 0.7 else STONE_ESCURA
-                img.putpixel((x, y), color)
+    def rock(cx, cy, rx, ry, shade=0.0):
+        cx, cy, rx, ry = cx * u, cy * u, rx * u, ry * u
+        for y in range(int(cy - ry) - 1, int(cy + ry) + 2):
+            for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
+                if not (0 <= x < size and 0 <= y < size):
+                    continue
+                nx, ny = (x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry
+                # superelipse: mais quadrada que um círculo, como pedra lascada
+                d = abs(nx) ** 2.6 + abs(ny) ** 2.6
+                if d > 1:
+                    continue
+                nz = math.sqrt(max(0.0, 1 - min(1.0, nx * nx + ny * ny)))
+                light = max(0.0, nx * lx + ny * ly + nz * lz)
+                v = 0.15 + 0.85 * light + grain.setdefault((x, y), rnd.uniform(-0.09, 0.09)) + shade
+                if molten:
+                    v -= 0.14
+                # borda de uma pedra por cima de outra: sombra de contato
+                if d > 0.78 and img.getpixel((x, y))[3]:
+                    v -= 0.3
+                img.putpixel((x, y), GOLEM_STONE[max(0, min(len(GOLEM_STONE) - 1, int(v * len(GOLEM_STONE))))])
 
-    u = size / 56
-    r = lambda v: int(round(v * u))
-    block(r(16), r(22), r(40), r(42))  # tronco
-    block(r(19), r(10), r(33), r(22))  # cabeça, puxada para a frente (esquerda)
-    block(r(6), r(20), r(17), r(34))  # ombro e braço da frente
-    block(r(4), r(34), r(16), r(46))  # punho da frente
-    block(r(39), r(21), r(49), r(33))  # braço de trás
-    block(r(40), r(33), r(50), r(43))  # punho de trás
-    block(r(18), r(42), r(26), r(53))  # pernas
-    block(r(30), r(42), r(38), r(53))
-    # placas de ferro negro no peito e nos ombros
-    for x0, y0, x1, y1 in ((r(20), r(25), r(36), r(29)), (r(7), r(20), r(16), r(23)), (r(40), r(21), r(48), r(24))):
-        for y in range(y0, y1):
-            for x in range(x0, x1):
-                img.putpixel((x, y), iron_light if y == y0 else iron)
-    # núcleo em brasa no peito e olhos acesos
-    cx, cy = r(28), r(34)
-    for y in range(cy - 2, cy + 3):
-        for x in range(cx - 2, cx + 3):
-            if abs(x - cx) + abs(y - cy) <= 2:
-                img.putpixel((x, y), ember_light if abs(x - cx) + abs(y - cy) == 0 else ember)
-    for ox in (r(21), r(26)):
-        img.putpixel((ox, r(15)), ember_light)
-        img.putpixel((ox + 1, r(15)), ember)
-    # rachaduras
-    for _ in range(4):
-        x, y = rnd.randint(r(17), r(38)), rnd.randint(r(30), r(36))
-        for _ in range(r(6)):
-            if 0 <= x < size and 0 <= y < size and img.getpixel((x, y)) in (STONE, STONE_LIGHT, STONE_ESCURA):
-                img.putpixel((x, y), RACHADURA)
+    # de trás para a frente
+    rock(47, 24, 8, 7, -0.12)  # ombro de trás
+    rock(50, 35, 6, 8, -0.15)  # braço de trás
+    rock(50, 46, 7, 6, -0.12)  # punho de trás
+    rock(37, 53, 6, 8, -0.08)  # perna de trás
+    rock(39, 59, 8, 4, -0.08)
+    rock(24, 53, 6, 8)  # perna da frente
+    rock(22, 59, 8, 4)
+    rock(31, 44, 12, 6)  # quadril
+    rock(32, 31, 15, 12)  # tronco
+    rock(26, 23, 9, 5)  # peito alto, puxado para a frente
+    rock(25, 14, 7, 6)  # cabeça, baixa e para a frente
+    rock(14, 23, 9, 8)  # ombro da frente
+    rock(12, 35, 7, 9)  # braço da frente
+    rock(12, 48, 9, 7)  # punho da frente
+    # lascas no ombro e nas costas quebram a silhueta
+    rock(9, 17, 4, 3)
+    rock(41, 19, 5, 4, -0.05)
+
+    body = {(x, y) for y in range(size) for x in range(size) if img.getpixel((x, y))[3]}
+    cells = sorted(body)
+    # rachaduras: frestas escuras no Golem frio, lava no incandescente
+    cracks = []
+    for _ in range(15 if molten else 9):
+        x, y = rnd.choice(cells)
+        for _ in range(int(rnd.randint(5, 10) * u)):
+            if (x, y) in body and y > 10 * u:
+                cracks.append((x, y))
             x += rnd.choice((-1, 0, 1))
-            y += 1
-    return contornar(img)
+            y += rnd.choice((0, 1, 1))
+    for x, y in cracks:
+        if not molten:
+            img.putpixel((x, y), GOLEM_STONE[0])
+            continue
+        img.putpixel((x, y), LAVA[2 if rnd.random() < 0.6 else 3])
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            p = (x + dx, y + dy)
+            if p in body and p not in cracks and img.getpixel(p) in GOLEM_STONE[:3]:
+                img.putpixel(p, LAVA[0])
+    # núcleo no peito (uma brasa fraca, ou a fornalha acesa) e olhos
+    cx, cy = int(29 * u), int(31 * u)
+    reach = 3 if molten else 2
+    for y in range(cy - reach, cy + reach + 1):
+        for x in range(cx - reach, cx + reach + 1):
+            d = abs(x - cx) + abs(y - cy)
+            if d <= reach:
+                img.putpixel((x, y), LAVA[3 - d] if molten else (GOLEM_STONE[1], LAVA[0], LAVA[1])[2 - d])
+    for ox in (int(21 * u), int(25 * u)):
+        img.putpixel((ox, int(14 * u)), LAVA[3] if molten else LAVA[2])
+        img.putpixel((ox + 1, int(14 * u)), LAVA[1])
+    img = contornar(img)
+    if molten:
+        # brasas subindo da cabeça e dos ombros
+        for bx, by, h in ((24, 8, 4), (27, 7, 3), (10, 14, 3), (42, 15, 3), (46, 16, 2)):
+            x, y = int(bx * u), int(by * u)
+            for k in range(h):
+                if 0 <= y - k < size:
+                    img.putpixel((x + (k % 2 if k > 1 else 0), y - k), LAVA[3 - min(3, k + 1)] if k else LAVA[2])
+        for _ in range(6):
+            img.putpixel((rnd.randint(int(6 * u), int(50 * u)), rnd.randint(0, int(6 * u))), LAVA[rnd.choice((1, 2))])
+    return img
 
 
 def elemental_fire(size, semente):
@@ -250,6 +304,100 @@ def scenario(w=320, h=180):
     return img
 
 
+def forge(w=320, h=180):
+    """Forja de Pedra (andar 5): parede de blocos escuros iluminada de baixo
+    pela fornalha no meio, um canal de lava no pé da parede, pilares com
+    cintas de ferro, correntes e brasas no ar. Piso e altura do chão iguais
+    aos do cenário comum, para os lutadores pisarem no mesmo lugar."""
+    rnd = random.Random(5)
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 255))
+    floor = 118
+    furnace_x, furnace_top, furnace_half = 160, 44, 34
+
+    def glow(x, y):
+        """Quanto a fornalha e o canal de lava iluminam o ponto (0..1)."""
+        d = math.hypot((x - furnace_x) / 1.4, y - 95)
+        return max(0.0, 1 - d / 150) * 0.8 + max(0.0, 1 - (floor - y) / 60) * 0.35
+
+    # parede de blocos grandes, irregulares, esquentando perto do fogo
+    for y in range(floor):
+        for x in range(w):
+            row = y // 12
+            offset = (row * 11) % 24
+            joint = y % 12 == 0 or (x + offset) % 24 == 0
+            base = 26 + rnd.randint(-2, 2)
+            g = glow(x, y)
+            if joint:
+                color = (14 + int(20 * g), 12 + int(6 * g), 14)
+            else:
+                color = (base + int(70 * g), base - 2 + int(26 * g), base + 4 - int(6 * g))
+            img.putpixel((x, y), color + (255,))
+    # fornalha: arco de tijolos com a boca em brasa e a coifa por cima
+    for y in range(furnace_top - 26, floor):
+        for x in range(furnace_x - furnace_half - 8, furnace_x + furnace_half + 8):
+            dx = x - furnace_x
+            arch = y >= furnace_top + 18 or dx * dx + (y - furnace_top - 18) ** 2 <= (furnace_half + 8) ** 2
+            if y < furnace_top - 2 and abs(dx) <= furnace_half - 6 + (y - furnace_top + 26) // 2:
+                v = 30 + rnd.randint(-2, 2)  # coifa de ferro
+                img.putpixel((x, y), (v, v, v + 6, 255))
+            elif arch:
+                mouth = y >= furnace_top + 30 or dx * dx + (y - furnace_top - 30) ** 2 <= (furnace_half - 6) ** 2
+                if mouth and abs(dx) < furnace_half - 6 and y < floor - 6:
+                    t = (y - furnace_top) / (floor - furnace_top)
+                    heat = 1 - abs(dx) / furnace_half * 0.6 + rnd.uniform(-0.12, 0.12)
+                    i = 3 if heat * t > 0.8 else 2 if heat * t > 0.5 else 1 if heat > 0.75 else 0
+                    img.putpixel((x, y), LAVA[i])
+                else:
+                    brick = (y // 5 + (x + (y // 5) * 3) // 7) % 2
+                    v = 58 + 10 * brick + rnd.randint(-3, 3)
+                    img.putpixel((x, y), (v + 30, v - 8, v - 18, 255))
+    # pilares de pedra com cintas de ferro
+    for px in (10, 90, 230, 310):
+        for y in range(floor):
+            for x in range(px - 7, px + 7):
+                if 0 <= x < w:
+                    v = 46 + (12 - abs(x - (px - 3)) * 3) + int(30 * glow(x, y))
+                    band = y % 34 in (8, 9, 10)
+                    img.putpixel((x, y), (24, 24, 30, 255) if band else (v + 6, v, v - 4, 255))
+    # correntes penduradas
+    for cx, length in ((52, 50), (128, 34), (196, 40), (272, 56)):
+        for y in range(0, length):
+            if y % 4 != 3:
+                img.putpixel((cx + (y // 4) % 2, y), (70, 64, 62, 255))
+        for x in range(cx - 3, cx + 5):
+            img.putpixel((x, length), (90, 84, 80, 255))
+            img.putpixel((x, length + 1), (40, 36, 36, 255))
+    # canal de lava no pé da parede
+    for y in range(floor - 6, floor):
+        for x in range(w):
+            t = (y - floor + 6) / 6
+            wave = math.sin(x * 0.21 + y) * 0.2 + rnd.uniform(-0.15, 0.15)
+            i = max(0, min(3, int((0.15 + wave + 0.45 * (1 - t)) * 4)))
+            img.putpixel((x, y), LAVA[i])
+    # piso de lajes, quente perto do canal (mesma perspectiva do cenário comum)
+    for y in range(floor, h):
+        depth = (y - floor + 1) / (h - floor)
+        scale_factor = 0.25 + depth
+        heat = max(0.0, 1 - depth * 2.2)
+        for x in range(w):
+            world_x = (x - w / 2) / scale_factor
+            world_z = 1 / scale_factor
+            joint = abs(world_x) % 40 < 1.2 / scale_factor or (world_z * 12) % 6 < 0.9
+            v = int(34 + 26 * depth) + rnd.randint(-2, 2)
+            if joint:
+                color = (v - 10 + int(60 * heat), v - 14 + int(16 * heat), v - 14)
+            else:
+                color = (v + int(40 * heat), v - 2 + int(14 * heat), v - 2)
+            img.putpixel((x, y), color + (255,))
+    for x in range(w):
+        img.putpixel((x, floor), (40, 16, 8, 255))
+    # brasas no ar
+    for _ in range(40):
+        x, y = rnd.randint(0, w - 1), rnd.randint(4, floor - 8)
+        img.putpixel((x, y), LAVA[rnd.choice((1, 2, 2, 3))])
+    return img
+
+
 # Limite Humano: coração vermelho com a faísca de energia que a passiva
 # devolve (desenho 11x11 no padrão de pixel_icon.py, o dos ícones da Shumi).
 HUMAN_LIMIT_ICON = ({"r": (150, 20, 30, 255), "R": (225, 45, 45, 255), "l": (255, 130, 120, 255),
@@ -287,9 +435,11 @@ BANG_ICON = ({"d": (150, 90, 60, 255), "s": (235, 185, 145, 255), "l": (255, 222
 if __name__ == "__main__":
     save(construto(32, (90, 220, 255, 255), (190, 245, 255, 255), 1), "enemies", "sentinel.png")
     save(construto(48, (230, 70, 160, 255), (255, 180, 220, 255), 2), "enemies", "guardian.png")
-    save(golem(56, 4), "enemies", "stone_golem.png")
+    save(golem(64, 4), "enemies", "stone_golem.png")
+    save(golem(64, 4, molten=True), "enemies", "stone_golem_molten.png")
     save(elemental_fire(30, 5), "enemies", "fire_elemental.png")
     save(half_lua(14), "characters", "shumi", "engo_ji_wave.png")
     save(scenario(), "tower", "floor_background.png")
+    save(forge(), "tower", "forge_background.png")
     save(icon(*HUMAN_LIMIT_ICON), "characters", "shumi", "icon_human_limit.png")
     save(icon(*BANG_ICON), "characters", "shumi", "icon_bang.png")

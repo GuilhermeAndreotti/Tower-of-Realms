@@ -4,15 +4,22 @@ extends RefCounted
 ## texto da HUD passa por aqui, para os componentes falarem a mesma língua.
 ## Identidade: pedra escura da torre + filete dourado de "vez/seleção";
 ## os personagens trazem as cores deles (aliado frio, inimigo quente).
+## Painéis são molduras de pixel (PixelFrame) e o texto usa fonte pixelada,
+## para a interface falar a mesma língua da arte.
 
-const BACKGROUND := Color(0.055, 0.05, 0.09, 0.9)
-const LIGHT_BACKGROUND := Color(0.11, 0.1, 0.17, 0.94)
-const BORDER := Color(0.3, 0.27, 0.42)
-const LIGHT_BORDER := Color(0.52, 0.48, 0.68)
+const BODY_FONT := preload("res://ui/fonts/monogram.ttf")  ## a fonte do tema do projeto
+const TITLE_FONT := preload("res://ui/fonts/silkscreen.ttf")  ## títulos e cabeçalhos
+
+const BACKGROUND := Color(0.07, 0.06, 0.09, 0.92)
+const LIGHT_BACKGROUND := Color(0.13, 0.11, 0.15, 0.96)
+const BORDER := Color(0.36, 0.33, 0.43)
+const LIGHT_BORDER := Color(0.58, 0.54, 0.66)
 const SHADOW := Color(0, 0, 0, 0.55)
 const TEXT := Color(0.93, 0.92, 0.96)
 const DIM_TEXT := Color(0.6, 0.58, 0.7)
 const GOLD := Color(1.0, 0.8, 0.32)
+const DIM_GOLD := Color(0.78, 0.6, 0.3)  ## cabeçalhos de painel
+const WARM_BACKGROUND := Color(0.21, 0.16, 0.09, 0.96)  ## botão em foco
 
 const ALLY := Color(0.38, 0.62, 1.0)
 const ENEMY := Color(0.95, 0.36, 0.38)
@@ -42,6 +49,22 @@ const EFFECT_TYPE_COLORS := {
 const MARGIN := 8.0  ## distância dos painéis até a borda da tela
 
 
+## Fontes pixeladas só ficam nítidas na grade em que foram desenhadas: a
+## monogram em 16 e a Silkscreen em 8. Fixando o tamanho com escala inteira,
+## qualquer font_size pedido cai na grade (até 23 sai em 16, de 24 em diante
+## em 32...) e a tela amplia o texto como amplia os sprites. Feito ao carregar
+## a classe, antes de qualquer tela desenhar; o recurso é o mesmo do tema.
+static var _fonts_ready := _pixel_fonts()
+
+
+static func _pixel_fonts() -> bool:
+	for pair: Array in [[BODY_FONT, 16], [TITLE_FONT, 8]]:
+		var f: FontFile = pair[0]
+		f.fixed_size = pair[1]
+		f.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_INTEGER_ONLY
+	return true
+
+
 static func side_color(ally: bool) -> Color:
 	return ALLY if ally else ENEMY
 
@@ -51,22 +74,44 @@ static func effect_color(effect: Dictionary) -> Color:
 
 
 static func font() -> Font:
-	return ThemeDB.fallback_font
+	return BODY_FONT
 
 
-## Painel de pedra com cantos chanfrados (corner_detail 1 = corte reto).
-static func panel(background := BACKGROUND, border := BORDER, border_width := 1) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
+## Painel de pedra com moldura de pixel. `studs`: rebites nos cantos, para os
+## painéis que pedem destaque (diálogo, confirmação, fim da batalha).
+static func panel(background := BACKGROUND, border := BORDER, border_width := 1, studs := Color(0, 0, 0, 0)) -> PixelFrame:
+	var s := PixelFrame.new()
 	s.bg_color = background
 	s.border_color = border
-	s.set_border_width_all(border_width)
-	s.set_corner_radius_all(4)
-	s.corner_detail = 1
-	s.shadow_color = SHADOW
-	s.shadow_size = 2
-	s.shadow_offset = Vector2(0, 2)
+	s.border_width = border_width
+	s.studs = studs
 	s.set_content_margin_all(6)
 	return s
+
+
+## Botão de pedra com filete dourado: em foco esquenta e acende, apertado
+## afunda 1 pixel (sem sombra). Usado no menu, nas telas da Torre e no fim da
+## batalha.
+static func button(b: Button, font_size := 16) -> void:
+	b.add_theme_font_override("font", TITLE_FONT)
+	b.add_theme_font_size_override("font_size", font_size)
+	b.add_theme_color_override("font_color", GOLD)
+	b.add_theme_color_override("font_hover_color", Color.WHITE)
+	b.add_theme_color_override("font_focus_color", Color.WHITE)
+	b.add_theme_color_override("font_pressed_color", Color.WHITE)
+	b.add_theme_color_override("font_disabled_color", DIM_TEXT)
+	b.add_theme_color_override("font_outline_color", Color.BLACK)
+	b.add_theme_constant_override("outline_size", 3)
+	b.add_theme_stylebox_override("normal", panel(LIGHT_BACKGROUND, GOLD.darkened(0.45), 2, GOLD.darkened(0.3)))
+	var highlight := panel(WARM_BACKGROUND, GOLD, 2, Color.WHITE)
+	b.add_theme_stylebox_override("hover", highlight)
+	b.add_theme_stylebox_override("focus", highlight)
+	var pressed := panel(WARM_BACKGROUND.darkened(0.3), GOLD.lightened(0.3), 2, Color.WHITE)
+	pressed.shadow_size = 0
+	pressed.content_margin_top += 2
+	pressed.content_margin_bottom -= 2
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_stylebox_override("disabled", panel(BACKGROUND, BORDER, 2))
 
 
 static func label(text := "", font_size := 12, color := TEXT, outline := 3) -> Label:
@@ -79,6 +124,14 @@ static func label(text := "", font_size := 12, color := TEXT, outline := 3) -> L
 	ls.outline_color = Color.BLACK
 	l.label_settings = ls
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+
+## Cabeçalho de painel ("ORDEM DE AÇÃO", "INIMIGOS"...) e títulos de tela, na
+## fonte de título. Tamanhos múltiplos de 8 saem com o pixel mais limpo.
+static func heading(text := "", font_size := 8, color := DIM_GOLD, outline := 2) -> Label:
+	var l := label(text, font_size, color, outline)
+	l.label_settings.font = TITLE_FONT
 	return l
 
 
@@ -113,7 +166,7 @@ static func type_tag(type: String, font_size := 9) -> PanelContainer:
 static func tag(text: String, color: Color, font_size := 9) -> PanelContainer:
 	var p := PanelContainer.new()
 	var s := panel(color.darkened(0.65), color, 1)
-	s.shadow_size = 0
+	s.shadow_size = 1
 	s.content_margin_left = 4
 	s.content_margin_right = 4
 	s.content_margin_top = 0
@@ -141,14 +194,62 @@ static func diamond(ci: CanvasItem, c: Vector2, r: float, full: bool) -> void:
 	ci.draw_polyline(pts, Color.WHITE if full else Color(0.35, 0.35, 0.47), 1.0)
 
 
+## Retângulo de cantos levemente arredondados, em degraus de pixel (raio 2:
+## um degrau de 2 e um de 1). Cheio, ou só o contorno com `width` 1 ou 2.
+static func rounded_rect(ci: CanvasItem, r: Rect2, color: Color, radius := 2, filled := true, width := 1) -> void:
+	r = Rect2(r.position.round(), r.size.round())
+	if not filled:
+		_rounded_outline(ci, r, color, radius)
+		if width > 1:
+			_rounded_outline(ci, r.grow(-1), color, maxi(radius - 1, 1))
+		return
+	for i in radius:
+		var inset := radius - i
+		ci.draw_rect(Rect2(r.position.x + inset, r.position.y + i, r.size.x - inset * 2, 1), color)
+		ci.draw_rect(Rect2(r.position.x + inset, r.end.y - 1 - i, r.size.x - inset * 2, 1), color)
+	ci.draw_rect(Rect2(r.position.x, r.position.y + radius, r.size.x, r.size.y - radius * 2), color)
+
+
+static func _rounded_outline(ci: CanvasItem, r: Rect2, color: Color, radius: int) -> void:
+	ci.draw_rect(Rect2(r.position.x + radius, r.position.y, r.size.x - radius * 2, 1), color)
+	ci.draw_rect(Rect2(r.position.x + radius, r.end.y - 1, r.size.x - radius * 2, 1), color)
+	ci.draw_rect(Rect2(r.position.x, r.position.y + radius, 1, r.size.y - radius * 2), color)
+	ci.draw_rect(Rect2(r.end.x - 1, r.position.y + radius, 1, r.size.y - radius * 2), color)
+	# degraus da curva, nos quatro cantos
+	for k in range(1, radius):
+		for corner: Vector2 in [r.position + Vector2(radius - k, k), Vector2(r.end.x - 1 - radius + k, r.position.y + k),
+				Vector2(r.position.x + radius - k, r.end.y - 1 - k), r.end - Vector2.ONE - Vector2(radius - k, k)]:
+			ci.draw_rect(Rect2(corner, Vector2.ONE), color)
+
+
 ## Selo de tecla (ex.: "Q"): quadradinho claro com a letra escura.
 static func key(ci: CanvasItem, pos: Vector2, letter: String, active := true) -> void:
 	var w := maxf(13.0, 7.0 * letter.length() + 6.0)
 	var r := Rect2(pos, Vector2(w, 13))
-	ci.draw_rect(r.grow(1), Color.BLACK)
-	ci.draw_rect(r, Color(0.9, 0.88, 0.95) if active else Color(0.4, 0.4, 0.46))
-	ci.draw_rect(Rect2(r.position + Vector2(0, r.size.y - 2), Vector2(w, 2)), Color(0.55, 0.52, 0.65) if active else Color(0.28, 0.28, 0.33))
-	ci.draw_string(font(), pos + Vector2(0, 10), letter, HORIZONTAL_ALIGNMENT_CENTER, w, 10, Color(0.08, 0.07, 0.12))
+	rounded_rect(ci, r.grow(1), Color.BLACK, 2)
+	rounded_rect(ci, r, Color(0.9, 0.88, 0.95) if active else Color(0.4, 0.4, 0.46), 1)
+	ci.draw_rect(Rect2(r.position + Vector2(1, r.size.y - 2), Vector2(w - 2, 1)), Color(0.55, 0.52, 0.65) if active else Color(0.28, 0.28, 0.33))
+	ci.draw_rect(Rect2(r.position + Vector2(2, r.size.y - 1), Vector2(w - 4, 1)), Color(0.55, 0.52, 0.65) if active else Color(0.28, 0.28, 0.33))
+	var ink := Color(0.08, 0.07, 0.12)
+	if ARROWS.has(letter):
+		_arrow(ci, r.position + Vector2(roundf(w / 2), 5), ARROWS[letter], ink)
+		return
+	ci.draw_string(font(), pos + Vector2(0, 10), letter, HORIZONTAL_ALIGNMENT_CENTER, w, 10, ink)
+
+
+## As setas da monogram são miúdas demais para a tecla: são desenhadas.
+const ARROWS := {"←": Vector2.LEFT, "→": Vector2.RIGHT, "↑": Vector2.UP, "↓": Vector2.DOWN}
+
+
+## Seta de pixel (ponta de 3 degraus + haste) centrada em `c`.
+static func _arrow(ci: CanvasItem, c: Vector2, direction: Vector2, color: Color) -> void:
+	var side := Vector2(-direction.y, direction.x)
+	for i in 3:
+		var tip := c + direction * (2 - i)
+		for j in range(-i, i + 1):
+			ci.draw_rect(Rect2(tip + side * j, Vector2.ONE), color)
+	for i in range(1, 4):
+		ci.draw_rect(Rect2(c - direction * i, Vector2.ONE), color)
 
 
 ## Escudo numa barra de HP de retângulo `r` (borda incluída): contorno azul

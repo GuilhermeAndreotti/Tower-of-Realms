@@ -194,6 +194,6 @@ func effects() -> Array[Dictionary]:
 		"type": "buff", "turns": -1, "color": FRENZY_COLOR, "detail": "Frenesi: ATQ +%d%%" % roundi(frenzy_bonus() * 100)}]
 	if in_flaming_head():
 		list.append({"id": "flaming_head", "short": "LRD", "name": "Lorde da Chama Frenética", "type": "buff",
-			"turns": head_turns, "color": FRENZY_COLOR, "detail": "Bola de Fogo em todos · o estouro queima os inimigos"})
+			"turns": head_turns, "color": FRENZY_COLOR, "detail": "Bola de Fogo em todos • o estouro queima os inimigos"})
 	list.append_array(super())
 	return list

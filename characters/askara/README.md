@@ -9,8 +9,8 @@ A Àskara luta pouco com as próprias mãos: ela junta **Fragmentos d'Alma** e o
 
 | | HP | ATQ | DEF | VEL |
 |---|---|---|---|---|
-| Nível 1 | 950 | 125 | 40 | 108 |
-| Por nível | +45 | +6 | +2 | +1 |
+| Nível 1 | 900 | 125 | 40 | 108 |
+| Por nível | +42 | +6 | +2 | +1 |
 
 ## Habilidades
 
@@ -36,18 +36,18 @@ Invoca um demônio com Fragmentos d'Alma. Cada um age 3 vezes; até 2 em campo (
 
 Cada demônio, ao ir embora por tempo ou ao cair, faz um último ato. Não vale ao sair para abrir vaga, ao ser apagado pelo Lorde nem se a Àskara cair.
 
-- **Diabrete · Explosão Vil**: Explode no alvo e no inimigo ao lado (0,5x).
-- **Emissário do Caos · Muralha do Caos**: Escudo de 8% do HP máximo dele no aliado com menos HP.
-- **Lilith · Beijo Final**: Encanta todos os inimigos (0,2x).
-- **Shivara · Última Dança**: Golpeia todos os inimigos (0,4x).
+- **Diabrete • Explosão Vil**: Mergulha no alvo e explode nele e no inimigo ao lado (0,5x).
+- **Emissário do Caos • Muralha do Caos**: Ergue uma muralha na frente do aliado com menos HP: escudo de 8% do HP máximo dele.
+- **Lilith • Beijo Final**: Voa até cada inimigo e encanta todos (0,2x).
+- **Shivara • Última Dança**: Golpeia todos os inimigos (0,4x).
 
 ### <img src="icon_lord.png" width="24"> Lorde Demônio
 **Ultimate (R)** · `6 fragmentos` · `Todos os inimigos` · `Trevas`
 
 Apaga as invocações em campo (cada uma desconta 1 fragmento do custo), chega atacando todos os inimigos e fica 3 vezes. Enquanto ele está em campo, não dá para invocar.
 
-- **Lorde Demônio** · *85%*: Chegada: 1,2x em todos. Depois: 0,8x em todos.
-- **Lorde da Luz** · *15% · Luz*: Chegada: 2,0x em todos. Depois: 1,2x em todos. Recebe 50% menos dano.
+- **Lorde Demônio** · *85%*: Chegada: 1,2x em todos. Depois: 0,8x em todos. Puxa os ataques, enfraquece quem acerta (ATQ e DEF -10%) e, ao ir embora, explode em todos (0,6x).
+- **Lorde da Luz** · *15% • Luz*: Chegada: 2,0x em todos. Depois: 1,2x em todos. Puxa os ataques, enfraquece quem acerta (ATQ e DEF -10%) e, ao ir embora, explode em todos (0,9x). Recebe 50% menos dano.
 
 ### <img src="icon_fragment.png" width="24"> Fragmento d'Alma
 **Passiva**
@@ -56,6 +56,7 @@ Pagam as invocações e o Lorde. Começa a luta com 2, máximo de 8.
 
 - **Seta Vil** · *+1*
 - **Inimigo derrotado** · *+1*
+- **Primeira ação de cada demônio** · *+1*
 
 <!-- fim do trecho gerado -->
 
@@ -63,7 +64,7 @@ Pagam as invocações e o Lorde. Começa a luta com 2, máximo de 8.
 
 - **Seta Vil:** 0,6× ATQ no alvo.
 - **Invocação:** o seletor radial se abre em volta dela com os demônios. Chamar um que já está em campo renova o HP e as vezes dele. O Emissário provoca: tem 3× mais chance de ser o alvo dos inimigos. A Lilith mira o inimigo de maior ATQ.
-- **Lorde Demônio:** o custo cai 1 fragmento por invocação em campo, então com duas ele custa só 4. O Lorde da Luz causa dano de Luz.
-- **Fragmentos d'Alma:** aparecem ao lado do nome dela, de 0 a 8.
+- **Lorde Demônio:** o custo cai 1 fragmento por invocação em campo, então com duas ele custa só 4. O Lorde da Luz causa dano de Luz. Os dois têm um pouco de cada demônio: provocam (2× a chance de ser o alvo, menos que o Emissário), cada golpe deixa o Encanto do Abismo em quem acerta (ATQ e DEF −10% por 2 turnos, metade do da Lilith, e sem substituí-lo) e, ao ir embora por tempo ou ao cair, mergulham no alvo e explodem em todos os inimigos.
+- **Fragmentos d'Alma:** aparecem ao lado do nome dela, de 0 a 8. A primeira ação de cada demônio rende 1; as outras não, e o Lorde não rende nenhum, para a ult não pagar a próxima. Renovar um demônio conta de novo.
 
 **Dica:** chame o Emissário para proteger a equipe enquanto junta fragmentos com a Seta Vil. Deixe os demônios cumprirem o tempo para aproveitar o Último Ato.

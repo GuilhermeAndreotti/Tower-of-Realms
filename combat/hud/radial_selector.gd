@@ -116,7 +116,7 @@ func _draw() -> void:
 	draw_multiline_string_outline(f, Vector2(-width / 2, text_y + 6), text, HORIZONTAL_ALIGNMENT_CENTER, width, 9, -1, 3, Color.BLACK)
 	draw_multiline_string(f, Vector2(-width / 2, text_y + 6), text, HORIZONTAL_ALIGNMENT_CENTER, width, 9, -1, text_color)
 	UIStyle.text(self, Vector2(-width / 2, text_y - 6), focus.name, 13, focus_color.lightened(0.3), width, HORIZONTAL_ALIGNMENT_CENTER)
-	UIStyle.text(self, Vector2(-width / 2, RADIUS + SIDE + 6), "←→ girar · Enter escolher · Q/E/R agir", 9, UIStyle.DIM_TEXT, width, HORIZONTAL_ALIGNMENT_CENTER)
+	UIStyle.text(self, Vector2(-width / 2, RADIUS + SIDE + 6), "←→ girar • Enter escolher • Q/E/R agir", 9, UIStyle.DIM_TEXT, width, HORIZONTAL_ALIGNMENT_CENTER)
 
 
 ## Gema octogonal da opção `i`, com a sigla; a em foco é maior e tem

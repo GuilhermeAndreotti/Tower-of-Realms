@@ -75,6 +75,7 @@ const SPOTS := {
 	"shumi": [Vector2(428, 130), true],
 	"askara": [Vector2(505, 168), true],
 	"clairin": [Vector2(562, 128), true],
+	"lia": [Vector2(150, 168), false],
 }
 const FREE_SPOTS := [Vector2(252, 160), Vector2(150, 168), Vector2(505, 168)]
 ## Onde a Caoimhe aparece: no começo, no centro do tapete, de frente para
@@ -317,6 +318,17 @@ func _build_camera() -> void:
 	# filha do jogador: segue o desenho interpolado, sem atraso de um passo
 	player.add_child(camera)
 	camera.reset_smoothing.call_deferred()
+	get_viewport().size_changed.connect(_fit_camera)
+	_fit_camera()
+
+
+## Numa janela de outra proporção a tela passa de 960x540 (modo expand); a
+## câmera aproxima o mínimo para a sala ainda cobrir a tela toda.
+func _fit_camera() -> void:
+	var view := get_viewport_rect().size
+	var room := Vector2(WIDTH, HEIGHT) * SCALE
+	var z := maxf(1.0, maxf(view.x / room.x, view.y / room.y))
+	camera.zoom = Vector2(z, z)
 
 
 # ---------------------------------------------------------------- interação

@@ -29,7 +29,7 @@ func take_out(id: String) -> StatusEffect:
 	return null
 
 
-## Soma dos modificadores de `stat` ("atk", "def", "spd", "crit").
+## Soma dos modificadores de `stat` ("atk", "def", "spd", "crit", "damage", "healing").
 func bonus(stat: String) -> float:
 	var total := 0.0
 	for e in list:
@@ -69,6 +69,15 @@ func taunt() -> float:
 	for e in list:
 		total += e.taunt
 	return total
+
+
+## Ids dos estados que acabam no primeiro golpe recebido.
+func consumed_by_hit() -> Array[String]:
+	var ids: Array[String] = []
+	for e in list:
+		if e.consumed_by_hit:
+			ids.append(e.id)
+	return ids
 
 
 func ids_of_type(type: String) -> Array[String]:

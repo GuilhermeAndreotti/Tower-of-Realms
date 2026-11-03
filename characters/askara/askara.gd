@@ -21,6 +21,7 @@ const MAX_FRAGMENTS := 8
 const STARTING_FRAGMENTS := 2
 const ARROW_FRAGMENTS := 1
 const KILL_FRAGMENTS := 1  ## quando um inimigo cai
+const SUMMON_FRAGMENTS := 1  ## na primeira ação de cada demônio (não do Lorde)
 const MAX_SUMMONS := 2
 const LORD_COST := 6
 const DISCOUNT_PER_SUMMON := 1  ## cada invocação apagada pelo Lorde
@@ -30,6 +31,11 @@ const CHARM_ATK := -0.20
 const CHARM_DEF := -0.20
 const CHARM_DURATION := 2  ## turnos do inimigo
 const EMISSARY_TAUNT := 2.0  ## 3x a chance de um aliado comum
+## O Lorde tem um pouco de cada demônio: provoca menos que o Emissário (2x a
+## chance) e enfraquece menos que a Lilith (o Encanto do Abismo, em todos).
+const LORD_TAUNT := 1.0
+const ABYSS_CHARM_ATK := -0.10
+const ABYSS_CHARM_DEF := -0.10
 const LIGHT_LORD_REDUCTION := 0.5
 
 const FOLDER := "res://characters/askara/"
@@ -44,21 +50,21 @@ const SUMMONS := [
 	{"id": "imp", "name": "Diabrete", "abbr": "DIA", "fragments": 1, "turns": 3,
 		"hp": 0.25, "atk": 1.0, "def": 0.8, "spd": 1.25, "color": Color(0.95, 0.6, 0.35),
 		"strike": {"name": "Bola de Fogo Vil", "mult": 0.5, "reach": "single", "style": "projectile"},
-		"last_act": {"name": "Explosão Vil", "mult": 0.5, "reach": "pair", "style": "projectile"},
+		"last_act": {"name": "Explosão Vil", "mult": 0.5, "reach": "pair", "style": "dive"},
 		"description": "Barato e rápido: Bola de Fogo Vil (0,5x) no alvo.",
-		"act_description": "Explode no alvo e no inimigo ao lado (0,5x)."},
+		"act_description": "Mergulha no alvo e explode nele e no inimigo ao lado (0,5x)."},
 	{"id": "emissary", "name": "Emissário do Caos", "abbr": "EMI", "fragments": 2, "turns": 3,
 		"hp": 0.7, "atk": 1.0, "def": 1.5, "spd": 0.9, "color": Color(0.35, 0.5, 1.0), "taunt": EMISSARY_TAUNT,
 		"strike": {"name": "Golpe do Caos", "mult": 0.4, "reach": "single", "style": "charge"},
 		"last_act": {"name": "Muralha do Caos", "shield": 0.08},
 		"description": "Tanque: provoca (os inimigos miram mais nele) e golpeia o alvo (0,4x).",
-		"act_description": "Escudo de 8% do HP máximo dele no aliado com menos HP."},
+		"act_description": "Ergue uma muralha na frente do aliado com menos HP: escudo de 8% do HP máximo dele."},
 	{"id": "lilith", "name": "Lilith", "abbr": "LIL", "fragments": 2, "turns": 3,
 		"hp": 0.35, "atk": 1.0, "def": 1.0, "spd": 1.0, "color": Color(0.95, 0.85, 0.95), "debuff": "charm",
 		"strike": {"name": "Encanto de Lilith", "mult": 0.3, "reach": "single", "aim": "strongest", "style": "projectile"},
-		"last_act": {"name": "Beijo Final", "mult": 0.2, "reach": "all", "debuff_all": true, "style": "projectile"},
+		"last_act": {"name": "Beijo Final", "mult": 0.2, "reach": "all", "debuff_all": true, "style": "charge", "hit": "kiss"},
 		"description": "Encanta o inimigo mais forte: ATQ e DEF -20% por 2 turnos (0,3x).",
-		"act_description": "Encanta todos os inimigos (0,2x)."},
+		"act_description": "Voa até cada inimigo e encanta todos (0,2x)."},
 	{"id": "shivara", "name": "Shivara", "abbr": "SHI", "fragments": 3, "turns": 3,
 		"hp": 0.4, "atk": 1.0, "def": 1.0, "spd": 1.05, "color": Color(0.9, 0.45, 0.75),
 		"strike": {"name": "Dança das Lâminas", "mult": 0.9, "reach": "neighbors", "neighbor_mult": 0.45, "style": "charge"},
@@ -71,12 +77,16 @@ const SUMMONS := [
 const LORDS := {
 	"demon_lord": {"name": "Lorde Demônio", "turns": 3, "type": Types.DARKNESS,
 		"hp": 0.8, "atk": 1.0, "def": 1.2, "spd": 1.0, "color": Color(1.0, 0.3, 0.25),
-		"entrance": {"name": "Chegada do Lorde", "mult": 1.2, "reach": "all", "style": "charge"},
-		"strike": {"name": "Chama do Abismo", "mult": 0.8, "reach": "all", "style": "charge"}},
+		"taunt": LORD_TAUNT, "debuff": "abyss_charm",
+		"entrance": {"name": "Chegada do Lorde", "mult": 1.2, "reach": "all", "debuff_all": true, "style": "charge"},
+		"strike": {"name": "Chama do Abismo", "mult": 0.8, "reach": "all", "debuff_all": true, "style": "charge"},
+		"last_act": {"name": "Colapso do Abismo", "mult": 0.6, "reach": "all", "style": "dive"}},
 	"light_lord": {"name": "Lorde da Luz", "turns": 3, "type": Types.LIGHT,
 		"hp": 1.0, "atk": 1.0, "def": 1.2, "spd": 1.1, "color": Color(1.0, 0.95, 0.7), "reduction": LIGHT_LORD_REDUCTION,
-		"entrance": {"name": "Julgamento", "mult": 2.0, "reach": "all", "style": "charge"},
-		"strike": {"name": "Lâmina Radiante", "mult": 1.2, "reach": "all", "style": "charge"}},
+		"taunt": LORD_TAUNT, "debuff": "abyss_charm",
+		"entrance": {"name": "Julgamento", "mult": 2.0, "reach": "all", "debuff_all": true, "style": "charge"},
+		"strike": {"name": "Lâmina Radiante", "mult": 1.2, "reach": "all", "debuff_all": true, "style": "charge"},
+		"last_act": {"name": "Supernova", "mult": 0.9, "reach": "all", "style": "dive"}},
 }
 
 var fragments := STARTING_FRAGMENTS
@@ -85,7 +95,7 @@ var summons: Array[Summon] = []
 
 
 func _init() -> void:
-	super("Àskara", true, 950, 125.0, 40.0, 108.0, Types.DARKNESS)
+	super("Àskara", true, 900, 125.0, 40.0, 108.0, Types.DARKNESS)
 
 
 # ------------------------------------------------------------ fragmentos
@@ -98,6 +108,14 @@ func gain_fragments(amount: int) -> int:
 
 func on_enemy_fallen() -> String:
 	return "um Fragmento d'Alma" if gain_fragments(KILL_FRAGMENTS) > 0 else ""
+
+
+## Só a primeira das vezes de cada demônio rende (renovar conta de novo);
+## o Lorde não, para a ult não pagar a próxima.
+func on_summon_acted(inv: Summon) -> String:
+	if inv.id in LORDS or inv.turns < inv.max_turns:
+		return ""
+	return "um Fragmento d'Alma" if gain_fragments(SUMMON_FRAGMENTS) > 0 else ""
 
 
 # ------------------------------------------------------------ invocações
@@ -136,7 +154,17 @@ static func charm() -> StatusEffect:
 	var e := StatusEffect.new("charm", "Encantado", "ENC", "debuff", CHARM_DURATION)
 	e.mods = {"atk": CHARM_ATK, "def": CHARM_DEF}
 	e.color = Color(0.95, 0.6, 0.85)
-	e.detail = "ATQ %d%% · DEF %d%%" % [roundi(CHARM_ATK * 100), roundi(CHARM_DEF * 100)]
+	e.detail = "ATQ %d%% • DEF %d%%" % [roundi(CHARM_ATK * 100), roundi(CHARM_DEF * 100)]
+	return e
+
+
+## Debuff dos Lordes em todos que eles atingem: o encanto da Lilith, mais fraco.
+## Id próprio, para não trocar o encanto dela, mais forte, se os dois pegarem.
+static func abyss_charm() -> StatusEffect:
+	var e := StatusEffect.new("abyss_charm", "Encanto do Abismo", "ABI", "debuff", CHARM_DURATION)
+	e.mods = {"atk": ABYSS_CHARM_ATK, "def": ABYSS_CHARM_DEF}
+	e.color = Color(0.85, 0.45, 0.6)
+	e.detail = "ATQ %d%% • DEF %d%%" % [roundi(ABYSS_CHARM_ATK * 100), roundi(ABYSS_CHARM_DEF * 100)]
 	return e
 
 
@@ -151,8 +179,9 @@ func _create(id: String, d: Dictionary) -> Summon:
 	inv.strike = d.strike
 	inv.entrance_strike = d.get("entrance", {})
 	inv.last_act = d.get("last_act", {})
-	if d.get("debuff", "") == "charm":
-		inv.debuff = charm
+	match d.get("debuff", ""):
+		"charm": inv.debuff = charm
+		"abyss_charm": inv.debuff = abyss_charm
 	if d.has("taunt"):
 		var p := StatusEffect.new("taunt", "Provocação", "PRV", "buff", -1)
 		p.taunt = d.taunt
@@ -231,9 +260,9 @@ func skills(points: int) -> Array[Dictionary]:
 		options.append({"id": d.id, "name": "%s (%d)" % [d.name, d.fragments], "abbr": d.abbr, "color": d.color, "current": already,
 			"description": "%s Último ato (%s): %s Custa %s; age %d vezes.%s" % [d.description, d.last_act.name,
 				d.act_description, cost, d.turns, " Já em campo: renova." if already else ""]})
-		demons.append({"label": d.name, "mark": cost + (" · em campo" if already else ""), "text": d.description,
+		demons.append({"label": d.name, "mark": cost + (" • em campo" if already else ""), "text": d.description,
 			"color": d.color, "current": already})
-		acts.append({"label": "%s · %s" % [d.name, d.last_act.name], "text": d.act_description, "color": d.color})
+		acts.append({"label": "%s • %s" % [d.name, d.last_act.name], "text": d.act_description, "color": d.color})
 	var skill := {
 		"action": "skill", "name": "Invocação", "key": "E", "icon": FOLDER + "icon_summon.png",
 		"target": "self", "point_cost": 1, "selector": "radial", "color": ASKARA_COLOR,
@@ -260,7 +289,7 @@ func skills(points: int) -> Array[Dictionary]:
 		"details": [
 			{"label": LORDS.demon_lord.name, "mark": "%d%%" % roundi((1 - LIGHT_LORD_CHANCE) * 100), "color": LORDS.demon_lord.color,
 				"text": _lord_text(LORDS.demon_lord)},
-			{"label": LORDS.light_lord.name, "mark": "%d%% · Luz" % roundi(LIGHT_LORD_CHANCE * 100), "color": LORDS.light_lord.color,
+			{"label": LORDS.light_lord.name, "mark": "%d%% • Luz" % roundi(LIGHT_LORD_CHANCE * 100), "color": LORDS.light_lord.color,
 				"text": _lord_text(LORDS.light_lord) + " Recebe %d%% menos dano." % roundi(LIGHT_LORD_REDUCTION * 100)},
 		],
 	}
@@ -291,6 +320,7 @@ func skills(points: int) -> Array[Dictionary]:
 			"details": [
 				{"label": "Seta Vil", "mark": "+%d" % ARROW_FRAGMENTS},
 				{"label": "Inimigo derrotado", "mark": "+%d" % KILL_FRAGMENTS},
+				{"label": "Primeira ação de cada demônio", "mark": "+%d" % SUMMON_FRAGMENTS},
 			],
 		},
 	]
@@ -298,8 +328,9 @@ func skills(points: int) -> Array[Dictionary]:
 
 ## Golpes do Lorde `l` (chegada e depois), para os detalhes da ult.
 static func _lord_text(l: Dictionary) -> String:
-	return "Chegada: %sx em todos. Depois: %sx em todos." % [
-		str(l.entrance.mult).replace(".", ","), str(l.strike.mult).replace(".", ",")]
+	return "Chegada: %sx em todos. Depois: %sx em todos. Puxa os ataques, enfraquece quem acerta (ATQ e DEF %d%%) e, ao ir embora, explode em todos (%sx)." % [
+		str(l.entrance.mult).replace(".", ","), str(l.strike.mult).replace(".", ","), roundi(ABYSS_CHARM_ATK * 100),
+		str(l.last_act.mult).replace(".", ",")]
 
 
 func effects() -> Array[Dictionary]:

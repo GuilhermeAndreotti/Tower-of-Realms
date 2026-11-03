@@ -97,6 +97,12 @@ func bonus(stat: String) -> float:
 	return _bonus_extra.get(stat, 0.0) + statuses.bonus(stat)
 
 
+## Quanto as curas que este lutador faz rendem (1 = normal). Quem cura no kit
+## multiplica a cura por isto.
+func healing_mult() -> float:
+	return maxf(0.0, 1.0 + bonus("healing"))
+
+
 func atk() -> float:
 	return base_atk * (1.0 + bonus("atk"))
 
@@ -131,6 +137,7 @@ static func calculate_damage(attacker: Combatant, target: Combatant, mult: float
 	var strike_type := attack_type if attack_type != "" else attacker.type
 	var raw := attacker.atk() * mult * target.effectiveness_against(strike_type) * 100.0 / (100.0 + target.defense())
 	raw *= 1.0 - target.damage_reduction()
+	raw *= 1.0 + attacker.bonus("damage")
 	if critical:
 		raw *= CRITICAL_DAMAGE
 	return maxi(1, roundi(raw * lerpf(0.95, 1.05, variance)))
@@ -180,6 +187,12 @@ func follow_up(_attacker: Combatant, _target: Combatant) -> Dictionary:
 ## Um inimigo caiu (chamado nos aliados de pé). Devolve o que este lutador
 ## ganhou com isso, para o registro da luta ("" = nada).
 func on_enemy_fallen() -> String:
+	return ""
+
+
+## Uma invocação deste lutador acabou de agir. Devolve o que ele ganhou com
+## isso, para o registro da luta ("" = nada).
+func on_summon_acted(_summon: Summon) -> String:
 	return ""
 
 
@@ -247,6 +260,16 @@ func absorb(damage: int) -> int:
 	for id in emptied:
 		remove_status(id)
 	return absorbed
+
+
+## O portador acabou de receber um golpe: tira os estados que acabam nele
+## (StatusEffect.consumed_by_hit) e os devolve, para o registro.
+func spend_hit_statuses() -> Array[StatusEffect]:
+	var spent: Array[StatusEffect] = []
+	for id in statuses.consumed_by_hit():
+		spent.append(status(id))
+		remove_status(id)
+	return spent
 
 
 ## Golpes adicionais que um golpe de multiplicador `mult` do portador

@@ -48,7 +48,7 @@ Os tipos dos inimigos são parte do desenho dos andares (ver [Torre e andares](t
 
 ## Estados
 
-`StatusEffect` é o efeito temporário genérico: modificadores (`mods` de ATQ, DEF, VEL e crítico), fraqueza, escudo, vida extra, atraso, provocação, redução de dano, golpe extra e estado aplicado ao acertar. Um por id; aplicar de novo renova. A duração conta turnos do portador.
+`StatusEffect` é o efeito temporário genérico: modificadores (`mods` de ATQ, DEF, VEL, crítico, dano causado e cura feita), fraqueza, escudo, vida extra, atraso, provocação, redução de dano, golpe extra e estado aplicado ao acertar. Um por id; aplicar de novo renova. A duração conta turnos do portador. Com `consumed_by_hit`, o estado acaba também no primeiro golpe que o portador recebe, depois de valer nele (a proteção do Lord Azeroth da Lia: `apply_damage()` chama `Combatant.spend_hit_statuses()` e o registro avisa que ela se desfez).
 
 Invariante: modificadores temporários entram em `bonus()` e nos estados; os atributos de nível ficam em `base_atk`, `base_def`, `base_spd` e `max_hp` (ver [Progressão](progressao.md#atributos)). Nunca some bônus direto nesses campos.
 
@@ -59,7 +59,7 @@ Um kit é uma subclasse de `Combatant` (regras) e uma de `CharacterActions` (ani
 Recursos que um kit pode usar sem mexer na batalha:
 
 - `options` com seletor em lista ou radial (`"selector": "radial"`), abrindo sozinho no começo da vez com `on_turn_start`.
-- `target`: `single`, `neighbors`, `all`, `self`, `ally`; ou `predicted_targets()` para regras próprias.
+- `target`: `single`, `neighbors`, `all`, `self`, `ally`; ou `predicted_targets()` para regras próprias. Uma ação `ally` sem `options` (a Curar Ferimentos da Lia) também passa por `CHOOSING_OPTION`, só para escolher o aliado: ←/→ ou clique trocam, Enter ou a mesma tecla confirmam, Esc cancela.
 - `invalid_reason()` impede confirmar e explica o porquê.
 - `free`: a ação não gasta o turno.
 - `target` numa opção: a opção mira outro tipo de alvo que a ação (o Escudo do Protocolo MOMC mira um aliado; a Sobrecarga, um inimigo). A marcação, a prévia e o motivo inválido seguem a opção marcada (`Battle.target_type()`).
@@ -75,9 +75,9 @@ No seletor de opções, W e S não navegam (só ↑/↓): as teclas da barra tê
 
 - **Alvos:** `Battle.allies_on_field()` é a equipe de pé mais as invocações em campo. É quem os inimigos sorteiam e quem as ações com alvo `ally` podem mirar (o Andri pode entregar artefatos a elas).
 - **Derrota e recompensa:** usam `living_allies()`, só a equipe. Invocação não segura a luta, não ganha XP e não é salva.
-- **Vez:** age sozinha. A batalha usa o `strike` dela (alcance, mira e estilo, ver o comentário de `Summon.strike`) a partir do inimigo marcado e aplica o `debuff`, se houver. Os golpes passam por `apply_damage()` como qualquer outro, então estados de acerto e golpes extras do portador valem.
+- **Vez:** age sozinha. A batalha usa o `strike` dela (alcance, mira e estilo, ver o comentário de `Summon.strike`) a partir do inimigo marcado e aplica o `debuff`, se houver. Os golpes passam por `apply_damage()` como qualquer outro, então estados de acerto e golpes extras do portador valem. Depois de cada vez, a batalha pergunta a quem invocou `Combatant.on_summon_acted()`, que devolve o que ele ganhou para o registro (a primeira vez de cada demônio dá 1 Fragmento d'Alma à Àskara).
 - **Saída:** depois de `turns` vezes, ao cair, quando quem a invocou cai ou quando o kit a tira (substituição, o Lorde). Quem tira de campo é `Battle.remove_summon()`; as regras só marcam `on_field = false`.
-- **Último ato:** ao sair por tempo ou ao cair, a invocação faz o `last_act` dela (golpe no formato de `strike`, com escudo opcional para o aliado com menor fração de HP), por `Battle.last_act()`, antes de sumir. Substituição, o Lorde e a queda de quem invocou não disparam: cada uma já tem a própria troca, e o último ato fica sendo a recompensa de deixar a invocação cumprir o tempo. Como dispara sozinho em toda invocação, os valores são baixos (ver a passiva Último Ato da Àskara).
+- **Último ato:** ao sair por tempo ou ao cair, a invocação faz o `last_act` dela (golpe no formato de `strike`, com escudo opcional para o aliado com menor fração de HP), por `Battle.last_act()`, antes de sumir. Substituição, ser apagada pelo Lorde e a queda de quem invocou não disparam: cada uma já tem a própria troca, e o último ato fica sendo a recompensa de deixar a invocação cumprir o tempo. Como dispara sozinho em toda invocação, os valores são baixos (ver a passiva Último Ato da Àskara). Os Lordes também têm último ato. No estilo `dive` a invocação mergulha no alvo e explode em todos os atingidos de uma vez; o escudo sobe como uma muralha na frente de quem o recebe (`CombatEffects.wall()`).
 - **Entrada:** o kit cria a invocação (regras) e as ações chamam `Battle.add_summon()` (vaga, visual, aura) e, se quiserem, `summon_strike()` com o `entrance_strike`.
 
 A batalha não sabe que invocações existem em cada kit: tudo vem da `Summon` que o kit entrega.
@@ -88,6 +88,8 @@ A batalha não sabe que invocações existem em cada kit: tudo vem da `Summon` q
 
 **Último recurso** (`last_resort`, como o Ferro Negro do andar 5): quando um golpe deixa o inimigo de pé abaixo da fração `below` do HP, ele ganha um escudo (um `StatusEffect`) uma vez por luta. A regra é `Enemy.activate_last_resort()`; a batalha chama depois de cada golpe (`apply_damage()`), aplica o escudo e anuncia no meio da tela ("Ferro Negro ativado"). Golpe que mata direto não ativa.
 
+**Segunda forma** (`second_form`, como o Golem Incandescente do andar 5): o inimigo não cai na primeira derrota. `apply_damage()` vê `Enemy.can_awaken()` e chama `Battle._awaken()` no lugar de `_fall()`: os outros inimigos de pé são absorvidos (saem da luta, sem contar como derrubados pela equipe, então não dão Fragmentos à Àskara) e `Enemy.awaken()` troca nome, arte e tipo, tira os estados e o Golpe Pesado e devolve HP (`heal` mais `heal_per_absorbed` por absorvido, frações do HP máximo). Uma vez por luta; a segunda derrota é a queda de verdade. Na nova forma, o `beam` dele (nome, multiplicador, a cada N ações) é um golpe em todos os aliados em campo, avisado uma ação antes como o Golpe Pesado. A XP de quem foi absorvido continua contando na vitória.
+
 ## Fases da luta
 
 A batalha é uma máquina de estados (`Battle.Phase`, numa `StateMachine`). A fase decide o que a entrada do jogador faz e quais trocas são possíveis; uma troca não declarada é recusada com erro no registro do Godot.
@@ -97,7 +99,7 @@ A batalha é uma máquina de estados (`Battle.Phase`, numa `StateMachine`). A fa
 | `STARTING`        | a arena monta                                         | —                                         | `ACTING`, `OVER` |
 | `ACTING`          | alguém age: inimigo, invocação ou o aliado depois de escolher | ←/→ e clique trocam o alvo (para o próximo golpe) | `PLAYER_TURN`, `OVER` |
 | `PLAYER_TURN`     | esperando a ação do aliado da vez                     | teclas da barra, alvo                     | `CHOOSING_OPTION`, `ACTING`, `OVER` |
-| `CHOOSING_OPTION` | o seletor de opções da ação está aberto               | ↑/↓, 1-9 (no anel, ←/→), Enter, Esc       | `PLAYER_TURN`, `ACTING`, `OVER` |
+| `CHOOSING_OPTION` | o seletor de opções da ação (ou a escolha do aliado) está aberto | ↑/↓, 1-9 (no anel, ←/→), Enter, Esc       | `PLAYER_TURN`, `ACTING`, `OVER` |
 | `OVER`            | o resultado está na tela                              | Enter, Esc ou clique voltam ao saguão     | —        |
 
 `waiting_for_player` e `over` são leituras da fase (`PLAYER_TURN` ou `CHOOSING_OPTION`; `OVER`), não variáveis soltas.

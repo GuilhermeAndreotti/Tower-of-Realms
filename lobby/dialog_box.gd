@@ -20,7 +20,7 @@ var _hint: Label
 
 
 func _ready() -> void:
-	add_theme_stylebox_override("panel", UIStyle.panel(UIStyle.LIGHT_BACKGROUND, UIStyle.GOLD.darkened(0.25), 2))
+	add_theme_stylebox_override("panel", UIStyle.panel(UIStyle.LIGHT_BACKGROUND, UIStyle.GOLD.darkened(0.25), 2, UIStyle.GOLD))
 	custom_minimum_size = Vector2(620, 0)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var h := HBoxContainer.new()
@@ -36,7 +36,7 @@ func _ready() -> void:
 	v.add_theme_constant_override("separation", 4)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(v)
-	_name_label = UIStyle.label("", 14, UIStyle.GOLD, 4)
+	_name_label = UIStyle.heading("", 16, UIStyle.GOLD, 4)
 	v.add_child(_name_label)
 	_text = UIStyle.label("", 13, UIStyle.TEXT)
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -86,9 +86,9 @@ func _refresh_options() -> void:
 	var options: Array = _lines()[_index].get("options", [])
 	for j in options.size():
 		var focus := j == _option
-		_options.add_child(UIStyle.label(("▸ " if focus else "   ") + str(options[j].get("text", "")), 12,
+		_options.add_child(UIStyle.label(("> " if focus else "  ") + str(options[j].get("text", "")), 12,
 			UIStyle.GOLD if focus else UIStyle.DIM_TEXT, 3))
-	_hint.text = "↑/↓ escolher · Enter confirmar" if options else "Enter continuar · Esc sair"
+	_hint.text = "↑/↓ escolher • Enter confirmar" if options else "Enter continuar • Esc sair"
 
 
 func handle_key(keycode: int) -> void:

@@ -106,11 +106,11 @@ func _draw() -> void:
 	var r := Rect2(Vector2(roundf((size.x - SIDE) / 2), 2 + rises), Vector2(SIDE, SIDE))
 	var erased := not turn
 
-	# moldura
-	draw_rect(r.grow(1), Color.BLACK)
+	# moldura, de cantos um pouco arredondados
+	UIStyle.rounded_rect(self, r.grow(1), Color.BLACK, 3)
 	var background := UIStyle.LIGHT_BACKGROUND if active else UIStyle.BACKGROUND
-	draw_rect(r, background)
-	draw_rect(Rect2(r.position, Vector2(SIDE, 1)), Color(1, 1, 1, 0.08))
+	UIStyle.rounded_rect(self, r, background)
+	draw_rect(Rect2(r.position + Vector2(2, 1), Vector2(SIDE - 4, 1)), Color(1, 1, 1, 0.08))
 	var border_color := UIStyle.BORDER
 	if active:
 		border_color = UIStyle.GOLD if _over else UIStyle.LIGHT_BORDER
@@ -120,16 +120,16 @@ func _draw() -> void:
 		border_color = color_p.darkened(0.2 if turn else 0.55)
 		if _over:
 			border_color = UIStyle.GOLD
-	draw_rect(r, border_color, false, 2.0 if active and _over else 1.0)
+	UIStyle.rounded_rect(self, r, border_color, 2, false, 2 if active and _over else 1)
 	if active and data.get("highlight", false):
 		var a := 0.35 + 0.35 * sin(_time * 4.0)
 		var color_d: Color = data.get("color", UIStyle.GOLD)
-		draw_rect(r.grow(2), Color(color_d, a), false, 1.0)
+		UIStyle.rounded_rect(self, r.grow(2), Color(color_d, a), 3, false)
 
 	# "poço" do ícone, mais claro, para ícones escuros não sumirem no fundo
 	var well := r.grow(-4)
-	draw_rect(well, Color(0.2, 0.19, 0.29) if active else Color(0.13, 0.12, 0.18))
-	draw_rect(Rect2(well.position, Vector2(well.size.x, 1)), Color(0, 0, 0, 0.5))
+	UIStyle.rounded_rect(self, well, Color(0.2, 0.19, 0.29) if active else Color(0.13, 0.12, 0.18), 1)
+	draw_rect(Rect2(well.position + Vector2(1, 0), Vector2(well.size.x - 2, 1)), Color(0, 0, 0, 0.5))
 
 	# ícone
 	if _icon:
@@ -159,7 +159,7 @@ func _draw() -> void:
 
 	# turnos que faltam da recarga, grandes, sobre o ícone apagado
 	if state == "cooldown":
-		UIStyle.text(self, Vector2(r.position.x, r.get_center().y + 8), str(data.get("cooldown_remaining", 0)), 22,
+		UIStyle.text(self, Vector2(r.position.x, r.get_center().y + 8), str(data.get("cooldown_remaining", 0)), 24,
 			UIStyle.TEXT if not erased else UIStyle.DIM_TEXT, SIDE, HORIZONTAL_ALIGNMENT_CENTER)
 
 	# tecla no canto de cima (passivas não têm)
@@ -206,7 +206,7 @@ func _draw() -> void:
 	_name.display(data.get("name", ""), name_color)
 
 	if _flash > 0:
-		draw_rect(r, Color(1, 1, 1, _flash * 0.6))
+		UIStyle.rounded_rect(self, r, Color(1, 1, 1, _flash * 0.6))
 
 
 ## Nome embaixo do slot. Cabendo, fica centrado; se não, aparece cortado com

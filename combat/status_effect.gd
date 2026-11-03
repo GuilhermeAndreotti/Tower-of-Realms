@@ -14,7 +14,9 @@ var turns := 2  ## turnos do portador; -1 = sem contagem
 var color := Color.TRANSPARENT  ## TRANSPARENT = cor do tipo (buff/debuff)
 var detail := ""
 
-## Somados em Combatant.bonus(stat): "atk", "def", "spd", "crit".
+## Somados em Combatant.bonus(stat): "atk", "def", "spd", "crit", "damage"
+## (multiplica o dano que o portador causa) e "healing" (multiplica as curas
+## que o portador faz; ver Combatant.healing_mult()).
 var mods := {}
 var weakness := ""  ## tipo de dano que passa a ser super efetivo no portador
 var shield := 0  ## absorve dano de golpes; o estado acaba quando zera
@@ -24,6 +26,9 @@ var delay := 0.0  ## ao ser aplicado, empurra a vez (fração da distância do t
 ## mais chance de ser o alvo que um aliado sem provocação).
 var taunt := 0.0
 var damage_reduction := 0.0  ## fração cortada de todo golpe recebido (0..1)
+## O estado acaba no primeiro golpe que o portador recebe (depois de valer
+## nele), como a proteção do Lord Azeroth da Lia.
+var consumed_by_hit := false
 
 ## Dano adicional nos golpes do portador: {"type", "mult", "proportional"
 ## (mult relativo ao do golpe), "consumes" (o estado acaba ao disparar)}.
@@ -48,7 +53,7 @@ func description() -> Dictionary:
 	var d := {"id": id, "short": short, "name": name, "type": type, "turns": turns}
 	var text := detail
 	if shield > 0:
-		text = ("%s · " % text if text != "" else "") + "escudo %d" % shield
+		text = ("%s • " % text if text != "" else "") + "escudo %d" % shield
 	if text != "":
 		d.detail = text
 	if color != Color.TRANSPARENT:

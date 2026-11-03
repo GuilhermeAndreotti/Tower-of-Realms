@@ -3,17 +3,19 @@ extends Control
 ## Tela de abertura: a logo, NEW GAME, LOAD GAME e QUIT. Os dois primeiros
 ## abrem a lista de slots de save (Progression.SLOTS): no jogo novo, um slot
 ## ocupado pede confirmação para ser sobrescrito; no carregar, só os ocupados
-## abrem. Em qualquer lista, um slot ocupado pode ser apagado (com confirmação).
+## abrem; o jogo novo começa pela introdução (Intro). Em qualquer lista, um slot ocupado pode ser apagado (com confirmação).
 ## Só apresenta: quem cria, lê e apaga os saves é a Progression.
 ## Controles: ↑/↓ escolhe, Enter confirma, Del apaga, Esc volta.
 
 const LOBBY_SCENE := "res://lobby/lobby.tscn"
+const INTRO_SCENE := "res://intro/intro.tscn"
 const LOGO := "res://logo.png"
 const EMBERS := 40
 
 var mode := "start"  ## "start", "new" (escolher onde criar) ou "load"
 var pending_confirm := ""  ## confirmação aberta: "", "overwrite" ou "delete"
 var slot_requested := 0
+var destination := ""  ## cena para onde o menu está indo (ver _enter)
 
 var _start: VBoxContainer
 var _list: VBoxContainer
@@ -160,7 +162,7 @@ func _build_confirmation() -> void:
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_confirmation.add_child(center)
 	var panel := PanelContainer.new()
-	var style := UIStyle.panel(UIStyle.LIGHT_BACKGROUND, UIStyle.GOLD.darkened(0.25), 2)
+	var style := UIStyle.panel(UIStyle.LIGHT_BACKGROUND, UIStyle.GOLD.darkened(0.25), 2, UIStyle.GOLD)
 	style.set_content_margin_all(16)
 	panel.add_theme_stylebox_override("panel", style)
 	center.add_child(panel)
@@ -199,17 +201,7 @@ func _button(text: String, min_size: Vector2, font_size: int) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.custom_minimum_size = min_size
-	b.add_theme_font_size_override("font_size", font_size)
-	b.add_theme_color_override("font_color", UIStyle.GOLD)
-	b.add_theme_color_override("font_hover_color", Color.WHITE)
-	b.add_theme_color_override("font_focus_color", Color.WHITE)
-	b.add_theme_color_override("font_disabled_color", UIStyle.DIM_TEXT)
-	b.add_theme_stylebox_override("normal", UIStyle.panel(UIStyle.BACKGROUND, UIStyle.GOLD.darkened(0.45), 2))
-	var highlight := UIStyle.panel(Color(0.2, 0.17, 0.1, 0.95), UIStyle.GOLD, 2)
-	b.add_theme_stylebox_override("hover", highlight)
-	b.add_theme_stylebox_override("focus", highlight)
-	b.add_theme_stylebox_override("pressed", UIStyle.panel(Color(0.3, 0.24, 0.1), Color.WHITE, 2))
-	b.add_theme_stylebox_override("disabled", UIStyle.panel(UIStyle.BACKGROUND, UIStyle.BORDER, 2))
+	UIStyle.button(b, font_size)
 	b.mouse_entered.connect(func() -> void:
 		if not b.disabled and b.is_visible_in_tree():
 			b.grab_focus())
@@ -313,9 +305,11 @@ func cancel() -> void:
 		_slots[slot_requested - 1].grab_focus()
 
 
-## Prepara o save do slot e vai para o saguão, entrando pelo começo.
+## Prepara o save do slot e vai para o saguão, entrando pelo começo. Jogo
+## novo passa antes pela introdução, que leva ao saguão quando acaba.
 func _enter(n: int, candidate: bool) -> void:
 	_leaving = true
+	destination = INTRO_SCENE if candidate else LOBBY_SCENE
 	if candidate:
 		Progression.new_game(n)
 	else:
@@ -324,7 +318,7 @@ func _enter(n: int, candidate: bool) -> void:
 	_veil.mouse_filter = Control.MOUSE_FILTER_STOP
 	var t := create_tween()
 	t.tween_property(_veil, "color:a", 1.0, 0.5)
-	t.tween_callback(func() -> void: get_tree().change_scene_to_file(LOBBY_SCENE))
+	t.tween_callback(func() -> void: get_tree().change_scene_to_file(destination))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -351,7 +345,7 @@ static func describe_slot(n: int) -> String:
 	if not r.exists:
 		return "Vazio"
 	var floors := "nenhum andar vencido" if r.floors == 0 else "%d de %d andares vencidos" % [r.floors, Floors.total()]
-	return "Nv %d  ·  %d personagens  ·  %s" % [r.level, r.characters, floors]
+	return "Nv %d  •  %d personagens  •  %s" % [r.level, r.characters, floors]
 
 
 static func save_date(unix: int) -> String:

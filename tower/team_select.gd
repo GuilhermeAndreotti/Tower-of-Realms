@@ -1,11 +1,11 @@
 class_name TeamSelect
 extends Control
-## Seletor de equipe antes do combate: até o limite do andar escolhido
+## Seletor de equipe antes do combate: até o limite da missão escolhida
 ## (Floors.max_team; as vagas acima dele aparecem trancadas).
 ## A ordem de escolha é a ordem na arena (o 1º fica na frente).
 ## Lê tudo do Roster e das descrições dos personagens (skills(), status),
 ## então personagens novos aparecem aqui sem mexer nesta tela.
-## Controles: ←/→ escolhe, Espaço adiciona/remove, Enter começa, Esc volta à escolha do andar.
+## Controles: ←/→ escolhe, Espaço adiciona/remove, Enter começa, Esc volta ao mapa da Torre.
 
 const BATTLE_SCENE := "res://combat/battle.tscn"
 const FLOORS_SCENE := "res://tower/floor_select.tscn"
@@ -17,13 +17,15 @@ var team: Array[String] = []
 var _cursor := 0
 var _ids: Array[String] = []  ## os personagens liberados (Roster.available())
 var _floor_number := 1
-var _max := Roster.MAX_TEAM  ## vagas abertas neste andar
+var _mission_id := ""  ## missão do andar ("" = a principal)
+var _max := Roster.MAX_TEAM  ## vagas abertas nesta missão
 
 var _summon_slots: Array[Control] = []
 var _cards: Array[Control] = []
 var _detail: VBoxContainer
 var _button: Button
 var _counter: Label
+var _synergy: Label  ## bônus de equipe (Synergies): quanto falta ou que fechou
 var _time := 0.0
 var _samples := {}  ## id -> Combatant (para ler status e kit)
 var _frames := {}  ## id -> SpriteFrames
@@ -34,7 +36,8 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_ids = Roster.available()
 	_floor_number = Floors.current()
-	_max = Floors.max_team(_floor_number)
+	_mission_id = Floors.current_mission()
+	_max = Floors.max_team(_floor_number, _mission_id)
 	for id in _ids:
 		_samples[id] = Roster.create(id)
 		var sp: Dictionary = Roster.data(id).sprite
@@ -73,9 +76,9 @@ func _build() -> void:
 	var top := HBoxContainer.new()
 	var titles := VBoxContainer.new()
 	titles.add_theme_constant_override("separation", 0)
-	titles.add_child(UIStyle.label("ANDAR %d · %s" % [_floor_number, Floors.data(_floor_number).name.to_upper()], 11, UIStyle.DIM_TEXT, 3))
-	titles.add_child(UIStyle.label("MONTE SUA EQUIPE", 22, UIStyle.GOLD, 5))
-	var rule := "Só 1 personagem neste andar." if _max == 1 else "Até %d personagens neste andar. O 1º escolhido fica na frente da arena." % _max
+	titles.add_child(UIStyle.heading("ANDAR %d • %s" % [_floor_number, Floors.mission(_floor_number, _mission_id).name.to_upper()], 8, UIStyle.DIM_TEXT, 3))
+	titles.add_child(UIStyle.heading("MONTE SUA EQUIPE", 24, UIStyle.GOLD, 5))
+	var rule := "Só 1 personagem nesta missão." if _max == 1 else "Até %d personagens nesta missão. O 1º escolhido fica na frente da arena." % _max
 	titles.add_child(UIStyle.label(rule, 11, UIStyle.DIM_TEXT))
 	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(titles)
@@ -103,7 +106,9 @@ func _build() -> void:
 		slots.add_child(slot)
 		_summon_slots.append(slot)
 	left.add_child(slots)
-	left.add_child(UIStyle.label("PERSONAGENS", 9, UIStyle.DIM_TEXT, 2))
+	_synergy = UIStyle.label("", 11, UIStyle.DIM_TEXT, 3)
+	left.add_child(_synergy)
+	left.add_child(UIStyle.heading("PERSONAGENS"))
 	var roster := HBoxContainer.new()
 	roster.add_theme_constant_override("separation", 8)
 	for i in maxi(ROSTER_CARDS, _ids.size()):
@@ -138,17 +143,10 @@ func _build() -> void:
 	hints.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	baseboard.add_child(hints)
 	_button = Button.new()
-	_button.text = "COMEÇAR COMBATE  ▸"
+	_button.text = "COMEÇAR COMBATE  >"
 	_button.focus_mode = Control.FOCUS_NONE
 	_button.custom_minimum_size = Vector2(210, 40)
-	_button.add_theme_font_size_override("font_size", 15)
-	_button.add_theme_color_override("font_color", UIStyle.GOLD)
-	_button.add_theme_color_override("font_hover_color", Color.WHITE)
-	_button.add_theme_color_override("font_disabled_color", UIStyle.DIM_TEXT)
-	_button.add_theme_stylebox_override("normal", UIStyle.panel(UIStyle.LIGHT_BACKGROUND, UIStyle.GOLD.darkened(0.25), 2))
-	_button.add_theme_stylebox_override("hover", UIStyle.panel(Color(0.2, 0.17, 0.1), UIStyle.GOLD, 2))
-	_button.add_theme_stylebox_override("pressed", UIStyle.panel(Color(0.3, 0.24, 0.1), Color.WHITE, 2))
-	_button.add_theme_stylebox_override("disabled", UIStyle.panel(UIStyle.BACKGROUND, UIStyle.BORDER, 2))
+	UIStyle.button(_button, 16)
 	_button.pressed.connect(start)
 	baseboard.add_child(_button)
 	column.add_child(baseboard)
@@ -167,7 +165,7 @@ func _draw_team_slot(c: Control) -> void:
 	var i: int = c.get_meta("index")
 	var r := Rect2(Vector2.ZERO, c.size)
 	if i >= _max:
-		# vaga fechada neste andar: um cadeado
+		# vaga fechada nesta missão: um cadeado
 		c.draw_rect(r, Color(0, 0, 0, 0.55))
 		c.draw_rect(r, Color(1, 1, 1, 0.06), false, 1.0)
 		var middle := r.get_center()
@@ -176,7 +174,7 @@ func _draw_team_slot(c: Control) -> void:
 		c.draw_rect(Rect2(middle + Vector2(-7, -14), Vector2(3, 10)), color)
 		c.draw_rect(Rect2(middle + Vector2(4, -14), Vector2(3, 10)), color)
 		c.draw_rect(Rect2(middle + Vector2(-7, -16), Vector2(14, 3)), color)
-		UIStyle.text(c, Vector2(0, middle.y + 34), "Fechada neste andar", 10, Color(1, 1, 1, 0.3), r.size.x, HORIZONTAL_ALIGNMENT_CENTER)
+		UIStyle.text(c, Vector2(0, middle.y + 34), "Fechada nesta missão", 10, Color(1, 1, 1, 0.3), r.size.x, HORIZONTAL_ALIGNMENT_CENTER)
 		return
 	var id := team[i] if i < team.size() else ""
 	if id == "":
@@ -253,7 +251,7 @@ func _draw_card(c: Control) -> void:
 
 func _draw_hints(c: Control) -> void:
 	var x := 0.0
-	for item in [[["←", "→"], "escolher"], [["Espaço"], "adicionar / remover"], [["Enter"], "começar"], [["Esc"], "andares"]]:
+	for item in [[["←", "→"], "escolher"], [["Espaço"], "adicionar / remover"], [["Enter"], "começar"], [["Esc"], "mapa"]]:
 		for t: String in item[0]:
 			UIStyle.key(c, Vector2(x + 1, 1), t)
 			x += maxf(13.0, 7.0 * t.length() + 6.0) + 4
@@ -294,7 +292,7 @@ func _build_sheet() -> void:
 	top.add_child(portrait)
 	var names := VBoxContainer.new()
 	names.add_theme_constant_override("separation", 0)
-	names.add_child(UIStyle.label(data.name, 20, UIStyle.ALLY.lightened(0.35), 5))
+	names.add_child(UIStyle.heading(data.name, 16, UIStyle.ALLY.lightened(0.35), 5))
 	var origin_line := HBoxContainer.new()
 	origin_line.add_theme_constant_override("separation", 6)
 	origin_line.add_child(UIStyle.label(data.origin, 11, UIStyle.DIM_TEXT))
@@ -343,7 +341,7 @@ func _build_sheet() -> void:
 		grid.add_child(h)
 	_detail.add_child(grid)
 
-	_detail.add_child(UIStyle.label("HABILIDADES", 9, UIStyle.DIM_TEXT, 2))
+	_detail.add_child(UIStyle.heading("HABILIDADES"))
 	# a lista ocupa o que sobra da ficha e rola: assim a ficha nunca empurra
 	# o rodapé (e o botão de começar) para fora da tela
 	var scroll := ScrollContainer.new()
@@ -425,12 +423,29 @@ func start() -> void:
 
 func _refresh() -> void:
 	_counter.text = "%d/%d" % [team.size(), _max]
+	_refresh_synergy()
 	_button.disabled = team.is_empty()
 	for c in _summon_slots + _cards:
 		c.queue_redraw()
 	if _detail.get_meta("id", "") != _ids[_cursor]:
 		_detail.set_meta("id", _ids[_cursor])
 		_build_sheet()
+
+
+## Mostra os bônus que a equipe já começou: dourado quando fecha, apagado
+## com quanto falta enquanto não.
+func _refresh_synergy() -> void:
+	var parts: Array[String] = []
+	var closed := false
+	for s: Dictionary in Synergies.LIST:
+		var n := Synergies.members(s, team)
+		if n >= s.count:
+			closed = true
+			parts.append("%s  %s" % [s.name.to_upper(), s.description])
+		elif n > 0:
+			parts.append("%s  %d/%d de %s" % [s.name, n, s.count, s.universe])
+	_synergy.text = "   •   ".join(parts)
+	_synergy.add_theme_color_override("font_color", UIStyle.GOLD if closed else UIStyle.DIM_TEXT)
 
 
 func _process(delta: float) -> void:

@@ -7,7 +7,7 @@ extends RefCounted
 ## Nem a batalha, nem a HUD, nem a Progression precisam mudar.
 
 const MAX_TEAM := 3
-const IDS: Array[String] = ["shumi", "andri", "askara", "clairin"]
+const IDS: Array[String] = ["shumi", "andri", "askara", "clairin", "lia"]
 
 ## Por enquanto, todos começam liberados, mesmo quem tem "starts_unlocked": false
 ## (que continua no cadastro para a história voltar a valer). Os testes da
@@ -68,7 +68,7 @@ static func data(id: String) -> Dictionary:
 				"actions": AskaraActions,
 				# invocadora: frágil e com pouco ATQ próprio; as invocações copiam
 				# os atributos dela, então crescem junto
-				"growth": {"hp": 45, "atk": 6.0, "def": 2.0, "spd": 1.0},
+				"growth": {"hp": 42, "atk": 6.0, "def": 2.0, "spd": 1.0},
 				"sprite": {
 					"png": "res://characters/askara/askara_spritesheet.png",
 					"json": "res://characters/askara/askara_spritesheet.json",
@@ -93,6 +93,24 @@ static func data(id: String) -> Dictionary:
 					"foot": Vector2(16, 38),
 					"height": 32.0,
 					"face": Rect2(8, 5, 16, 16),
+				},
+			}
+		"lia":
+			return {
+				"name": "Lia Moonlight",
+				"origin": "Escolhida de Elune",
+				"universe": "Tales of Azeroth",
+				"rules": Lia,
+				"actions": LiaActions,
+				# curandeira de armadura: HP e DEF crescem bem para ela ficar de pé
+				# curando; o ATQ quase não importa, porque as curas não dependem dele
+				"growth": {"hp": 55, "atk": 5.0, "def": 3.0, "spd": 0.5},
+				"sprite": {
+					"png": "res://characters/lia/lia_spritesheet.png",
+					"json": "res://characters/lia/lia_spritesheet.json",
+					"foot": Vector2(16, 38),
+					"height": 32.0,
+					"face": Rect2(8, 4, 16, 16),
 				},
 			}
 	push_error("personagem desconhecido: " + id)
