@@ -300,4 +300,6 @@ A documentação técnica está em [`docs/`](docs/README.md): arquitetura, comba
 
 ## ©️ Direitos e uso dos personagens
 
+**Projeto de fã, sem fins lucrativos.** Tower of Realms é um projeto pessoal de estudo de desenvolvimento de jogos. Não é vendido nem monetizado de nenhuma forma. Alguns personagens e cenários fazem referência a obras de terceiros, como *Dragon Ball*, *JoJo's Bizarre Adventure* e *Warcraft*. Essas obras, seus nomes e marcas pertencem aos seus donos, e este projeto não tem nenhum vínculo com eles nem o aval deles. Se algum detentor de direitos quiser que algo seja retirado, basta entrar em contato.
+
 Os personagens do jogo são inspirados em RPGs de diferentes cenários. Usá-los para qualquer coisa requer a minha permissão, que pode ser pedida pelo GitHub: [@GuilhermeAndreotti](https://github.com/GuilhermeAndreotti).
