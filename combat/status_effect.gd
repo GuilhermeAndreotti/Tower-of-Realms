@@ -29,6 +29,9 @@ var damage_reduction := 0.0  ## fração cortada de todo golpe recebido (0..1)
 ## O estado acaba no primeiro golpe que o portador recebe (depois de valer
 ## nele), como a proteção do Lord Azeroth da Lia.
 var consumed_by_hit := false
+## Contador do kit que aplicou o estado (as Geadas do Daimon). A regra fica
+## no kit; aqui só fica guardado no alvo, junto do nome e do rótulo.
+var stacks := 0
 
 ## Dano adicional nos golpes do portador: {"type", "mult", "proportional"
 ## (mult relativo ao do golpe), "consumes" (o estado acaba ao disparar)}.

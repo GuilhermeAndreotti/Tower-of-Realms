@@ -25,6 +25,9 @@ extends SceneTree
 ##  - Lia: Lord Azeroth quando um inimigo avisa o Golpe Pesado ou o laser, ou
 ##    com alguém da equipe abaixo de 40%; Nova Sagrada com 2+ aliados abaixo
 ##    de 75%; Curar Ferimentos em quem estiver abaixo de 55%; se não, Espadito.
+##  - Daimon: mirando, segura até o nível 3 (ou até a janela da Cold abrir) e
+##    dispara; sem mirar, Zero Absoluto na janela; Mira Fria com 2+ pontos num
+##    alvo com mais de 60% do HP; Bala Congelante com ponto; se não, Disparo.
 
 const SPEED := 40.0  ## Engine.time_scale durante a simulação
 const TIME_LIMIT := 600.0  ## segundos de jogo por batalha (com a escala)
@@ -158,6 +161,9 @@ func _pilot() -> void:
 	elif a is Lia:
 		_turns += 1
 		_pilot_lia(a as Lia)
+	elif a is Daimon:
+		_turns += 1
+		_pilot_daimon(a as Daimon, target)
 	elif a is Andri:
 		var an := a as Andri
 		_turns += 1
@@ -247,6 +253,25 @@ func _pilot_lia(l: Lia) -> void:
 		b.ally_target = worst
 		b.request_action("skill")
 		b.confirm_choice()
+	else:
+		b.request_action("basic")
+
+
+func _pilot_daimon(d: Daimon, target: Enemy) -> void:
+	var b := _battle
+	if d.aiming():
+		b.request_action("skill2")
+		b.select_option(1 if d.aim_level >= Daimon.AIM_MULTS.size() or d.in_cold() else 0)  # Disparar / Segurar
+		if not b.confirm_choice():
+			b.cancel_choice()
+			b.request_action("basic")
+		return
+	if d.can_use("ult", b.points) and d.in_cold():
+		b.request_action("ult")
+	elif d.can_use("skill2", b.points) and b.points >= 2 and target.hp > target.max_hp * 0.6:
+		b.request_action("skill2")
+	elif b.points >= 1:
+		b.request_action("skill")
 	else:
 		b.request_action("basic")
 

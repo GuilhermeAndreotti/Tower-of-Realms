@@ -70,7 +70,7 @@ docs/          esta documentação
 
 Cada pasta é uma feature: a cena, o script e a arte dela ficam juntos, e o que só ela usa não sai de lá. O que várias telas usam (estilo, barras, cartão de habilidade) fica em `ui/`.
 
-O visual da interface sai todo de `UIStyle`: cores, fontes, `panel()` (a moldura de pixel, `PixelFrame`), `button()` e `heading()`. As fontes são pixeladas e só ficam nítidas na grade em que foram desenhadas (monogram em 16, Silkscreen em 8); `UIStyle` fixa esse tamanho com escala inteira, então qualquer `font_size` cai na grade (de 9 a 23 sai em 16 na monogram; de 24 em diante, em 32). Para um texto maior de verdade, peça 24 ou mais. Os glifos `▸` e `·` não existem ou saem tortos nessas fontes: use `>` e `•`.
+O visual da interface sai todo de `UIStyle`: cores, fontes, `panel()` (a moldura de pixel, `PixelFrame`), `button()` e `heading()`. As fontes são pixeladas e só ficam nítidas na grade em que foram desenhadas (monogram em 16, Silkscreen em 8); `UIStyle` fixa esse tamanho com escala inteira, então qualquer `font_size` cai na grade (de 9 a 23 sai em 16 na monogram; de 24 em diante, em 32). Para um texto maior de verdade, peça 24 ou mais. Os glifos `▸` e `·` não existem ou saem tortos nessas fontes: use `>` e `•`. As teclas mostradas na tela saem de `UIStyle.key()`, que recorta a folha `ui/input_prompts.png` (Input Prompts Pixel, do Kenney, CC0); quem enfileira teclas mede com `UIStyle.key_width()`. Tecla que a folha não tem vira uma tecla lisa com o nome escrito; para trocar o desenho de uma tecla, mude a tabela em `UIStyle`, não a folha.
 
 As cenas montam a interface por código no `_ready()`; os `.tscn` só apontam para o script e ficam na pasta da feature.
 

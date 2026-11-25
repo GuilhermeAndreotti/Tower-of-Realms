@@ -12,7 +12,7 @@ Cada arquivo é um `SceneTree` que roda, imprime `ok` ou `FALHOU` por verificaç
 
 | Arquivo                     | Cobre                                                                                   |
 | --------------------------- | --------------------------------------------------------------------------------------- |
-| `tests/test_combat.gd`      | fila, dano, tipos, estados, componentes do lutador (`Health`, `StatusEffects`, `Cooldowns`, `FighterBar`), fases da batalha (`Battle.Phase`), kits da Shumi, do Andri, da Àskara, do Clairin e da Lia (com as skills 2, a recarga e o ataque em conjunto), invocações e últimos atos (também numa batalha de verdade), último recurso dos inimigos e escudo na barra de HP (Ferro Negro no andar 5), segunda forma (o Golem Incandescente: despertar, absorção e laser, também numa batalha de verdade), bônus de equipe (Por Azeroth!, também numa batalha de verdade), descrição para a HUD, equipe, READMEs dos personagens em dia |
+| `tests/test_combat.gd`      | fila, dano, tipos, estados, componentes do lutador (`Health`, `StatusEffects`, `Cooldowns`, `FighterBar`), fases da batalha (`Battle.Phase`), kits da Shumi, do Andri, da Àskara, do Clairin, da Lia e do Daimon (com as skills 2, a recarga, o ataque em conjunto e a Mira Fria segurada por turnos, também numa batalha de verdade), invocações e últimos atos (também numa batalha de verdade), último recurso dos inimigos e escudo na barra de HP (Ferro Negro no andar 5), segunda forma (o Golem Incandescente: despertar, absorção e laser, também numa batalha de verdade), bônus de equipe (Por Azeroth!, também numa batalha de verdade), descrição para a HUD, equipe, READMEs dos personagens em dia |
 | `tests/test_progression.gd` | curva, limite da Torre, atributos por nível, desbloqueio, save, recompensa na batalha real |
 | `tests/test_tower.gd`       | andares e missões secundárias, ritmo de XP, liberação, eventos, descrições sem mecânica, mapa da Torre (clique nos círculos, ficha sem spoiler) e montagem da equipe, apresentação no saguão |
 | `tests/test_lobby.gd`       | saguão montado de verdade: colisão, caminhos, foco, diálogo, porta, estados do saguão e da Caoimhe |
@@ -57,8 +57,21 @@ Sem cenários, roda cada andar um nível abaixo do recomendado, no recomendado e
 | `tools/generate_clairin.py`    | gera as duas spritesheets do Clairin (normal e Lorde da Chama Frenética) e os ícones, a partir de `characters/clairin/originals/` (a folha original tem um quadro deslocado; o gerador alinha pelos pés) |
 | `tools/generate_logo.py`          | gera a logo do jogo (`logo.png`), usada no menu inicial e no README              |
 | `tools/generate_lia.py`           | gera a spritesheet e os ícones da Lia a partir do quadro único em `characters/lia/originals/` (a espada é recortada e redesenhada erguida e deitada, para conjurar e para a estocada) |
+| `tools/generate_daimon.py`        | gera a spritesheet e os ícones do Daimon a partir do sprite parado em `characters/daimon/originals/` (o rifle, a Stand Cold, é desenhado no gerador; ele imprime a ponta do cano, usada em `DaimonActions.MUZZLE`) |
 | `tools/generate_tower_map.py`     | gera o fundo do mapa da Torre (céu, montanhas e a Torre em corte, sem andares marcados) e os círculos de missão; a tela desenha o caminho e os círculos por cima, com o eixo da Torre em `FloorSelect.TOWER_AXIS` |
 | `tools/generate_placeholder_art.py` | gera a arte provisória (inimigos, inclusive o Golem de Pedra nas duas formas e o Elemental de Fogo, os cenários comum e da forja, onda do Engo-ji) e os ícones da passiva e do Bang! da Shumi |
 | `../Shumi/gerar_spritesheet.py`   | fora do projeto: gera a spritesheet da Shumi a partir de `Shumi.png` e, com `kokoro.png shumi_kokoro`, a do visual Kokoro (usado no Bang!); copie o PNG e o JSON de `spritesheet/` para `characters/shumi/` |
 
 Os geradores usam Python 3 com Pillow e rodam a partir da pasta do projeto (`python3 tools/<nome>.py`). Arte gerada é editada no gerador, não no PNG: senão a próxima geração apaga a mudança.
+
+## Exportar para o navegador
+
+O preset `Web` em `export_presets.cfg` gera a versão de navegador em `build/web/` (fora do Git). Ele usa a variante sem threads, que roda em qualquer hospedagem estática (itch.io, GitHub Pages) sem os cabeçalhos COOP/COEP. Precisa dos templates `web_nothreads_release.zip` e `web_nothreads_debug.zip` do Godot 4.7.2 em `~/.local/share/godot/export_templates/4.7.2.stable/`.
+
+```sh
+mkdir -p build/web && touch build/.gdignore   # o .gdignore impede o Godot de importar a própria exportação
+godot --headless --path . --export-release "Web" build/web/index.html
+python3 -m http.server -d build/web 8000   # abre em http://localhost:8000
+```
+
+Abrir o `index.html` direto do disco (`file://`) não funciona: o navegador bloqueia o carregamento do `.wasm`. No navegador, os saves (`user://`) ficam no armazenamento do próprio navegador (IndexedDB), separados por site.

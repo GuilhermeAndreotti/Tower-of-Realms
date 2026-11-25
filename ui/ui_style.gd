@@ -222,34 +222,90 @@ static func _rounded_outline(ci: CanvasItem, r: Rect2, color: Color, radius: int
 			ci.draw_rect(Rect2(corner, Vector2.ONE), color)
 
 
-## Selo de tecla (ex.: "Q"): quadradinho claro com a letra escura.
+## Teclas do pacote Input Prompts Pixel, do Kenney (CC0, licença ao lado):
+## folha de tiles de 16x16 em que cada tecla clara tem a versão apagada 8
+## linhas abaixo. O desenho da tecla começa 1 px para dentro do tile e tem 14
+## de altura; o mouse ocupa o tile inteiro na altura.
+const PROMPTS := preload("res://ui/input_prompts.png")
+const PROMPT_TILE := 16
+const PROMPT_DARK_ROWS := 8
+const KEY_INK := Color8(67, 74, 95)  ## letra da tecla clara (a da folha)
+const DARK_KEY_INK := Color8(220, 225, 231)  ## letra da tecla apagada
+
+## Tecla -> Vector3i(coluna, linha, largura do desenho) na folha. O Enter não
+## está aqui: a folha só tem o Enter de duas linhas, então ele é montado.
+static var _key_tiles := _build_key_tiles()
+
+
+static func _build_key_tiles() -> Dictionary:
+	var tiles := {}
+	var rows := ["1234567890", "QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
+	var first_column := [17, 17, 18, 19]
+	for i in rows.size():
+		for j in rows[i].length():
+			tiles[rows[i][j]] = Vector3i(first_column[i] + j, i + 1, 13)
+	for n in range(1, 13):
+		tiles["F%d" % n] = Vector3i(17 + n, 0, 13 if n < 10 else 14)
+	tiles.merge({
+		"Esc": Vector3i(17, 0, 14),
+		"Espaço": Vector3i(17, 4, 13),
+		"↑": Vector3i(30, 4, 13),
+		"→": Vector3i(31, 4, 13),
+		"↓": Vector3i(32, 4, 13),
+		"←": Vector3i(33, 4, 13),
+		"Tab": Vector3i(19, 5, 21),
+		"Del": Vector3i(21, 5, 21),
+		"Alt": Vector3i(17, 5, 21),
+		"Ctrl": Vector3i(17, 6, 25),
+		"Shift": Vector3i(17, 7, 30),
+	})
+	return tiles
+
+
+## Largura que a tecla ocupa a partir de `pos`, para quem enfileira teclas.
+static func key_width(letter: String) -> float:
+	if letter == "mouse":
+		return 12.0
+	if letter == "Enter":
+		return 21.0
+	if _key_tiles.has(letter):
+		return float(_key_tiles[letter].z)
+	return maxf(13.0, TITLE_FONT.get_string_size(letter.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x + 7)
+
+
+## Selo de tecla (ex.: "Q"), com o canto de cima à esquerda em `pos` e 14 de
+## altura (de pos.y - 1 a pos.y + 13). `active` falso: a tecla apagada.
 static func key(ci: CanvasItem, pos: Vector2, letter: String, active := true) -> void:
-	var w := maxf(13.0, 7.0 * letter.length() + 6.0)
-	var r := Rect2(pos, Vector2(w, 13))
-	rounded_rect(ci, r.grow(1), Color.BLACK, 2)
-	rounded_rect(ci, r, Color(0.9, 0.88, 0.95) if active else Color(0.4, 0.4, 0.46), 1)
-	ci.draw_rect(Rect2(r.position + Vector2(1, r.size.y - 2), Vector2(w - 2, 1)), Color(0.55, 0.52, 0.65) if active else Color(0.28, 0.28, 0.33))
-	ci.draw_rect(Rect2(r.position + Vector2(2, r.size.y - 1), Vector2(w - 4, 1)), Color(0.55, 0.52, 0.65) if active else Color(0.28, 0.28, 0.33))
-	var ink := Color(0.08, 0.07, 0.12)
-	if ARROWS.has(letter):
-		_arrow(ci, r.position + Vector2(roundf(w / 2), 5), ARROWS[letter], ink)
+	var dark := 0 if active else PROMPT_DARK_ROWS
+	var tile := pos + Vector2(-1, -2)  # o desenho começa 1 px para dentro do tile
+	if letter == "mouse":
+		ci.draw_texture_rect_region(PROMPTS, Rect2(pos + Vector2(-2, -2), Vector2.ONE * PROMPT_TILE),
+			Rect2(Vector2(8, 3 if dark else 2) * PROMPT_TILE, Vector2.ONE * PROMPT_TILE))
 		return
-	ci.draw_string(font(), pos + Vector2(0, 10), letter, HORIZONTAL_ALIGNMENT_CENTER, w, 10, ink)
+	if _key_tiles.has(letter):
+		var t: Vector3i = _key_tiles[letter]
+		var size := Vector2(ceili((t.z + 1) / float(PROMPT_TILE)) * PROMPT_TILE, PROMPT_TILE)
+		ci.draw_texture_rect_region(PROMPTS, Rect2(tile, size), Rect2(Vector2(t.x, t.y + dark) * PROMPT_TILE, size))
+		return
+	var w := key_width(letter)
+	_blank_key(ci, pos, w, dark)
+	if letter == "Enter":
+		# a seta ↵ do Enter de duas linhas, no meio da tecla lisa
+		ci.draw_texture_rect_region(PROMPTS, Rect2(tile + Vector2(1 + floorf((w - 7) / 2), 3), Vector2(7, 5)),
+			Rect2(Vector2(32, 3 + dark) * PROMPT_TILE + Vector2(4, 3), Vector2(7, 5)))
+		return
+	# a Silkscreen em maiúsculas tem o tamanho das letras da folha
+	ci.draw_string(TITLE_FONT, pos + Vector2(0, 7), letter.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, w, 8, DARK_KEY_INK if dark else KEY_INK)
 
 
-## As setas da monogram são miúdas demais para a tecla: são desenhadas.
-const ARROWS := {"←": Vector2.LEFT, "→": Vector2.RIGHT, "↑": Vector2.UP, "↓": Vector2.DOWN}
-
-
-## Seta de pixel (ponta de 3 degraus + haste) centrada em `c`.
-static func _arrow(ci: CanvasItem, c: Vector2, direction: Vector2, color: Color) -> void:
-	var side := Vector2(-direction.y, direction.x)
-	for i in 3:
-		var tip := c + direction * (2 - i)
-		for j in range(-i, i + 1):
-			ci.draw_rect(Rect2(tip + side * j, Vector2.ONE), color)
-	for i in range(1, 4):
-		ci.draw_rect(Rect2(c - direction * i, Vector2.ONE), color)
+## Tecla lisa de largura `w`: a Backspace da folha sem a seta, com a coluna do
+## meio esticada. Base do Enter e das teclas que a folha não tem.
+static func _blank_key(ci: CanvasItem, pos: Vector2, w: float, dark: int) -> void:
+	var tile := pos + Vector2(-1, -2)
+	var source := Vector2(32, 1 + dark) * PROMPT_TILE
+	ci.draw_texture_rect_region(PROMPTS, Rect2(tile, Vector2(4, 16)), Rect2(source, Vector2(4, 16)))
+	ci.draw_texture_rect_region(PROMPTS, Rect2(tile + Vector2(4, 0), Vector2(w - 6, 16)), Rect2(source + Vector2(16, 0), Vector2(1, 16)))
+	ci.draw_texture_rect_region(PROMPTS, Rect2(tile + Vector2(w - 2, 0), Vector2(4, 16)), Rect2(source + Vector2(28, 0), Vector2(4, 16)))
 
 
 ## Escudo numa barra de HP de retângulo `r` (borda incluída): contorno azul

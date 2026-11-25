@@ -217,8 +217,9 @@ func _test_unlock() -> void:
 	Progression.grant_xp("shumi", 250)
 	Progression.grant_xp("askara", 250)
 	Progression.grant_xp("clairin", 250)
+	Progression.grant_xp("daimon", 250)
 	check(Progression.saved_team().is_empty() and Progression.unlock("andri").level == 3,
-		"sem equipe salva: média dos liberados (Shumi, Askara e Clairin no 3)")
+		"sem equipe salva: média dos liberados (Shumi, Askara, Clairin e Daimon no 3)")
 	_clear()
 	Progression._store("shumi", {"level": 8, "xp": 0})
 	Roster.set_team(["shumi"])

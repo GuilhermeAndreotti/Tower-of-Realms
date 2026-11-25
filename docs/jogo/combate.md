@@ -29,6 +29,8 @@ dano = ATQ × mult × efetividade × 100 / (100 + DEF)   × (1 − redução)   
 
 A redução vem dos estados do alvo (`damage_reduction`, como a resistência do Lorde da Luz), somada e limitada a 90%.
 
+A DEF do alvo pode ser reduzida só contra um atacante: `attacker.defense_ignored(target)` devolve a fração da DEF que os golpes dele ignoram (a Geada do Daimon). Os outros aliados acertam a DEF inteira.
+
 - Mínimo de 1. `calculate_damage()` recebe a variação e o crítico de fora, para os testes fixarem os valores.
 - Escudos absorvem antes do HP (`absorb()`); custos próprios, como o dreno do Kaioken, tiram HP direto (`take_damage()`). Na interface, todo escudo aparece na barra de HP como contorno azul com uma faixa do tamanho dele (`UIStyle.shield_outline()`), na HUD e na arena.
 - Golpes adicionais (de estados como o Braço de Thorim) entram como golpes separados e não se encadeiam.
@@ -36,6 +38,8 @@ A redução vem dos estados do alvo (`damage_reduction`, como a resistência do 
 ## Tipos
 
 Cada lutador tem um tipo e ataca com ele, a não ser que a ação diga outro. Multiplicadores: `Types.SUPER` (2) e `Types.NOT_VERY` (0,5), e nada mais. Arcano tem regra própria: recebe 2× de tudo e causa 2× em tudo, menos em Físico. A tabela completa está em [`types.gd`](../../combat/types.gd).
+
+O multiplicador de um golpe sai de `Combatant.strike_effectiveness()`: o do alvo (com as fraquezas criadas), a não ser que o kit do atacante anule a resistência daquele alvo (`resistance_ignored()`; a Geada do Daimon tira o "pouco efetivo" dos tiros dele). Dano e aviso na arena usam a mesma conta.
 
 Os tipos dos inimigos são parte do desenho dos andares (ver [Torre e andares](torre-e-andares.md#encontros)).
 
@@ -48,7 +52,7 @@ Os tipos dos inimigos são parte do desenho dos andares (ver [Torre e andares](t
 
 ## Estados
 
-`StatusEffect` é o efeito temporário genérico: modificadores (`mods` de ATQ, DEF, VEL, crítico, dano causado e cura feita), fraqueza, escudo, vida extra, atraso, provocação, redução de dano, golpe extra e estado aplicado ao acertar. Um por id; aplicar de novo renova. A duração conta turnos do portador. Com `consumed_by_hit`, o estado acaba também no primeiro golpe que o portador recebe, depois de valer nele (a proteção do Lord Azeroth da Lia: `apply_damage()` chama `Combatant.spend_hit_statuses()` e o registro avisa que ela se desfez).
+`StatusEffect` é o efeito temporário genérico: modificadores (`mods` de ATQ, DEF, VEL, crítico, dano causado e cura feita), fraqueza, escudo, vida extra, atraso, provocação, redução de dano, golpe extra e estado aplicado ao acertar. Um por id; aplicar de novo renova. A duração conta turnos do portador. Um kit pode guardar um contador no estado com `stacks` (as Geadas do Daimon); a regra do contador fica no kit. Com `consumed_by_hit`, o estado acaba também no primeiro golpe que o portador recebe, depois de valer nele (a proteção do Lord Azeroth da Lia: `apply_damage()` chama `Combatant.spend_hit_statuses()` e o registro avisa que ela se desfez).
 
 Invariante: modificadores temporários entram em `bonus()` e nos estados; os atributos de nível ficam em `base_atk`, `base_def`, `base_spd` e `max_hp` (ver [Progressão](progressao.md#atributos)). Nunca some bônus direto nesses campos.
 
@@ -84,7 +88,7 @@ A batalha não sabe que invocações existem em cada kit: tudo vem da `Summon` q
 
 ## Inimigos
 
-`Enemy` sorteia o alvo entre os aliados em campo, pelo peso de cada um (`target_weight()`: 1 mais a provocação dos estados). Com `heavy_strike_every > 0`, a cada N ações solta um Golpe Pesado (1,8×), avisado uma ação antes. Os valores de cada inimigo vêm do andar (ver [Torre e andares](torre-e-andares.md)).
+`Enemy` sorteia o alvo entre os aliados em campo, pelo peso de cada um (`target_weight()`: 1 mais a provocação dos estados). Com `heavy_strike_every > 0`, a cada N ações solta um Golpe Pesado (1,8×), avisado uma ação antes. Os valores de cada inimigo vêm do andar (ver [Torre e andares](torre-e-andares.md)). Quando um Golpe Pesado (ou o laser em toda a equipe) acerta um aliado que segue de pé, a batalha chama `Combatant.on_heavy_strike()` com o HP que ele perdeu; o kit pode reagir e devolver a linha do registro e um aviso curto na arena (a Mira Fria do Daimon cai um nível; um escudo que absorve o golpe inteiro a protege).
 
 **Último recurso** (`last_resort`, como o Ferro Negro do andar 5): quando um golpe deixa o inimigo de pé abaixo da fração `below` do HP, ele ganha um escudo (um `StatusEffect`) uma vez por luta. A regra é `Enemy.activate_last_resort()`; a batalha chama depois de cada golpe (`apply_damage()`), aplica o escudo e anuncia no meio da tela ("Ferro Negro ativado"). Golpe que mata direto não ativa.
 

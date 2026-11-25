@@ -8,7 +8,9 @@
 
 ![Shumi disparando o Engo-ji Beam](docs/capturas/engo-ji-beam.png)
 
-> ⚠️ **Protótipo.** Por enquanto existem cinco andares e três personagens jogáveis. Os inimigos, o cenário e alguns efeitos usam arte provisória.
+> ⚠️ **Protótipo.** Por enquanto existem cinco andares (com missões secundárias) e seis personagens jogáveis. Os inimigos, alguns cenários e efeitos usam arte provisória.
+
+🌐 **Jogue no navegador:** [guilhermeandreotti.github.io/tower](https://guilhermeandreotti.github.io/tower/)
 
 ---
 
@@ -18,12 +20,14 @@
 - [Sistema de combate](#️-sistema-de-combate)
 - [A Torre](#-a-torre)
 - [Níveis e experiência](#-níveis-e-experiência)
-- [Personagens](#-personagens): [Shumi](characters/shumi/README.md) · [Andri](characters/andri/README.md) · [Àskara](characters/askara/README.md) · [Clairin](characters/clairin/README.md) · [Lia Moonlight](characters/lia/README.md)
+- [Personagens](#-personagens): [Shumi](characters/shumi/README.md) · [Andri](characters/andri/README.md) · [Àskara](characters/askara/README.md) · [Clairin](characters/clairin/README.md) · [Lia Moonlight](characters/lia/README.md) · [Daimon](characters/daimon/README.md)
 - [Inimigos](#-inimigos)
 - [Rodando o projeto](#-rodando-o-projeto)
 - [Estrutura do projeto](#-estrutura-do-projeto)
 - [Adicionando um personagem](#-adicionando-um-personagem)
 - [Documentação](#-documentação)
+- [Créditos](#-créditos)
+- [Direitos e uso dos personagens](#️-direitos-e-uso-dos-personagens)
 
 ---
 
@@ -92,7 +96,7 @@ Cada lutador tem **um** tipo. Um golpe pode ser **super efetivo (2×)**, **pouco
 ### Habilidades na barra
 Cada personagem mostra na barra, sempre nesta ordem, o básico (Q), a skill (E), a skill 2 (W), a ultimate (R) e, por último, a **passiva**, marcada como PASSIVA e sem tecla. A skill 2 pode ser também uma passiva, como o Último Ato da Àskara, e fica no mesmo lugar. Nomes longos aparecem cortados e correm quando o mouse passa por cima. Passar o mouse sobre qualquer uma abre um cartão acima da barra com o custo, a recarga, o alvo e o elemento, um resumo, uma linha para cada item (demônio, artefato, nível do Kaioken) e, se ela não estiver pronta, o que falta. A montagem da equipe mostra os mesmos cartões.
 
-As duas skills custam 1 ponto de skill cada. A do W tem também **recarga**: depois de usada, só volta alguns turnos depois (3 no Andri, 4 na Shumi), e a barra mostra no ícone quantos turnos faltam.
+As duas skills custam 1 ponto de skill cada. A do W tem também **recarga**: depois de usada, só volta alguns turnos depois (3 no Andri, no Clairin e na Lia; 4 na Shumi e no Daimon), e a barra mostra no ícone quantos turnos faltam.
 
 ### Estados
 Buffs e debuffs (escudo, fraqueza, lentidão etc.) aparecem como ícones com a contagem de turnos acima de cada lutador. Quem tem escudo ganha um **contorno azul na barra de HP**, com uma faixa azul do tamanho do escudo; no painel do personagem da vez, o valor do escudo aparece ao lado do HP (+N).
@@ -163,6 +167,7 @@ Cada personagem tem nível e XP próprios. As regras ficam em `progression/progr
 | Àskara (invocadora) | +42 | +6 | +2 | +1 |
 | Clairin (área) | +55 | +7,5 | +2,5 | +0,5 |
 | Lia Moonlight (curandeira) | +55 | +5 | +3 | +0,5 |
+| Daimon (alvo único) | +50 | +7 | +2 | +1 |
 
 - **Personagem novo:** quem é desbloqueado entra na média de nível da equipe principal, arredondada e limitada ao limite da Torre, com 0 de XP e os atributos dele mesmo nesse nível. A equipe principal é a última montada na seleção. Se ainda não houver uma, conta a média de todos os personagens liberados.
 - **Save:** o nível, a XP, a equipe e os andares vencidos ficam no arquivo do slot (`user://progresso.cfg` no slot 1, `progresso_2.cfg` e `progresso_3.cfg` nos outros). O limite de nível é calculado a partir dos andares vencidos.
@@ -180,6 +185,7 @@ Cada personagem tem uma página própria com atributos e habilidades. Lá, o tex
 | 🟣 | [**Àskara**, invocadora do abismo](characters/askara/README.md) | Nariagari | Trevas | Invocadora: junta Fragmentos d'Alma e os gasta em demônios ou no Lorde Demônio. |
 | 🟠 | [**Clairin**, portador da Chama Frenética](characters/clairin/README.md) | Tales of Azeroth | Fogo | Dano em área: a Chama Frenética fortalece tudo, mas estoura nele se a barra encher. |
 | 🌙 | [**Lia Moonlight**, a Escolhida de Elune](characters/lia/README.md) | Tales of Azeroth | Luz | Curandeira: cura um aliado ou todos e, com o Lord Azeroth, corta 80% do próximo golpe de cada um. |
+| ❄️ | [**Daimon**, usuário da Stand Cold](characters/daimon/README.md) | Deep Bizarre Adventures Part 3 | Gelo | Atirador de alvo único: os tiros da Cold deixam Geada, que abre uma janela de crítico garantido, e a Mira Fria segura o tiro por turnos para ficar mais forte. |
 
 ### Bônus de equipe
 
@@ -218,6 +224,8 @@ cd Tower-of-Realms
 godot --path .          # abre o jogo (ou importe o project.godot no editor)
 ```
 
+A versão de navegador é exportada pelo preset `Web` ([passo a passo](docs/desenvolvimento/testes-e-ferramentas.md)).
+
 ### Testes
 Os testes rodam sem interface e usam um save só deles:
 ```bash
@@ -238,6 +246,7 @@ godot --headless --path . -s tests/test_menu.gd         # introdução, menu ini
 | `tools/generate_askara.py` | Gera a spritesheet e os ícones da Àskara e reduz a arte das invocações para a arena (precisa do Pillow) |
 | `tools/generate_clairin.py` | Gera as duas spritesheets do Clairin (normal e com a cabeça em chamas) e os ícones dele, a partir da folha original (precisa do Pillow) |
 | `tools/generate_lia.py` | Gera a spritesheet da Lia (com a espada recortada e redesenhada para conjurar e para a estocada) e os ícones dela, a partir do sprite original (precisa do Pillow) |
+| `tools/generate_daimon.py` | Gera a spritesheet do Daimon (com a Cold, o rifle, desenhada nas poses de mira e de tiro) e os ícones dele, a partir do sprite original (precisa do Pillow) |
 | `tools/generate_tower_map.py` | Gera o fundo do mapa da Torre e os círculos de missão (precisa do Pillow) |
 | `tools/generate_placeholder_art.py` | Gera a arte provisória (inimigos, inclusive o Golem nas duas formas, os cenários comum e da forja, onda do Engo-ji) e o ícone da passiva da Shumi |
 
@@ -257,7 +266,7 @@ tower/               andares e missões, eventos de história, mapa da Torre e e
 lobby/               saguão: cena, jogador, interagíveis, conversas, caixa de diálogo e arte
 intro/               introdução do jogo novo
 menu/                menu inicial e slots de save
-ui/                  estilo e componentes de interface comuns (barra, cartão de habilidade)
+ui/                  estilo, fontes, teclas e componentes de interface comuns (barra, cartão de habilidade)
 tests/               testes headless da lógica
 tools/               scripts de captura, simulação e geração de assets
 docs/                documentação técnica
@@ -276,3 +285,19 @@ O passo a passo está em [docs/jogo/personagens.md](docs/jogo/personagens.md). A
 ## 📚 Documentação
 
 A documentação técnica está em [`docs/`](docs/README.md): arquitetura, combate, progressão, Torre, saguão, testes e changelog. As mudanças de cada versão ficam no [CHANGELOG](CHANGELOG.md).
+
+---
+
+## 🙏 Créditos
+
+| Recurso | Autor | Licença |
+|---|---|---|
+| Fonte [monogram](ui/fonts/monogram_license.txt) | Vinícius Menézio | MIT |
+| Fonte [Silkscreen](ui/fonts/silkscreen_ofl.txt) | The Silkscreen Project Authors | SIL Open Font License 1.1 |
+| [Input Prompts Pixel](ui/input_prompts_license.txt) (ícones de teclas) | Kenney ([kenney.nl](https://www.kenney.nl)) | CC0 |
+
+---
+
+## ©️ Direitos e uso dos personagens
+
+Os personagens do jogo são inspirados em RPGs de diferentes cenários. Usá-los para qualquer coisa requer a minha permissão, que pode ser pedida pelo GitHub: [@GuilhermeAndreotti](https://github.com/GuilhermeAndreotti).

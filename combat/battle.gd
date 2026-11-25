@@ -533,12 +533,28 @@ func _enemy_turn(foe: Enemy) -> void:
 	await vi.move_to(Vector2(va.position.x + 110, origin.y), 0.25)
 	CombatEffects.impact(world, va.position + Vector2(10, -va.height * 0.5),
 		UIStyle.EFFECT_TYPE_COLORS.alert if strike.heavy else CHARGE_COLOR, 1.4 if strike.heavy else 1.0)
+	var hp_before := victim.hp
 	await apply_damage(foe, victim, strike.mult, strike.type)
 	victim.gain_energy(victim.energy_on_hit)
 	if strike.heavy:
 		shake(8.0)
+		_heavy_strike_landed(victim, hp_before)
 	await wait(0.15)
 	await vi.move_to(origin, 0.3)
+
+
+## Golpe avisado (Golpe Pesado, laser) acertou `victim`: o kit dele pode
+## reagir (Combatant.on_heavy_strike), como a mira do Daimon, que cai um nível.
+func _heavy_strike_landed(victim: Combatant, hp_before: int) -> void:
+	if not victim.is_alive():
+		return
+	var r := victim.on_heavy_strike(hp_before - victim.hp)
+	if r.is_empty():
+		return
+	if r.has("notice"):
+		CombatEffects.number(world, _visuals[victim].top() + Vector2(0, -26), r.notice, "notice")
+	log_line(r.log)
+	refresh()
 
 
 ## `attack_type` é o tipo de dano (Types); "" = o tipo do atacante.
@@ -552,7 +568,7 @@ func apply_damage(attacker: Combatant, victim: Combatant, mult: float, attack_ty
 		attack_type = attacker.type
 	var critical := not extra and randf() < attacker.crit_chance()
 	var damage := Combatant.calculate_damage(attacker, victim, mult, randf(), attack_type, critical)
-	var effectiveness := victim.effectiveness_against(attack_type)
+	var effectiveness := Combatant.strike_effectiveness(attacker, victim, attack_type)
 	var absorbed := victim.absorb(damage)
 	victim.take_damage(damage - absorbed)
 	var spent := victim.spend_hit_statuses()
@@ -649,8 +665,10 @@ func _beam(foe: Enemy, strike: Dictionary) -> void:
 			await wait(arrives - elapsed)
 			elapsed = arrives
 		CombatEffects.impact(world, va.position + Vector2(0, -va.height * 0.5), color, 1.3)
+		var hp_before := victim.hp
 		await apply_damage(foe, victim, strike.mult, strike.type)
 		victim.gain_energy(victim.energy_on_hit)
+		_heavy_strike_landed(victim, hp_before)
 	shake(7.0)
 	await wait(0.4)
 

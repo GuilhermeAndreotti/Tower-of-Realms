@@ -40,6 +40,7 @@ func _init() -> void:
 	_test_second_form()
 	_test_clairin_frenzy()
 	_test_lia()
+	_test_daimon()
 	_test_synergies()
 
 
@@ -52,6 +53,7 @@ func _initialize() -> void:
 	await _test_battle_phases()
 	await _test_clairin_in_battle()
 	await _test_lia_in_battle()
+	await _test_daimon_in_battle()
 	await _test_synergy_in_battle()
 	Progression.delete()
 	print("\n%s (%d falha%s)" % ["TUDO OK" if _failures == 0 else "FALHOU", _failures, "" if _failures == 1 else "s"])
@@ -962,6 +964,60 @@ func _test_lia() -> void:
 	check(target.status("lord_azeroth") == null, "sem golpe, a proteção acaba em 3 turnos")
 
 
+func _test_daimon() -> void:
+	print("daimon: geada, crítico garantido, mira fria e zero absoluto")
+	var d := Daimon.new()
+	check(d.type == Types.ICE and d.max_energy == 120.0, "Daimon é Gelo e usa energia")
+	check(d.skills(0).map(func(h: Dictionary) -> String: return h.key) == ["Q", "E", "W", "R", ""], "barra no padrão: Q, E, W, R e a passiva")
+	var foe := Enemy.new("I", "", 5000, 100, 60, 100)
+	var other := Enemy.new("J", "", 5000, 100, 60, 100)
+	var plain := Combatant.calculate_damage(d, foe, 1.0, 0.5)
+	var r := d.add_frost(foe, Daimon.BASIC_FROST)
+	check(r.added == 1 and Daimon.frost(foe) == 1 and foe.status(Daimon.FROST_ID).short == "G1" and not r.cold, "o Disparo deixa 1 Geada, que aparece no alvo")
+	check(is_equal_approx(d.defense_ignored(foe), Daimon.FROST_DEF) and Combatant.calculate_damage(d, foe, 1.0, 0.5) > plain,
+		"cada Geada tira parte da DEF do alvo contra ele")
+	check(Combatant.calculate_damage(Shumi.new(), foe, 1.0, 0.5) == Combatant.calculate_damage(Shumi.new(), other, 1.0, 0.5),
+		"os outros não aproveitam a Geada")
+	var ember := Enemy.new("K", "", 5000, 100, 60, 100, 0, Types.FIRE)
+	check(Combatant.strike_effectiveness(d, ember, Types.ICE) == Types.NOT_VERY, "sem Geada, o Gelo dele é pouco efetivo no Fogo")
+	d.add_frost(ember, 1)
+	check(Combatant.strike_effectiveness(d, ember, Types.ICE) == 1.0 and Combatant.strike_effectiveness(Andri.new(), ember, Types.ICE) == Types.NOT_VERY,
+		"com Geada, os tiros dele deixam de ser pouco efetivos; os dos outros, não")
+	check(Combatant.strike_effectiveness(d, Enemy.new("L", "", 5000, 100, 60, 100, 0, Types.NATURE), Types.ICE) == Types.SUPER,
+		"a Geada não mexe no que já é super efetivo")
+	check(d.crit_chance() == 0.0, "sem a janela, nada de crítico próprio")
+	r = d.add_frost(foe, Daimon.BULLET_FROST)
+	check(r.cold and Daimon.frost(foe) == Daimon.FROST_MAX and foe.status("slow") != null and d.in_cold() and d.crit_chance() == 1.0,
+		"com 3 Geadas, o alvo fica Lento e o crítico fica garantido")
+	check(d.add_frost(other, 2).added == 0 and Daimon.frost(other) == 0, "na janela, os tiros não deixam Geada")
+	check(not d.end_turn() and d.cold_turns == Daimon.COLD_DURATION, "o turno em que a janela abriu não conta")
+	check(not d.end_turn() and d.cold_turns == 1, "a janela conta os turnos dele")
+	check(d.end_turn() and not d.in_cold() and d.crit_chance() == 0.0, "depois de 2 turnos, o crítico garantido acaba")
+	d.add_frost(other, 1)
+	var cleared := d.clear_full_frost([foe, other])
+	check(cleared == [foe] and Daimon.frost(foe) == 0 and Daimon.frost(other) == 1, "ao acabar, só a Geada máxima zera")
+	check(is_equal_approx(d.zero_mult(other), Daimon.ZERO_MULT + Daimon.ZERO_PER_FROST), "o Zero Absoluto cresce com a Geada do alvo")
+	# Mira Fria
+	check(not d.can_use("skill2", 0) and d.can_use("skill2", 1) and _skill_data(d, "skill2").point_cost == 1, "travar a mira custa 1 ponto")
+	d.start_cooldown("skill2", Daimon.AIM_COOLDOWN)
+	d.start_aim(foe)
+	var aim := _skill_data(d, "skill2", 0)
+	check(d.can_use("skill2", 0) and aim.state == "ready" and not aim.has("point_cost") and aim.on_turn_start and aim.default_option == "hold",
+		"mirando, o W segura ou dispara sem custo e abre sozinho no começo da vez")
+	check(d.predicted_targets("skill2", [other, foe], 0) == [foe], "a prévia mostra o alvo travado")
+	d.hold_aim()
+	check(d.on_heavy_strike(0).is_empty() and d.aim_level == 2, "golpe que não tira HP não abala a mira")
+	check(not d.on_heavy_strike(80).is_empty() and d.aim_level == 1, "Golpe Pesado derruba a mira um nível")
+	check(d.on_heavy_strike(80).is_empty() and d.aim_level == 1, "no nível 1, a mira não cai mais")
+	d.hold_aim()
+	d.hold_aim()
+	d.hold_aim()
+	check(d.aim_level == 3 and _skill_data(d, "skill2", 0).default_option == "fire" and d.invalid_reason("skill2", "hold", foe) != "",
+		"no nível 3, só resta disparar")
+	check(is_equal_approx(d.release_aim(), Daimon.AIM_MULTS[2]) and not d.aiming() and d.aim_target == null, "disparar solta o tiro do nível e baixa a mira")
+	check(not d.can_use("skill2", 3), "depois do tiro, a Mira Fria entra em recarga")
+
+
 func _test_synergies() -> void:
 	print("bônus de equipe (Por Azeroth!)")
 	var azeroth: Array[String] = ["andri", "clairin", "lia"]
@@ -1274,6 +1330,61 @@ func _test_lia_in_battle() -> void:
 	check(s.status("lord_azeroth") == null and l.status("lord_azeroth") != null
 		and b.hud._log_lines.any(func(x: String) -> bool: return "se desfaz" in x),
 		"o golpe recebido gasta só a proteção de quem apanhou, e o registro avisa")
+	b.queue_free()
+	await process_frame
+
+
+func _test_daimon_in_battle() -> void:
+	print("daimon na batalha")
+	Progression.delete()
+	for n in range(1, 3):
+		Progression.mark_floor_cleared(n)
+	Progression.unlock("daimon")
+	Floors.choose(3)
+	Roster.set_team(["daimon", "shumi"])
+	var b: Battle = (load("res://combat/battle.tscn") as PackedScene).instantiate()
+	root.add_child(b)
+	current_scene = b
+	await process_frame
+	for c in b.fighters:
+		c.av = 1e9
+	var d := b.team[0] as Daimon
+	d.av = 0.0  # só ele age
+	await _until(func() -> bool: return b.waiting_for_player)
+	b.points = 3
+	b.target = 0
+	var foe := b.living_enemies()[0]
+	foe.max_hp = 99999
+	foe.hp = 99999
+	b.request_action("skill2")
+	await _until(func() -> bool: return b.waiting_for_player)
+	check(d.aiming() and d.aim_target == foe and Daimon.frost(foe) == 1 and b.points == 2, "o W trava a mira no alvo e já deixa 1 Geada")
+	check(b.phase == Battle.Phase.CHOOSING_OPTION and b._choosing == "skill2", "na vez seguinte, o seletor de Segurar e Disparar abre sozinho")
+	b.target = 1  # trocar o alvo marcado não tira a mira do travado
+	b.confirm_choice()
+	await _until(func() -> bool: return b.waiting_for_player)
+	check(d.aim_level == 2 and Daimon.frost(foe) == 2, "Segurar sobe o nível e gela o alvo travado")
+	b.confirm_choice()
+	await _until(func() -> bool: return b.waiting_for_player)
+	check(d.aim_level == 3 and d.in_cold() and foe.status("slow") != null, "a mira cheia enche a Geada e abre a janela da Cold")
+	var marked := func() -> bool: return b.visual(foe).get_children().any(func(n: Node) -> bool: return n is DaimonActions._ColdMark)
+	check(marked.call(), "o inimigo que encheu a Geada leva a marca da Cold sobre a cabeça")
+	var hp := foe.hp
+	b.confirm_choice()  # no nível 3, o padrão é disparar
+	await _until(func() -> bool: return b.waiting_for_player)
+	check(not d.aiming() and foe.hp < hp and b.hud._log_lines.any(func(x: String) -> bool: return "Crítico!" in x),
+		"o tiro sai no alvo travado e é crítico")
+	check(d.cold_turns == 1, "o tiro gastou um dos 2 turnos da janela")
+	# Golpe Pesado e cancelar
+	d.start_aim(foe)
+	d.hold_aim()
+	b._heavy_strike_landed(d, d.hp + 50)
+	check(d.aim_level == 1 and b.hud._log_lines.any(func(x: String) -> bool: return "abala" in x), "Golpe Pesado abala a mira, e o registro avisa")
+	b.request_action("basic")
+	await _until(func() -> bool: return b.waiting_for_player)
+	check(not d.aiming(), "outra ação baixa a mira")
+	await _until(func() -> bool: return not marked.call())
+	check(not d.in_cold() and not marked.call(), "quando o crítico garantido acaba, a marca some")
 	b.queue_free()
 	await process_frame
 

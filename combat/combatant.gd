@@ -135,7 +135,8 @@ func gain_energy(amount: float) -> void:
 ## fixar o valor. Escudos não entram aqui (ver absorb()).
 static func calculate_damage(attacker: Combatant, target: Combatant, mult: float, variance := 0.5, attack_type := "", critical := false) -> int:
 	var strike_type := attack_type if attack_type != "" else attacker.type
-	var raw := attacker.atk() * mult * target.effectiveness_against(strike_type) * 100.0 / (100.0 + target.defense())
+	var defense := target.defense() * (1.0 - attacker.defense_ignored(target))
+	var raw := attacker.atk() * mult * strike_effectiveness(attacker, target, strike_type) * 100.0 / (100.0 + defense)
 	raw *= 1.0 - target.damage_reduction()
 	raw *= 1.0 + attacker.bonus("damage")
 	if critical:
@@ -161,8 +162,30 @@ func effectiveness_against(strike_type: String) -> float:
 	return Types.effectiveness(strike_type, type)
 
 
+## Multiplicador de tipo de um golpe de `attacker` em `target`: o do alvo
+## (effectiveness_against), sem o "pouco efetivo" quando o kit do atacante
+## anula a resistência daquele alvo (resistance_ignored, a Geada do Daimon).
+static func strike_effectiveness(attacker: Combatant, target: Combatant, strike_type: String) -> float:
+	var e := target.effectiveness_against(strike_type)
+	if e < 1.0 and attacker.resistance_ignored(target):
+		return 1.0
+	return e
+
+
 func crit_chance() -> float:
 	return clampf(bonus("crit"), 0.0, 1.0)
+
+
+## Fração da DEF de `target` que os golpes deste lutador ignoram (0..1),
+## quando o kit enfraquece a defesa só contra ele (a Geada do Daimon).
+func defense_ignored(_target: Combatant) -> float:
+	return 0.0
+
+
+## Se os golpes deste lutador deixam de ser pouco efetivos em `target`
+## (ver strike_effectiveness()).
+func resistance_ignored(_target: Combatant) -> bool:
+	return false
 
 
 ## Fração cortada de todo golpe recebido (resistências dos estados).
@@ -181,6 +204,14 @@ func target_weight() -> float:
 ## como golpe adicional: sem crítico, sem estados de acerto e sem encadear.
 ## Quem ataca junto no kit sobrescreve.
 func follow_up(_attacker: Combatant, _target: Combatant) -> Dictionary:
+	return {}
+
+
+## Um Golpe Pesado (ou golpe avisado em toda a equipe) acabou de acertar
+## este lutador, que segue de pé, e tirou `hp_lost` de HP. Devolve o que
+## isso mudou no kit: {"log" (linha do registro), "notice"? (aviso curto
+## sobre ele na arena)}; {} = nada.
+func on_heavy_strike(_hp_lost: int) -> Dictionary:
 	return {}
 
 

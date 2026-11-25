@@ -83,7 +83,7 @@ func _draw() -> void:
 	if title != "":
 		UIStyle.text(self, Vector2(-100, y - 18), title, 13, color, 200, HORIZONTAL_ALIGNMENT_CENTER)
 	var key := "Enter"
-	var key_width := maxf(13.0, 7.0 * key.length() + 6.0)
+	var key_width := UIStyle.key_width(key)
 	var width := key_width + 5 + f.get_string_size(action, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
 	var x := -width / 2
 	UIStyle.key(self, Vector2(x, y - 10), key)

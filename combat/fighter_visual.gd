@@ -5,7 +5,7 @@ extends Node2D
 ## inimigos de teste usam uma imagem só, animada com tweens.
 
 const SCALE := 3.0
-const LOOPING_ANIMATIONS := ["idle", "walk", "kaioken"]
+const LOOPING_ANIMATIONS := ["idle", "walk", "kaioken", "aim"]
 
 var combatant: Combatant
 var height := 0.0  ## altura do personagem na tela, para barra e números

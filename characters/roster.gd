@@ -7,7 +7,7 @@ extends RefCounted
 ## Nem a batalha, nem a HUD, nem a Progression precisam mudar.
 
 const MAX_TEAM := 3
-const IDS: Array[String] = ["shumi", "andri", "askara", "clairin", "lia"]
+const IDS: Array[String] = ["shumi", "andri", "askara", "clairin", "lia", "daimon"]
 
 ## Por enquanto, todos começam liberados, mesmo quem tem "starts_unlocked": false
 ## (que continua no cadastro para a história voltar a valer). Os testes da
@@ -111,6 +111,25 @@ static func data(id: String) -> Dictionary:
 					"foot": Vector2(16, 38),
 					"height": 32.0,
 					"face": Rect2(8, 4, 16, 16),
+				},
+			}
+		"daimon":
+			return {
+				"name": "Daimon",
+				"origin": "Usuário da Stand Cold",
+				"universe": "Deep Bizarre Adventures Part 3",
+				"rules": Daimon,
+				"actions": DaimonActions,
+				# dano em alvo único: o ATQ cresce quase como o da Shumi, mas fica
+				# um pouco abaixo, porque o crítico garantido e a Geada somam por
+				# cima; frágil e rápido, como um atirador que age antes
+				"growth": {"hp": 50, "atk": 7.0, "def": 2.0, "spd": 1.0},
+				"sprite": {
+					"png": "res://characters/daimon/daimon_spritesheet.png",
+					"json": "res://characters/daimon/daimon_spritesheet.json",
+					"foot": Vector2(11, 38),
+					"height": 31.0,
+					"face": Rect2(3, 7, 16, 16),
 				},
 			}
 	push_error("personagem desconhecido: " + id)

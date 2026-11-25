@@ -76,6 +76,7 @@ const SPOTS := {
 	"askara": [Vector2(505, 168), true],
 	"clairin": [Vector2(562, 128), true],
 	"lia": [Vector2(150, 168), false],
+	"daimon": [Vector2(606, 168), true],  # no canto, junto dos barris, de olho no salão
 }
 const FREE_SPOTS := [Vector2(252, 160), Vector2(150, 168), Vector2(505, 168)]
 ## Onde a Caoimhe aparece: no começo, no centro do tapete, de frente para
